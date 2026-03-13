@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { t, type Lang } from './i18n'
 import './App.css'
 
+const APP_STORE_URL =
+  'https://apps.apple.com/tw/app/%E9%AE%AE%E6%AC%BE%E6%AC%BE/id6758783370?l=en-GB'
+
 function useAnimatedCounter(target: number, duration = 2000) {
   const [count, setCount] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
@@ -85,7 +88,7 @@ function App() {
             </h1>
             <p>{i.hero.description}</p>
             <div className="hero-actions">
-              <button className="btn-primary">{i.hero.cta}</button>
+              <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">{i.hero.cta}</a>
             </div>
           </div>
           <div className="hero-visual">
@@ -256,10 +259,10 @@ function App() {
               <div className="footer-brand">{i.footer.brand}</div>
               <p className="footer-tagline">{i.footer.tagline}</p>
               <div className="store-badges">
-                <div className="store-badge">
+                <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="store-badge">
                   <span className="store-badge-icon">🍎</span>
                   {i.footer.comingSoonIOS}
-                </div>
+                </a>
                 <div className="store-badge">
                   <span className="store-badge-icon">🤖</span>
                   {i.footer.comingSoonAndroid}
