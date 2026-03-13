@@ -5,6 +5,7 @@ import './App.css'
 
 const APP_STORE_URL =
   'https://apps.apple.com/tw/app/%E9%AE%AE%E6%AC%BE%E6%AC%BE/id6758783370'
+const CO2_SAVED_PER_MEAL_FACTOR = 17
 
 function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTMLDivElement | null) => void] {
   const [count, setCount] = useState(0)
@@ -75,7 +76,7 @@ function App() {
   }, [])
 
   const [mealsCount, mealsRef] = useAnimatedCounter(boxesSaved)
-  const [co2Count, co2Ref] = useAnimatedCounter(boxesSaved * 17)
+  const [co2Count, co2Ref] = useAnimatedCounter(boxesSaved * CO2_SAVED_PER_MEAL_FACTOR)
   const [storesCount, storesRef] = useAnimatedCounter(merchantsCount)
   const [usersCount, usersRef] = useAnimatedCounter(fetchedUsersCount)
 
