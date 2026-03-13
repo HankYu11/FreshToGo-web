@@ -3,7 +3,7 @@ import { t, type Lang } from './i18n'
 import './App.css'
 
 const APP_STORE_URL =
-  'https://apps.apple.com/tw/app/%E9%AE%AE%E6%AC%BE%E6%AC%BE/id6758783370?l=en-GB'
+  'https://apps.apple.com/tw/app/%E9%AE%AE%E6%AC%BE%E6%AC%BE/id6758783370'
 
 function useAnimatedCounter(target: number, duration = 2000) {
   const [count, setCount] = useState(0)
