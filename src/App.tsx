@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { t, type Lang } from './i18n'
+import { getImpactStats } from './api'
 import './App.css'
 
 const APP_STORE_URL =
@@ -57,10 +58,26 @@ function App() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const [mealsCount, mealsRef] = useAnimatedCounter(52_340)
+  const [boxesSaved, setBoxesSaved] = useState(52_340)
+  const [merchantsCount, setMerchantsCount] = useState(1_280)
+  const [fetchedUsersCount, setFetchedUsersCount] = useState(38_600)
+
+  useEffect(() => {
+    getImpactStats()
+      .then((stats) => {
+        setBoxesSaved(stats.boxesSaved)
+        setMerchantsCount(stats.merchantsCount)
+        setFetchedUsersCount(stats.usersCount)
+      })
+      .catch(() => {
+        // keep fallback values
+      })
+  }, [])
+
+  const [mealsCount, mealsRef] = useAnimatedCounter(boxesSaved)
   const [co2Count, co2Ref] = useAnimatedCounter(128_500)
-  const [storesCount, storesRef] = useAnimatedCounter(1_280)
-  const [usersCount, usersRef] = useAnimatedCounter(38_600)
+  const [storesCount, storesRef] = useAnimatedCounter(merchantsCount)
+  const [usersCount, usersRef] = useAnimatedCounter(fetchedUsersCount)
 
   const toggleLang = () => setLang(lang === 'zh' ? 'en' : 'zh')
 
