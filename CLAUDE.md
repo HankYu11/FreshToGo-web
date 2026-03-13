@@ -26,4 +26,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Branching & PR Strategy
 
 - Feature and fix branches target **`develop`** (not `main`)
-- Only `develop` → `main` PRs are used to trigger CD for deployment
+- `develop` → `main` PRs are **release PRs** — they trigger CD for production deployment
+  - Title format: `Release: <short summary>`
+  - The PR body must include a summary of all changes since the last release (list merged feature/fix PRs)
+  - Do not squash-merge release PRs; use a merge commit to preserve history
+
+## CI/CD
+
+- **CI** (`.github/workflows/ci.yml`) — Runs lint & build on PRs to `main` (opened/synchronize/reopened)
+- **CD** (`.github/workflows/cd.yml`) — Deploys to Firebase Hosting when a PR to `main` is merged
