@@ -22,3 +22,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `src/App.tsx` — Root component
 - `vite.config.ts` — Vite config with `@vitejs/plugin-react` (Babel-based)
 - `tsconfig.json` — References `tsconfig.app.json` (app code) and `tsconfig.node.json` (tooling)
+
+## Branching & PR Strategy
+
+- Feature and fix branches target **`develop`** (not `main`)
+- Only `develop` → `main` PRs are used to trigger CD for deployment
