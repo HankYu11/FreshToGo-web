@@ -8,6 +8,7 @@ function useAnimatedCounter(target: number, duration = 2000) {
   const animated = useRef(false)
 
   useEffect(() => {
+    animated.current = false
     const el = ref.current
     if (!el) return
 
@@ -103,7 +104,7 @@ function App() {
             </div>
             <div className="floating-card card-2">
               <div className="card-icon orange">💰</div>
-              <span>$120 {lang === 'zh' ? '已省下' : 'saved'}</span>
+              <span>$120 {i.appPreview.mockup.saved}</span>
             </div>
           </div>
         </div>
@@ -171,34 +172,34 @@ function App() {
               <div className="phone-screen">
                 <div className="phone-status-bar">{i.nav.brand}</div>
                 <div className="phone-header">
-                  <h4>{lang === 'zh' ? '附近的驚喜' : 'Nearby Surprises'}</h4>
-                  <p>{lang === 'zh' ? '探索你身邊的美味' : 'Discover delicious deals near you'}</p>
+                  <h4>{i.appPreview.mockup.nearbyTitle}</h4>
+                  <p>{i.appPreview.mockup.nearbySubtitle}</p>
                 </div>
                 <div className="phone-search">
-                  🔍 {lang === 'zh' ? '搜尋店家或餐點...' : 'Search stores or meals...'}
+                  🔍 {i.appPreview.mockup.searchPlaceholder}
                 </div>
                 <div className="phone-cards">
                   <div className="phone-card-item">
                     <div className="phone-card-thumb" style={{ background: '#FFF3E0' }}>🥐</div>
                     <div className="phone-card-info">
-                      <h5>{lang === 'zh' ? '陽光麵包坊' : 'Sunny Bakery'}</h5>
-                      <p>{lang === 'zh' ? '驚喜麵包袋 · 500m' : 'Surprise Bread Bag · 500m'}</p>
+                      <h5>{i.appPreview.mockup.store1Name}</h5>
+                      <p>{i.appPreview.mockup.store1Desc}</p>
                     </div>
                     <div className="phone-card-price">$89</div>
                   </div>
                   <div className="phone-card-item">
                     <div className="phone-card-thumb" style={{ background: '#E8F5E9' }}>🍱</div>
                     <div className="phone-card-info">
-                      <h5>{lang === 'zh' ? '好食光便當' : 'Good Times Bento'}</h5>
-                      <p>{lang === 'zh' ? '驚喜便當袋 · 1.2km' : 'Surprise Bento Bag · 1.2km'}</p>
+                      <h5>{i.appPreview.mockup.store2Name}</h5>
+                      <p>{i.appPreview.mockup.store2Desc}</p>
                     </div>
                     <div className="phone-card-price">$120</div>
                   </div>
                   <div className="phone-card-item">
                     <div className="phone-card-thumb" style={{ background: '#F3E5F5' }}>🍰</div>
                     <div className="phone-card-info">
-                      <h5>{lang === 'zh' ? '甜蜜時光' : 'Sweet Moments'}</h5>
-                      <p>{lang === 'zh' ? '驚喜甜點袋 · 800m' : 'Surprise Dessert Bag · 800m'}</p>
+                      <h5>{i.appPreview.mockup.store3Name}</h5>
+                      <p>{i.appPreview.mockup.store3Desc}</p>
                     </div>
                     <div className="phone-card-price">$99</div>
                   </div>
