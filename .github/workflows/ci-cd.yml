@@ -1,16 +1,15 @@
 name: CI/CD
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
   ci:
     name: Lint & Build
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,16 +30,20 @@ jobs:
 
   cd:
     name: Deploy to Firebase Hosting
-    needs: ci
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
         with:
-          name: dist
-          path: dist
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
