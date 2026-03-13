@@ -75,7 +75,7 @@ function App() {
   }, [])
 
   const [mealsCount, mealsRef] = useAnimatedCounter(boxesSaved)
-  const [co2Count, co2Ref] = useAnimatedCounter(128_500)
+  const [co2Count, co2Ref] = useAnimatedCounter(boxesSaved * 17)
   const [storesCount, storesRef] = useAnimatedCounter(merchantsCount)
   const [usersCount, usersRef] = useAnimatedCounter(fetchedUsersCount)
 
