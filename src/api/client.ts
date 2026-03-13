@@ -1,4 +1,4 @@
-const BASE_URL = 'https://handyla.co'
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://handyla.co'
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
@@ -61,16 +61,16 @@ export const api = {
   get<T>(endpoint: string, options?: RequestOptions) {
     return request<T>(endpoint, { ...options, method: 'GET' })
   },
-  post<T>(endpoint: string, body?: unknown, options?: RequestOptions) {
+  post<T>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'body'>) {
     return request<T>(endpoint, { ...options, method: 'POST', body })
   },
-  put<T>(endpoint: string, body?: unknown, options?: RequestOptions) {
+  put<T>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'body'>) {
     return request<T>(endpoint, { ...options, method: 'PUT', body })
   },
-  patch<T>(endpoint: string, body?: unknown, options?: RequestOptions) {
+  patch<T>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'body'>) {
     return request<T>(endpoint, { ...options, method: 'PATCH', body })
   },
-  delete<T>(endpoint: string, options?: RequestOptions) {
-    return request<T>(endpoint, { ...options, method: 'DELETE' })
+  delete(endpoint: string, options?: RequestOptions): Promise<void> {
+    return request<void>(endpoint, { ...options, method: 'DELETE' })
   },
 }
