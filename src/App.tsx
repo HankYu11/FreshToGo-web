@@ -1,24 +1,33 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { t, type Lang } from './i18n'
 import './App.css'
 
 const APP_STORE_URL =
   'https://apps.apple.com/tw/app/%E9%AE%AE%E6%AC%BE%E6%AC%BE/id6758783370'
 
-function useAnimatedCounter(target: number, duration = 2000) {
+function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTMLDivElement | null) => void] {
   const [count, setCount] = useState(0)
-  const ref = useRef<HTMLDivElement>(null)
-  const animated = useRef(false)
+  const elRef = useRef<HTMLDivElement | null>(null)
+  const animatedRef = useRef(false)
+  const observerRef = useRef<IntersectionObserver | null>(null)
 
   useEffect(() => {
-    animated.current = false
-    const el = ref.current
+    animatedRef.current = false
+  }, [target, duration])
+
+  const ref = useCallback((el: HTMLDivElement | null) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+      observerRef.current = null
+    }
+
+    elRef.current = el
     if (!el) return
 
-    const observer = new IntersectionObserver(
+    observerRef.current = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !animated.current) {
-          animated.current = true
+        if (entry.isIntersecting && !animatedRef.current) {
+          animatedRef.current = true
           const start = performance.now()
           const step = (now: number) => {
             const progress = Math.min((now - start) / duration, 1)
@@ -31,11 +40,10 @@ function useAnimatedCounter(target: number, duration = 2000) {
       },
       { threshold: 0.3 },
     )
-    observer.observe(el)
-    return () => observer.disconnect()
+    observerRef.current.observe(el)
   }, [target, duration])
 
-  return { count, ref }
+  return [count, ref]
 }
 
 function App() {
@@ -49,10 +57,10 @@ function App() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const meals = useAnimatedCounter(52_340)
-  const co2 = useAnimatedCounter(128_500)
-  const stores = useAnimatedCounter(1_280)
-  const users = useAnimatedCounter(38_600)
+  const [mealsCount, mealsRef] = useAnimatedCounter(52_340)
+  const [co2Count, co2Ref] = useAnimatedCounter(128_500)
+  const [storesCount, storesRef] = useAnimatedCounter(1_280)
+  const [usersCount, usersRef] = useAnimatedCounter(38_600)
 
   const toggleLang = () => setLang(lang === 'zh' ? 'en' : 'zh')
 
@@ -227,24 +235,24 @@ function App() {
             <p>{i.impact.subtitle}</p>
           </div>
           <div className="impact-grid">
-            <div className="impact-card" ref={meals.ref}>
+            <div className="impact-card" ref={mealsRef}>
               <div className="impact-icon">🍽️</div>
-              <div className="impact-number">{meals.count.toLocaleString()}+</div>
+              <div className="impact-number">{mealsCount.toLocaleString()}+</div>
               <div className="impact-label">{i.impact.mealsSaved}</div>
             </div>
-            <div className="impact-card" ref={co2.ref}>
+            <div className="impact-card" ref={co2Ref}>
               <div className="impact-icon">🌿</div>
-              <div className="impact-number">{co2.count.toLocaleString()}+</div>
+              <div className="impact-number">{co2Count.toLocaleString()}+</div>
               <div className="impact-label">{i.impact.co2Reduced}</div>
             </div>
-            <div className="impact-card" ref={stores.ref}>
+            <div className="impact-card" ref={storesRef}>
               <div className="impact-icon">🏪</div>
-              <div className="impact-number">{stores.count.toLocaleString()}+</div>
+              <div className="impact-number">{storesCount.toLocaleString()}+</div>
               <div className="impact-label">{i.impact.stores}</div>
             </div>
-            <div className="impact-card" ref={users.ref}>
+            <div className="impact-card" ref={usersRef}>
               <div className="impact-icon">💚</div>
-              <div className="impact-number">{users.count.toLocaleString()}+</div>
+              <div className="impact-number">{usersCount.toLocaleString()}+</div>
               <div className="impact-label">{i.impact.users}</div>
             </div>
           </div>
