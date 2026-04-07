@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://handyla.co'
+import { BASE_URL } from './config'
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
