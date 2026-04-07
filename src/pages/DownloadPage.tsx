@@ -26,7 +26,8 @@ export default function DownloadPage() {
   const platform = detectPlatform()
   const storeUrl = getStoreUrl(platform)
   const [showLanding, setShowLanding] = useState(!storeUrl)
-  const i = t('zh')
+  const lang = /^zh\b/i.test(navigator.language) ? 'zh' : 'en'
+  const i = t(lang)
 
   useEffect(() => {
     // Fire page_visit event (fire-and-forget)

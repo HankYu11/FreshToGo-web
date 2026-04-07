@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { t, type Lang } from '../i18n'
 import { getImpactStats } from '../api'
-import { APP_STORE_URL } from '../constants'
+import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../constants'
 import '../App.css'
 
 function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTMLDivElement | null) => void] {
@@ -111,7 +112,7 @@ export default function HomePage() {
             </h1>
             <p>{i.hero.description}</p>
             <div className="hero-actions">
-              <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">{i.hero.cta}</a>
+              <Link to="/download" className="btn-primary">{i.hero.cta}</Link>
             </div>
           </div>
           <div className="hero-visual">
@@ -286,10 +287,10 @@ export default function HomePage() {
                   <span className="store-badge-icon">🍎</span>
                   {i.footer.comingSoonIOS}
                 </a>
-                <div className="store-badge">
+                <a href={GOOGLE_PLAY_URL} target="_blank" rel="noopener noreferrer" className="store-badge">
                   <span className="store-badge-icon">🤖</span>
                   {i.footer.comingSoonAndroid}
-                </div>
+                </a>
               </div>
             </div>
             <div className="footer-column">
