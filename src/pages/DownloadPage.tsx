@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { trackEvent } from '../api'
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../constants'
@@ -21,16 +21,23 @@ function getStoreUrl(platform: Platform): string | null {
   return null
 }
 
+// Stable across the session — no need to recompute per render
+const platform = detectPlatform()
+const storeUrl = getStoreUrl(platform)
+const lang = /^zh\b/i.test(navigator.language) ? 'zh' : 'en'
+const i = t(lang)
+
 export default function DownloadPage() {
   const [searchParams] = useSearchParams()
-  const platform = detectPlatform()
-  const storeUrl = getStoreUrl(platform)
   const [showLanding, setShowLanding] = useState(!storeUrl)
-  const lang = /^zh\b/i.test(navigator.language) ? 'zh' : 'en'
-  const i = t(lang)
+  const hasFired = useRef(false)
+
+  const query = searchParams.toString()
 
   useEffect(() => {
-    // Fire page_visit event (fire-and-forget)
+    if (hasFired.current) return
+    hasFired.current = true
+
     trackEvent({
       event_type: 'page_visit',
       event_category: 'web',
@@ -44,12 +51,11 @@ export default function DownloadPage() {
     })
 
     if (storeUrl) {
-      // Mobile: attempt redirect, fallback to landing after 2s
       window.location.href = storeUrl
       const timer = setTimeout(() => setShowLanding(true), 2000)
       return () => clearTimeout(timer)
     }
-  }, [searchParams, platform, storeUrl])
+  }, [query]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="download-page">
