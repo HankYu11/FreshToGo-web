@@ -5,6 +5,8 @@ import { getImpactStats } from '../api'
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../constants'
 import '../App.css'
 
+const CO2_SAVED_PER_MEAL_FACTOR = 17
+
 function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTMLDivElement | null) => void] {
   const [count, setCount] = useState(0)
   const elRef = useRef<HTMLDivElement | null>(null)
@@ -74,7 +76,7 @@ export default function HomePage() {
   }, [])
 
   const [mealsCount, mealsRef] = useAnimatedCounter(boxesSaved)
-  const [co2Count, co2Ref] = useAnimatedCounter(128_500)
+  const [co2Count, co2Ref] = useAnimatedCounter(boxesSaved * CO2_SAVED_PER_MEAL_FACTOR)
   const [storesCount, storesRef] = useAnimatedCounter(merchantsCount)
   const [usersCount, usersRef] = useAnimatedCounter(fetchedUsersCount)
 
