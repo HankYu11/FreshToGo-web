@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { t, type Lang } from '../i18n'
 import { getImpactStats } from '../api'
+import appStoreIcon from '../assets/appstore-icon.svg'
+import googlePlayIcon from '../assets/googleplay-icon.svg'
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../constants'
 import '../App.css'
 
@@ -286,11 +288,11 @@ export default function HomePage() {
               <p className="footer-tagline">{i.footer.tagline}</p>
               <div className="store-badges">
                 <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="store-badge">
-                  <span className="store-badge-icon">🍎</span>
+                  <img className="store-badge-icon" src={appStoreIcon} alt="App Store" />
                   {i.footer.comingSoonIOS}
                 </a>
                 <a href={GOOGLE_PLAY_URL} target="_blank" rel="noopener noreferrer" className="store-badge">
-                  <span className="store-badge-icon">🤖</span>
+                  <img className="store-badge-icon" src={googlePlayIcon} alt="Google Play" />
                   {i.footer.comingSoonAndroid}
                 </a>
               </div>
