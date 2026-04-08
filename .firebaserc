@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "freshtogo-e52a1"
+  },
+  "targets": {
+    "freshtogo-e52a1": {
+      "hosting": {
+        "prod": [
+          "freshtogo-e52a1"
+        ],
+        "dev": [
+          "freshtogo-dev"
+        ]
+      }
+    }
   }
 }
