@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { trackEvent } from '../api'
+import appStoreIcon from '../assets/appstore-icon.svg'
+import googlePlayIcon from '../assets/googleplay-icon.svg'
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../constants'
 import { t } from '../i18n'
 import './DownloadPage.css'
@@ -76,7 +78,7 @@ export default function DownloadPage() {
               className="download-btn download-btn-appstore"
               rel="noopener noreferrer"
             >
-              <span className="download-btn-icon">🍎</span>
+              <img className="download-btn-icon" src={appStoreIcon} alt="App Store" />
               {i.download.appStore}
             </a>
             <a
@@ -84,7 +86,7 @@ export default function DownloadPage() {
               className="download-btn download-btn-google"
               rel="noopener noreferrer"
             >
-              <span className="download-btn-icon">▶️</span>
+              <img className="download-btn-icon" src={googlePlayIcon} alt="Google Play" />
               {i.download.googlePlay}
             </a>
           </div>
