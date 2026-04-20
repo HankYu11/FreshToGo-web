@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 const buildHash = Date.now().toString(36)
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     {
@@ -14,4 +14,7 @@ export default defineConfig({
       },
     },
   ],
-})
+  build: {
+    outDir: mode === 'development' ? 'dist/dev' : 'dist/prod',
+  },
+}))
