@@ -45,4 +45,5 @@ src/
 
 - Feature/fix branches target **`develop`**
 - `develop` → `main` is a **release PR** — triggers production deployment to Firebase Hosting
+- Dev site deployment is triggered manually via `workflow_dispatch` (select `dev` environment)
 - CI runs lint & build on all PRs to `main`
