@@ -55,11 +55,12 @@ const translations = {
       users: '環保英雄',
     },
     download: {
-      loading: '正在為你開啟鮮款款...',
+      loading: '正在開啟 App…',
       tagline: '惜食好物，新鮮出清',
       subtitle: '即期不等於過期，好東西值得被珍惜',
       appStore: 'App Store 下載',
       googlePlay: 'Google Play 下載',
+      website: '前往官方網站',
     },
     footer: {
       brand: '鮮款款',
@@ -134,11 +135,12 @@ const translations = {
       users: 'Eco Heroes',
     },
     download: {
-      loading: 'Opening FreshToGo for you...',
+      loading: 'Opening App…',
       tagline: 'Save Food, Save Money',
       subtitle: "Near-expiry doesn't mean expired. Good food deserves to be enjoyed.",
       appStore: 'Download on App Store',
       googlePlay: 'Get it on Google Play',
+      website: 'Visit Official Website',
     },
     footer: {
       brand: 'FreshToGo',
