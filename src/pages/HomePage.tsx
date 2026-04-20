@@ -4,10 +4,9 @@ import { t, type Lang } from '../i18n'
 import { getImpactStats } from '../api'
 import appStoreIcon from '../assets/appstore-icon.svg'
 import googlePlayIcon from '../assets/googleplay-icon.svg'
-import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../constants'
 import '../App.css'
 
-const CO2_SAVED_PER_MEAL_FACTOR = 17
+const CO2_SAVED_PER_MEAL_FACTOR = 2.5
 
 function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTMLDivElement | null) => void] {
   const [count, setCount] = useState(0)
@@ -51,7 +50,7 @@ function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTML
 }
 
 export default function HomePage() {
-  const [lang, setLang] = useState<Lang>('zh')
+  const [lang, setLang] = useState<Lang>(/^zh\b/i.test(navigator.language) ? 'zh' : 'en')
   const [scrolled, setScrolled] = useState(false)
   const i = t(lang)
 
@@ -287,14 +286,14 @@ export default function HomePage() {
               <div className="footer-brand">{i.footer.brand}</div>
               <p className="footer-tagline">{i.footer.tagline}</p>
               <div className="store-badges">
-                <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="store-badge">
+                <Link to="/download?source=footer_ios" className="store-badge">
                   <img className="store-badge-icon" src={appStoreIcon} alt="App Store" />
                   {i.footer.downloadIOS}
-                </a>
-                <a href={GOOGLE_PLAY_URL} target="_blank" rel="noopener noreferrer" className="store-badge">
+                </Link>
+                <Link to="/download?source=footer_android" className="store-badge">
                   <img className="store-badge-icon" src={googlePlayIcon} alt="Google Play" />
                   {i.footer.downloadAndroid}
-                </a>
+                </Link>
               </div>
             </div>
             <div className="footer-column">

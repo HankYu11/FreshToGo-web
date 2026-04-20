@@ -63,7 +63,7 @@ export default function DownloadPage() {
       clearTimeout(timer)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const storeUrl = platform === 'ios' ? APP_STORE_URL : platform === 'android' ? GOOGLE_PLAY_URL : null
   const storeLabel = platform === 'ios' ? i.download.appStore : platform === 'android' ? i.download.googlePlay : null
