@@ -289,11 +289,11 @@ export default function HomePage() {
               <div className="store-badges">
                 <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="store-badge">
                   <img className="store-badge-icon" src={appStoreIcon} alt="App Store" />
-                  {i.footer.comingSoonIOS}
+                  {i.footer.downloadIOS}
                 </a>
                 <a href={GOOGLE_PLAY_URL} target="_blank" rel="noopener noreferrer" className="store-badge">
                   <img className="store-badge-icon" src={googlePlayIcon} alt="Google Play" />
-                  {i.footer.comingSoonAndroid}
+                  {i.footer.downloadAndroid}
                 </a>
               </div>
             </div>

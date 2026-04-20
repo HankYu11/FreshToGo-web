@@ -98,9 +98,26 @@
   color: #fff;
 }
 
+.download-btn-website {
+  background: var(--primary, #00C853);
+  color: #fff;
+}
+
 .download-btn-icon {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+.download-link-website {
+  font-size: 0.95rem;
+  color: var(--text-light, #6b7c6b);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+
+.download-link-website:hover {
+  color: var(--text-medium, #4a5c4a);
 }
 
 @keyframes spin {
