@@ -1,0 +1,3965 @@
+openapi: 3.0.3
+info:
+  title: MysteryBox API
+  description: |
+    MysteryBox is a food waste reduction platform that connects users with discounted mystery boxes of near-expiry food from local merchants.
+
+    ## Authentication
+    - **User endpoints**: Require authentication via `/api/user/line/verify-token` (LINE) or `/api/user/apple/verify-token` (Apple)
+    - **Merchant endpoints**: Require email/password login via `/api/merchant/login`
+
+    Both authentication flows return JWT tokens to use in the Authorization header as `Bearer <token>`.
+  version: 1.0.0
+  contact:
+    name: MysteryBox Team
+
+servers:
+  # Relative URL — Swagger UI sends "Try it out" requests to the same origin that
+  # serves this page (localhost or the dev Cloud Run host). Same-origin means no CORS,
+  # which is why this must be the default. Swagger is only enabled in development, so
+  # the page is never served from production; selecting an absolute cross-origin server
+  # below would be blocked by that server's CORS policy ("Failed to fetch").
+  - url: /
+    description: Current host (default — use this for "Try it out")
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://freshtogo-api-dev-405969899534.asia-east1.run.app
+    description: Dev server (Cloud Run)
+  - url: https://freshtogo-api-405969899534.asia-east1.run.app
+    description: Production server (Cloud Run)
+
+tags:
+  - name: Boxes
+    description: Mystery box browsing
+  - name: User
+    description: User authentication and profile
+  - name: Notifications
+    description: Push notification token management
+  - name: Reservations
+    description: User reservation management
+  - name: Follows
+    description: Follow / unfollow stores and get following list
+  - name: Recommendations
+    description: Community store recommendations and voting (Ambassador Program)
+  - name: Places
+    description: Server-side Google Places proxy (the Google API key never reaches the client)
+  - name: Merchant
+    description: Merchant authentication and management
+  - name: Merchant Orders
+    description: Order management for merchants
+  - name: Stats
+    description: Public platform statistics
+  - name: Events
+    description: Event tracking and analytics
+  - name: Admin Events
+    description: Admin event analytics (stats, funnels)
+  - name: Merchant Events
+    description: Merchant-scoped event analytics
+
+components:
+  securitySchemes:
+    userAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /api/user/line/verify-token or /api/user/apple/verify-token
+    merchantAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /api/merchant/login
+    adminAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /api/admin/login
+    internalApiKey:
+      type: apiKey
+      in: header
+      name: X-Internal-Api-Key
+      description: Secret key for Cloud Scheduler / internal service endpoints
+
+  schemas:
+    ReservationStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - PICKED_UP
+        - CANCELLED
+        - NO_SHOW
+        - EXPIRED
+      description: |
+        Derived reservation lifecycle state.
+        - ACTIVE: confirmed, pickup window has not yet closed
+        - PICKED_UP: customer redeemed the box
+        - CANCELLED: cancelled by consumer, merchant, or admin
+        - NO_SHOW: pickup window expired and batch job has processed it (noShowProcessedAt is set)
+        - EXPIRED: pickup window has ended but batch job has not yet run
+
+    RecommendationStatus:
+      type: string
+      enum:
+        - PENDING
+        - IN_NEGOTIATION
+        - ONBOARDED
+        - REJECTED
+      description: |
+        Lifecycle of a store recommendation. Only PENDING and IN_NEGOTIATION appear in the public
+        listing; ONBOARDED and REJECTED drop out.
+
+    RecommendationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        storeName:
+          type: string
+        storeAddress:
+          type: string
+        reason:
+          type: string
+        placeId:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/RecommendationStatus'
+        voteCount:
+          type: integer
+          format: int64
+        hasVoted:
+          type: boolean
+          description: Whether the calling user has voted for this recommendation
+        isOwnRecommendation:
+          type: boolean
+          description: Whether the calling user authored this recommendation (the client renders own recommendations read-only)
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminRecommendationListItem:
+      type: object
+      description: |
+        Admin view of a recommendation. Unlike RecommendationResponse, it exposes the recommender's
+        identity (id and display name) and omits the consumer-only hasVoted/isOwnRecommendation flags.
+      properties:
+        id:
+          type: string
+          format: uuid
+        storeName:
+          type: string
+        storeAddress:
+          type: string
+        reason:
+          type: string
+        placeId:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/RecommendationStatus'
+        voteCount:
+          type: integer
+          format: int64
+        recommenderUserId:
+          type: string
+          format: uuid
+        recommenderDisplayName:
+          type: string
+        anonymous:
+          type: boolean
+          description: Whether the recommender opted to stay anonymous (name hidden on the public store profile)
+        createdAt:
+          type: string
+          format: date-time
+
+    PlacePrediction:
+      type: object
+      description: A single Google Places autocomplete suggestion (proxied, slimmed down)
+      properties:
+        placeId:
+          type: string
+        primaryText:
+          type: string
+          description: Main label (typically the place name)
+        secondaryText:
+          type: string
+          description: Secondary label (typically the address)
+
+    PlaceDetails:
+      type: object
+      description: Resolved place details (proxied, slimmed down)
+      properties:
+        placeId:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          nullable: true
+        error:
+          $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+
+    LineTokenVerifyRequest:
+      type: object
+      required:
+        - lineAccessToken
+      properties:
+        lineAccessToken:
+          type: string
+          description: LINE SDK access token
+
+    AppleTokenVerifyRequest:
+      type: object
+      required:
+        - identityToken
+      properties:
+        identityToken:
+          type: string
+          description: Apple identity token (JWT from ASAuthorizationController)
+        fullName:
+          type: string
+          nullable: true
+          description: User's full name (only provided on first sign-in with Apple)
+        email:
+          type: string
+          nullable: true
+          description: User's email (only provided on first sign-in with Apple)
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    MerchantLoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    CreateReservationRequest:
+      type: object
+      required:
+        - boxId
+      properties:
+        boxId:
+          type: string
+          format: uuid
+
+    CreateBoxRequest:
+      type: object
+      required:
+        - name
+        - originalPrice
+        - discountedPrice
+        - quantity
+        - pickupTimeStart
+        - pickupTimeEnd
+        - saleTimeStart
+        - saleTimeEnd
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        originalPrice:
+          type: integer
+        discountedPrice:
+          type: integer
+        quantity:
+          type: integer
+        pickupTimeStart:
+          type: string
+          example: "18:00"
+        pickupTimeEnd:
+          type: string
+          example: "20:00"
+        saleTimeStart:
+          type: string
+          example: "10:00"
+        saleTimeEnd:
+          type: string
+          example: "17:00"
+        imageUrl:
+          type: string
+          nullable: true
+          description: Image URL from POST /api/merchant/images (upload image first, then use returned URL here)
+          example: "/uploads/images/550e8400-e29b-41d4-a716-446655440000.jpg"
+        saleDate:
+          type: string
+          nullable: true
+          description: "Sale date in yyyy-MM-dd format (e.g., 2025-01-15). Defaults to today if not provided. Cannot be in the past."
+          example: "2025-03-20"
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        lineUserId:
+          type: string
+          nullable: true
+        appleUserId:
+          type: string
+          nullable: true
+        displayName:
+          type: string
+        pictureUrl:
+          type: string
+          nullable: true
+        noShowCount:
+          type: integer
+        isBlocked:
+          type: boolean
+        createdAt:
+          type: string
+
+    SessionInfo:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          format: int64
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        isNewUser:
+          type: boolean
+          description: True if this is the user's first login. Frontend should prompt for display name when true.
+
+    MerchantResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        storeName:
+          type: string
+        storeAddress:
+          type: string
+        storeLatitude:
+          type: number
+          format: double
+          nullable: true
+        storeLongitude:
+          type: number
+          format: double
+          nullable: true
+        timezone:
+          type: string
+          description: IANA timezone name for this merchant (e.g. "Asia/Taipei", "America/New_York")
+          example: "Asia/Taipei"
+        isVerified:
+          type: boolean
+        subscriptionStatus:
+          type: string
+          enum: [ACTIVE, EXPIRED]
+          description: >-
+            Server-computed subscription state (Asia/Taipei). ACTIVE when no end date is set or the end
+            date is today-or-later; EXPIRED (the only write-locked state) once a set end date has passed.
+          example: ACTIVE
+        subscriptionEndDate:
+          type: string
+          format: date
+          nullable: true
+          description: >-
+            Admin-set expiry as a date-only `yyyy-MM-dd` (Asia/Taipei). Null when no limit is set
+            (unlimited / grandfathered access).
+          example: "2027-01-15"
+        token:
+          type: string
+          nullable: true
+        refreshToken:
+          type: string
+          nullable: true
+
+    BoxTemplateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        originalPrice:
+          type: integer
+        discountedPrice:
+          type: integer
+        pickupTimeStart:
+          type: string
+          example: "18:00"
+        pickupTimeEnd:
+          type: string
+          example: "20:00"
+        saleTimeStart:
+          type: string
+          example: "09:00"
+        saleTimeEnd:
+          type: string
+          example: "15:00"
+        quantity:
+          type: integer
+        imageUrl:
+          type: string
+          nullable: true
+
+    BoxTemplateRequest:
+      type: object
+      required:
+        - name
+        - originalPrice
+        - discountedPrice
+        - pickupTimeStart
+        - pickupTimeEnd
+        - saleTimeStart
+        - saleTimeEnd
+        - quantity
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        originalPrice:
+          type: integer
+        discountedPrice:
+          type: integer
+        pickupTimeStart:
+          type: string
+          example: "18:00"
+        pickupTimeEnd:
+          type: string
+          example: "20:00"
+        saleTimeStart:
+          type: string
+          example: "09:00"
+        saleTimeEnd:
+          type: string
+          example: "15:00"
+        quantity:
+          type: integer
+          minimum: 1
+        imageUrl:
+          type: string
+          nullable: true
+
+    MysteryBoxResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        merchantId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        originalPrice:
+          type: integer
+        discountedPrice:
+          type: integer
+        imageUrl:
+          type: string
+          nullable: true
+        storeName:
+          type: string
+        storeAddress:
+          type: string
+        storeLatitude:
+          type: number
+          format: double
+          nullable: true
+        storeLongitude:
+          type: number
+          format: double
+          nullable: true
+        merchantTimezone:
+          type: string
+          description: IANA timezone name of the merchant (e.g. "Asia/Taipei", "America/New_York")
+          example: "Asia/Taipei"
+        pickupTimeStart:
+          type: string
+        pickupTimeEnd:
+          type: string
+        saleTimeStart:
+          type: string
+        saleTimeEnd:
+          type: string
+        status:
+          type: string
+          enum: [BEFORE_SALE, AVAILABLE, ALMOST_SOLD_OUT, SOLD_OUT, EXPIRED]
+        quantity:
+          type: integer
+        remainingCount:
+          type: integer
+        discountPercent:
+          type: integer
+        saleDate:
+          type: string
+          format: date
+          description: Sale date in YYYY-MM-DD format
+          example: "2025-03-20"
+        activeReservationCount:
+          type: integer
+          nullable: true
+          description: >
+            Number of active (not picked-up, not cancelled) reservations for this box.
+            Populated only on merchant-facing endpoints; absent from customer-facing responses.
+          example: 2
+
+    ReservationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          example: "#8821"
+        isPickedUp:
+          type: boolean
+          description: Whether the reservation has been picked up (redeemed)
+        isCancelled:
+          type: boolean
+          description: Whether the reservation has been cancelled
+        cancelledBy:
+          type: string
+          nullable: true
+          enum:
+            - consumer
+            - merchant
+          description: Who initiated the cancellation. Null for non-cancelled reservations.
+        cancellationReason:
+          type: string
+          nullable: true
+          description: Merchant-provided reason string. Populated only when cancelledBy is merchant.
+        box:
+          $ref: '#/components/schemas/MysteryBoxResponse'
+        redemptionCode:
+          type: string
+          description: 6-character alphanumeric code for pickup verification
+          example: "ABC123"
+        status:
+          $ref: '#/components/schemas/ReservationStatus'
+        pickupWindowStartUtc:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start of pickup window in UTC (ISO-8601). Null for legacy reservations.
+          example: "2025-03-20T10:00:00"
+        pickupWindowEndUtc:
+          type: string
+          format: date-time
+          nullable: true
+          description: End of pickup window in UTC.
+          example: "2025-03-20T18:00:00"
+        noShowProcessedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the no-show batch job stamped this reservation. Null until processed.
+
+    ReservationCreatedResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          example: "#8821"
+        isPickedUp:
+          type: boolean
+        isCancelled:
+          type: boolean
+        pickupDate:
+          type: string
+          format: date
+          description: The date the customer is to pick up the box (YYYY-MM-DD)
+          example: "2025-03-20"
+        price:
+          type: integer
+        redemptionCode:
+          type: string
+          description: 6-character alphanumeric code for pickup verification
+          example: "ABC123"
+        merchantTimezone:
+          type: string
+          description: IANA timezone identifier of the merchant. Use this to convert pickupWindowStartUtc/EndUtc to local time for display.
+          example: "Asia/Taipei"
+        status:
+          $ref: '#/components/schemas/ReservationStatus'
+        pickupWindowStartUtc:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start of pickup window in UTC (ISO-8601). Null for legacy reservations.
+          example: "2025-03-20T10:00:00"
+        pickupWindowEndUtc:
+          type: string
+          format: date-time
+          nullable: true
+          description: End of pickup window in UTC.
+          example: "2025-03-20T18:00:00"
+
+    MerchantDashboardResponse:
+      type: object
+      properties:
+        todayRevenue:
+          type: integer
+        revenueChangePercent:
+          type: integer
+        todayOrders:
+          type: integer
+        activeBoxes:
+          type: integer
+        totalNoShows:
+          type: integer
+        activeReservations:
+          type: array
+          items:
+            $ref: '#/components/schemas/MerchantOrderSummaryResponse'
+        recentOrders:
+          type: array
+          items:
+            $ref: '#/components/schemas/MerchantOrderSummaryResponse'
+
+    MerchantOrderSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+        customerName:
+          type: string
+        customerInitial:
+          type: string
+        itemDescription:
+          type: string
+        totalPrice:
+          type: integer
+          description: Order total for the reservation (discounted unit price × quantity) in NT$, matching the redemption endpoint's totalAmount.
+          example: 300
+        isPickedUp:
+          type: boolean
+        isCancelled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/ReservationStatus'
+        merchantTimezone:
+          type: string
+          description: IANA timezone identifier of the merchant. Use this to convert pickupWindowStartUtc/EndUtc to local time for display.
+          example: "Asia/Taipei"
+        pickupDate:
+          type: string
+          format: date
+          description: The date the customer is to pick up the box (YYYY-MM-DD)
+          example: "2025-03-20"
+        pickupWindowStartUtc:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start of pickup window in UTC
+          example: "2025-03-20T10:00:00"
+        pickupWindowEndUtc:
+          type: string
+          format: date-time
+          nullable: true
+          description: End of pickup window in UTC
+          example: "2025-03-20T18:00:00"
+
+    ImpactStatsResponse:
+      type: object
+      properties:
+        boxesSaved:
+          type: integer
+          format: int64
+          description: Total surprise boxes sold/saved from waste
+          example: 52340
+        merchantsCount:
+          type: integer
+          format: int64
+          description: Total registered merchants
+          example: 1280
+        usersCount:
+          type: integer
+          format: int64
+          description: Total registered users
+          example: 38600
+
+    PresignedUploadResponse:
+      type: object
+      properties:
+        signedUrl:
+          type: string
+          description: The presigned URL to upload the image to (PUT request)
+          example: "https://your-project.supabase.co/storage/v1/object/upload/sign/bucket/path.jpg?token=..."
+        path:
+          type: string
+          description: The storage path of the uploaded file
+          example: "images/550e8400-e29b-41d4-a716-446655440000.jpg"
+        publicUrl:
+          type: string
+          description: The public URL to access the image after upload (use this in CreateBoxRequest.imageUrl)
+          example: "https://your-project.supabase.co/storage/v1/object/public/bucket/images/550e8400.jpg"
+
+    ImageUploadResponse:
+      type: object
+      properties:
+        imageUrl:
+          type: string
+          description: The URL path to the uploaded image (use this in CreateBoxRequest.imageUrl)
+          example: "/uploads/images/550e8400-e29b-41d4-a716-446655440000.jpg"
+
+    FcmTokenRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: FCM device token (typically 100-200+ characters)
+          example: "fMJ8k2x9R3q..."
+
+    FcmTokenRegisterResponse:
+      type: object
+      properties:
+        registered:
+          type: boolean
+          description: Indicates if the token was successfully registered
+
+    FcmTokenUnregisterResponse:
+      type: object
+      properties:
+        unregistered:
+          type: boolean
+          description: Indicates if tokens were successfully unregistered
+
+    NotificationPreferencesResponse:
+      type: object
+      properties:
+        listingEnabled:
+          type: boolean
+          description: Whether to receive push notifications when any store (or followed stores only) uploads a new box
+        listingScope:
+          type: string
+          enum: [ALL, FOLLOWED_ONLY]
+          description: "ALL: notify for any store's listing. FOLLOWED_ONLY: notify only for followed stores."
+        pickupReminderEnabled:
+          type: boolean
+          description: Whether to receive a reminder 30 minutes before the pickup window opens
+        statusChangeEnabled:
+          type: boolean
+          description: Whether to receive a push notification when the pickup window opens (READY_FOR_PICKUP)
+
+    UpdateNotificationPreferencesRequest:
+      type: object
+      description: Partial update — only provided fields are changed. At least one field must be present.
+      properties:
+        listingEnabled:
+          type: boolean
+          nullable: true
+        listingScope:
+          type: string
+          enum: [ALL, FOLLOWED_ONLY]
+          nullable: true
+        pickupReminderEnabled:
+          type: boolean
+          nullable: true
+        statusChangeEnabled:
+          type: boolean
+          nullable: true
+
+    NotificationResult:
+      type: object
+      properties:
+        notifiedCount:
+          type: integer
+          description: Number of reservations/users successfully notified
+        failedCount:
+          type: integer
+          description: Number of notification sends that failed
+
+    # Event Tracking Schemas
+    CreateEventRequest:
+      type: object
+      required: [eventType]
+      properties:
+        eventType:
+          type: string
+          description: Event type identifier
+          example: "page_visit"
+        eventCategory:
+          type: string
+          example: "web"
+        deviceId:
+          type: string
+          description: Client-generated device identifier
+        userId:
+          type: string
+          description: Logged-in user ID (nullable for anonymous)
+        sessionId:
+          type: string
+        merchantId:
+          type: string
+          description: Associated merchant ID
+        source:
+          type: string
+          description: UTM source
+          example: "line_group"
+        campaign:
+          type: string
+          description: UTM campaign
+          example: "trial_2026_04"
+        medium:
+          type: string
+          description: UTM medium
+          example: "message"
+        platform:
+          type: string
+          example: "ios"
+        metadata:
+          type: object
+          description: Arbitrary JSON metadata
+          example: {"referrer": "https://line.me/..."}
+        refType:
+          type: string
+          example: "page"
+        refId:
+          type: string
+          example: "/download"
+        eventTime:
+          type: string
+          format: date-time
+          description: Client-reported event time (ISO-8601)
+
+    EventCreatedResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1234
+
+    EventStatsResponse:
+      type: object
+      properties:
+        totalCount:
+          type: integer
+          format: int64
+          example: 342
+        groupedData:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+          example: {"ios": 180, "android": 120}
+
+    FunnelResponse:
+      type: object
+      properties:
+        campaign:
+          type: string
+          example: "trial_2026_04"
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              step:
+                type: string
+                example: "page_visit"
+              count:
+                type: integer
+                format: int64
+                example: 342
+              dropoffPercent:
+                type: number
+                format: double
+                example: 60.0
+        overallConversionPercent:
+          type: number
+          format: double
+          example: 20.0
+
+    MerchantProfileResponse:
+      type: object
+      properties:
+        merchantId:
+          type: string
+          format: uuid
+        storeName:
+          type: string
+        storeAddress:
+          type: string
+        storeLatitude:
+          type: number
+          format: double
+          nullable: true
+        storeLongitude:
+          type: number
+          format: double
+          nullable: true
+        logoUrl:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+          maxLength: 100
+        story:
+          type: string
+          nullable: true
+          maxLength: 500
+        businessHours:
+          type: string
+          nullable: true
+          maxLength: 100
+        photoUrls:
+          type: array
+          items:
+            type: string
+          maxItems: 5
+        availableBoxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/MysteryBoxResponse'
+        recommendedBy:
+          $ref: '#/components/schemas/RecommendedByInfo'
+          nullable: true
+
+    RecommendedByInfo:
+      type: object
+      description: |
+        Credit for the community member who recommended this store, present only when the store was
+        onboarded from a recommendation. `null` on the profile means the store was not
+        community-recommended (no credit shown). When `anonymous` is true the recommender opted out of
+        being named (render a generic community credit); otherwise `name` holds their display name.
+      properties:
+        anonymous:
+          type: boolean
+        name:
+          type: string
+          nullable: true
+
+    UpdateMerchantProfileRequest:
+      type: object
+      properties:
+        logoUrl:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+          maxLength: 100
+        story:
+          type: string
+          nullable: true
+          maxLength: 500
+        businessHours:
+          type: string
+          nullable: true
+          maxLength: 100
+        photoUrls:
+          type: array
+          items:
+            type: string
+          maxItems: 5
+          nullable: true
+
+paths:
+  # ==================== BOX ROUTES ====================
+  /api/boxes:
+    get:
+      tags:
+        - Boxes
+      summary: Get all available mystery boxes
+      description: Returns all mystery boxes for today (including BEFORE_SALE boxes not yet in their sale window)
+      responses:
+        '200':
+          description: List of available boxes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MysteryBoxResponse'
+
+  /api/boxes/{id}:
+    get:
+      tags:
+        - Boxes
+      summary: Get box details
+      description: Get detailed information about a specific mystery box
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Box UUID
+      responses:
+        '200':
+          description: Box found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MysteryBoxResponse'
+        '404':
+          description: Box not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Invalid box ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ==================== USER ROUTES ====================
+  /api/user/line/verify-token:
+    post:
+      tags:
+        - User
+      summary: Verify LINE token
+      description: Verify LINE SDK access token and authenticate user. Returns JWT tokens for subsequent API calls.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LineTokenVerifyRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SessionInfo'
+        '401':
+          description: LINE token verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/user/apple/verify-token:
+    post:
+      tags:
+        - User
+      summary: Verify Apple identity token
+      description: Verify Apple identity token (Sign in with Apple) and authenticate user. Returns JWT tokens for subsequent API calls.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppleTokenVerifyRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/SessionInfo'
+        '401':
+          description: Apple token verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/user/refresh:
+    post:
+      tags:
+        - User
+      summary: Refresh access token
+      description: Get a new access token using a refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      expiresIn:
+                        type: integer
+        '401':
+          description: Refresh token invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/user/me:
+    get:
+      tags:
+        - User
+      summary: Get current user
+      description: Get the authenticated user's profile
+      security:
+        - userAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - User
+      summary: Update user profile
+      description: Updates the authenticated user's display name.
+      security:
+        - userAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - displayName
+              properties:
+                displayName:
+                  type: string
+                  example: "John"
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid display name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - User
+      summary: Delete user account
+      description: |
+        Permanently deletes the authenticated user's account and all associated data.
+        This includes: profile, reservations, refresh tokens, and FCM tokens.
+        Active reservations are automatically cancelled before deletion.
+      security:
+        - userAuth: []
+      responses:
+        '200':
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "Account deleted successfully"
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/user/me/profile:
+    patch:
+      tags:
+        - User
+      summary: Update display name
+      description: Updates the authenticated user's display name (2–20 characters).
+      security:
+        - userAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - displayName
+              properties:
+                displayName:
+                  type: string
+                  minLength: 2
+                  maxLength: 20
+                  example: "FoodLover"
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Display name out of range or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/user/images/presigned:
+    get:
+      tags:
+        - User
+      summary: Get presigned upload URL
+      description: Returns a Supabase presigned upload URL and the resulting public URL. The client uploads the image directly to Supabase using the signedUrl, then calls PUT /api/user/avatar with the publicUrl.
+      security:
+        - userAuth: []
+      parameters:
+        - name: contentType
+          in: query
+          required: false
+          schema:
+            type: string
+            example: image/jpeg
+          description: MIME type of the image to upload (image/jpeg, image/png, or image/webp)
+      responses:
+        '200':
+          description: Presigned URL created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PresignedUploadResponse'
+        '400':
+          description: Unsupported content type or Supabase not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/user/avatar:
+    put:
+      tags:
+        - User
+      summary: Update avatar URL
+      description: Persists the Supabase public URL as the user's pictureUrl. Call this after a successful direct upload via the presigned URL.
+      security:
+        - userAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pictureUrl
+              properties:
+                pictureUrl:
+                  type: string
+                  description: Public Supabase URL of the uploaded avatar image
+                  example: https://example.supabase.co/storage/v1/object/public/bucket/uuid.jpg
+      responses:
+        '200':
+          description: pictureUrl updated; returns updated user record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Missing or malformed request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ==================== USER NOTIFICATION ROUTES ====================
+  /api/user/notifications/token:
+    post:
+      tags:
+        - Notifications
+      summary: Register user FCM token
+      description: |
+        Registers or updates an FCM token for push notifications.
+        If the token already exists, it updates the timestamp.
+      security:
+        - userAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FcmTokenRequest'
+      responses:
+        '200':
+          description: Token registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/FcmTokenRegisterResponse'
+        '400':
+          description: Invalid token format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: false
+                error:
+                  code: "FCM_TOKEN_INVALID"
+                  message: "The FCM token format is invalid"
+        '401':
+          description: Invalid or expired authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Notifications
+      summary: Unregister user FCM tokens
+      description: |
+        Removes all FCM tokens associated with the user.
+        Use this endpoint on logout to stop receiving push notifications.
+        This operation is idempotent - returns success even if no tokens existed.
+      security:
+        - userAuth: []
+      responses:
+        '200':
+          description: Tokens unregistered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/FcmTokenUnregisterResponse'
+        '401':
+          description: Invalid or expired authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/user/notification-preferences:
+    get:
+      tags:
+        - Notifications
+      summary: Get notification preferences
+      description: |
+        Returns the authenticated consumer's notification preference settings.
+        If no preferences have been set, returns defaults with all three flags set to `true`.
+      security:
+        - userAuth: []
+      responses:
+        '200':
+          description: Preferences returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '401':
+          description: Invalid or expired authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - Notifications
+      summary: Update notification preferences
+      description: |
+        Updates the authenticated consumer's notification preference settings.
+        Only the fields present in the request body are updated; omitted fields retain their current value.
+        At least one field must be provided — an all-null body returns 400.
+      security:
+        - userAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotificationPreferencesRequest'
+      responses:
+        '200':
+          description: Preferences updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '400':
+          description: No preference fields provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: false
+                error:
+                  code: "BAD_REQUEST"
+                  message: "At least one preference field must be provided"
+        '401':
+          description: Invalid or expired authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ==================== RESERVATION ROUTES ====================
+  /api/reservations:
+    get:
+      tags:
+        - Reservations
+      summary: Get user reservations
+      description: Get all reservations for the authenticated user
+      security:
+        - userAuth: []
+      parameters:
+        - name: isPickedUp
+          in: query
+          required: false
+          description: Filter by picked up state
+          schema:
+            type: boolean
+        - name: isCancelled
+          in: query
+          required: false
+          description: Filter by cancelled state
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of reservations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReservationResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    post:
+      tags:
+        - Reservations
+      summary: Create reservation
+      description: Create a new reservation for a mystery box
+      security:
+        - userAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReservationRequest'
+      responses:
+        '201':
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ReservationCreatedResponse'
+        '400':
+          description: Invalid request (box sold out, user blocked, outside sale window, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/reservations/{id}:
+    get:
+      tags:
+        - Reservations
+      summary: Get reservation details
+      description: Get detailed information about a specific reservation. User must own the reservation.
+      security:
+        - userAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Reservation UUID
+      responses:
+        '200':
+          description: Reservation found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ReservationResponse'
+        '400':
+          description: Invalid reservation ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: User is not authorized to access this reservation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Reservations
+      summary: Cancel reservation
+      description: Cancel a reservation (only active reservations can be cancelled — not already picked up or cancelled)
+      security:
+        - userAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Reservation UUID
+      responses:
+        '200':
+          description: Reservation cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+        '404':
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Not authorized to cancel this reservation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Reservation is not active (already picked up or cancelled)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ==================== STATS ROUTES ====================
+  /api/stats/impact:
+    get:
+      tags:
+        - Stats
+      summary: Get platform impact statistics
+      description: |
+        Returns aggregate platform statistics for the official website.
+        This is a public endpoint — no authentication required.
+      responses:
+        '200':
+          description: Impact statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ImpactStatsResponse'
+
+  # ==================== MERCHANT ROUTES ====================
+  /api/merchant/login:
+    post:
+      tags:
+        - Merchant
+      summary: Merchant login
+      description: Authenticate merchant with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantLoginRequest'
+            example:
+              email: "bakery@example.com"
+              password: "password123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MerchantResponse'
+        '401':
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/refresh:
+    post:
+      tags:
+        - Merchant
+      summary: Refresh merchant token
+      description: Get a new access token using a refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      expiresIn:
+                        type: integer
+        '401':
+          description: Refresh token invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/me:
+    get:
+      tags:
+        - Merchant
+      summary: Get current merchant
+      description: Get the authenticated merchant's profile
+      security:
+        - merchantAuth: []
+      responses:
+        '200':
+          description: Merchant profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MerchantResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/boxes:
+    get:
+      tags:
+        - Merchant
+      summary: Get merchant boxes
+      description: Get all mystery boxes owned by the authenticated merchant
+      security:
+        - merchantAuth: []
+      responses:
+        '200':
+          description: List of merchant's boxes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MysteryBoxResponse'
+
+    post:
+      tags:
+        - Merchant
+      summary: Create mystery box
+      description: >-
+        Create a new mystery box for the merchant. Gated by the merchant's subscription: returns 403
+        `MERCHANT_SUBSCRIPTION_EXPIRED` when the merchant's `subscription_end_date` is set and has
+        passed (Asia/Taipei). The JWT stays valid (403, never 401).
+      security:
+        - merchantAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBoxRequest'
+            example:
+              name: "Surprise Bakery Box"
+              description: "Assorted pastries and bread"
+              originalPrice: 2000
+              discountedPrice: 800
+              quantity: 5
+              pickupTimeStart: "18:00"
+              pickupTimeEnd: "20:00"
+              saleTimeStart: "10:00"
+              saleTimeEnd: "17:00"
+              imageUrl: "/uploads/images/550e8400-e29b-41d4-a716-446655440000.jpg"
+              saleDate: "2025-03-20"
+      responses:
+        '201':
+          description: Box created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MysteryBoxResponse'
+        '400':
+          description: Invalid input or time constraints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Subscription expired (`MERCHANT_SUBSCRIPTION_EXPIRED`) — inventory writes are locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/boxes/{id}:
+    get:
+      tags:
+        - Merchant
+      summary: Get mystery box by ID
+      description: Get a specific mystery box owned by the authenticated merchant
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Box UUID
+      responses:
+        '200':
+          description: Box found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MysteryBoxResponse'
+        '400':
+          description: Invalid box ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Box not found or does not belong to merchant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - Merchant
+      summary: Update mystery box
+      description: >-
+        Update an existing mystery box. Gated by the merchant's subscription: returns 403
+        `MERCHANT_SUBSCRIPTION_EXPIRED` when the merchant's `subscription_end_date` is set and has passed.
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Box UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBoxRequest'
+      responses:
+        '200':
+          description: Box updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MysteryBoxResponse'
+        '400':
+          description: Invalid input or time constraints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Subscription expired (`MERCHANT_SUBSCRIPTION_EXPIRED`) — inventory writes are locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Box not found or does not belong to merchant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '422':
+          description: >
+            Unprocessable — one of:
+            LISTING_EXPIRED (sale_date is in the past),
+            PRICE_CHANGE_WITH_ACTIVE_RESERVATIONS (price changed while active reservations exist),
+            QUANTITY_BELOW_RESERVATIONS (new quantity < active reservation count)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Merchant
+      summary: Delete mystery box
+      description: >-
+        Delete a mystery box. Gated by the merchant's subscription: returns 403
+        `MERCHANT_SUBSCRIPTION_EXPIRED` when the merchant's `subscription_end_date` is set and has passed.
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Box UUID
+      responses:
+        '200':
+          description: Box deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: string
+                    example: "Box deleted successfully"
+        '403':
+          description: Subscription expired (`MERCHANT_SUBSCRIPTION_EXPIRED`) — inventory writes are locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Box not found or does not belong to merchant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '422':
+          description: BOX_HAS_ACTIVE_RESERVATIONS — listing has active reservations and cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/images/presigned:
+    get:
+      tags:
+        - Merchant
+      summary: Get presigned upload URL
+      description: |
+        Returns a presigned URL for direct client-side image upload to Supabase Storage.
+
+        **Flow:**
+        1. Request a presigned URL using this endpoint
+        2. Upload the image directly to Supabase using the `signedUrl`
+        3. Use the `publicUrl` when creating a box via POST /api/merchant/boxes
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: contentType
+          in: query
+          required: false
+          description: MIME type of the image to upload
+          example: "image/jpeg"
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Presigned URL generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PresignedUploadResponse'
+        '400':
+          description: Invalid content type or storage not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/images:
+    post:
+      tags:
+        - Merchant
+      summary: Upload image
+      description: |
+        Upload an image to use when creating mystery boxes.
+
+        **Flow:**
+        1. Upload image using this endpoint
+        2. Receive `imageUrl` in response
+        3. Use `imageUrl` when creating a box via POST /api/merchant/boxes
+
+        **Supported formats:** JPEG, PNG, WebP
+
+        **Max file size:** 5MB
+
+        **Note:** Orphaned images (not referenced by any box) are automatically cleaned up daily.
+      security:
+        - merchantAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - image
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Image file (JPEG, PNG, or WebP)
+      responses:
+        '201':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ImageUploadResponse'
+        '400':
+          description: Invalid file type, file too large, or missing image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                invalidFileType:
+                  summary: Invalid file type
+                  value:
+                    success: false
+                    error:
+                      code: "BAD_REQUEST"
+                      message: "Invalid file type. Allowed types: image/jpeg, image/png, image/webp"
+                fileTooLarge:
+                  summary: File too large
+                  value:
+                    success: false
+                    error:
+                      code: "BAD_REQUEST"
+                      message: "File too large. Maximum size: 5MB"
+                missingImage:
+                  summary: Missing image field
+                  value:
+                    success: false
+                    error:
+                      code: "MISSING_FIELD"
+                      message: "Missing required 'image' file part"
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/dashboard:
+    get:
+      tags:
+        - Merchant
+      summary: Get dashboard
+      description: Get merchant dashboard with statistics and recent orders
+      security:
+        - merchantAuth: []
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MerchantDashboardResponse'
+
+  /api/merchant/reservations:
+    get:
+      tags:
+        - Merchant Orders
+      summary: Get merchant reservations
+      description: Get all reservations for the merchant's boxes
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: isPickedUp
+          in: query
+          required: false
+          description: Filter by picked up state
+          schema:
+            type: boolean
+        - name: isCancelled
+          in: query
+          required: false
+          description: Filter by cancelled state
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of reservations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MerchantOrderSummaryResponse'
+
+  /api/merchant/reservations/redeem:
+    post:
+      tags:
+        - Merchant Orders
+      summary: Redeem reservation
+      description: |
+        Redeem a reservation using the customer's 6-character redemption code.
+        This marks the reservation as completed and resets the user's no-show count.
+
+        No-shows are handled automatically by a scheduler after the pickup window expires.
+      security:
+        - merchantAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: 6-character alphanumeric redemption code
+                  example: "ABC123"
+      responses:
+        '200':
+          description: Reservation redeemed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    required:
+                      - reservationId
+                      - itemName
+                      - quantity
+                      - unitPrice
+                      - totalAmount
+                    properties:
+                      reservationId:
+                        type: string
+                        description: ID of the reservation that was redeemed
+                        example: "550e8400-e29b-41d4-a716-446655440000"
+                      itemName:
+                        type: string
+                        description: Name of the mystery box item
+                        example: "Surprise Box"
+                      quantity:
+                        type: integer
+                        description: Number of items
+                        example: 1
+                      unitPrice:
+                        type: integer
+                        description: Price per unit in smallest currency unit
+                        example: 150
+                      totalAmount:
+                        type: integer
+                        description: unitPrice × quantity
+                        example: 150
+        '404':
+          description: Reservation not found for the given code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Reservation belongs to another merchant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Reservation is not active (already picked up or cancelled), or pickup window constraints not met
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/reservations/{id}/redeem:
+    post:
+      tags:
+        - Merchant Orders
+      summary: Redeem reservation by ID
+      description: |
+        Redeem a reservation directly by its reservation ID, without the customer's redemption code.
+        Use this when the customer cannot display their code (e.g. dead phone or app issues).
+
+        This performs the same state transition as the code-based redeem endpoint
+        (`POST /api/merchant/reservations/redeem`): it marks the reservation as completed,
+        sets the pickup timestamp, resets the user's no-show count, and fires the
+        pickup-confirmed event/notification. The only difference is the reservation is located
+        by ID instead of by redemption code.
+
+        No-shows are handled automatically by a scheduler after the pickup window expires.
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Reservation ID
+      responses:
+        '200':
+          description: Reservation redeemed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    required:
+                      - reservationId
+                      - itemName
+                      - quantity
+                      - unitPrice
+                      - totalAmount
+                    properties:
+                      reservationId:
+                        type: string
+                        description: ID of the reservation that was redeemed
+                        example: "550e8400-e29b-41d4-a716-446655440000"
+                      itemName:
+                        type: string
+                        description: Name of the mystery box item
+                        example: "Surprise Box"
+                      quantity:
+                        type: integer
+                        description: Number of items
+                        example: 1
+                      unitPrice:
+                        type: integer
+                        description: Price per unit in smallest currency unit
+                        example: 150
+                      totalAmount:
+                        type: integer
+                        description: unitPrice × quantity
+                        example: 150
+        '400':
+          description: Reservation is not active (already picked up or cancelled), or pickup window constraints not met
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Reservation belongs to another merchant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Reservation not found for the given ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/reservations/{id}/cancel:
+    post:
+      tags:
+        - Merchant
+      summary: Cancel a reservation
+      description: |
+        Cancel a reservation on behalf of the merchant. Only reservations in RESERVED or
+        READY_FOR_PICKUP state (i.e. not yet picked up or cancelled) can be cancelled.
+        A push notification is sent to the consumer upon success.
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Reservation ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  enum:
+                    - 食材不足 / 備料不夠
+                    - 商品品質問題，無法出餐
+                    - 店家臨時停業
+                    - 其他
+                  description: Cancellation reason (must be one of the listed values)
+                note:
+                  type: string
+                  nullable: true
+                  description: Required when reason is 其他 (min 10 characters)
+      responses:
+        '200':
+          description: Reservation cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Invalid reason value (INVALID_REASON) or note missing/too short when reason is 其他 (NOTE_REQUIRED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Reservation not found or does not belong to this merchant (RESERVATION_NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '409':
+          description: Reservation cannot be cancelled in its current state — already completed, cancelled, or no-show (CANNOT_CANCEL)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/logout:
+    post:
+      tags:
+        - Merchant
+      summary: Merchant logout
+      description: Logout merchant and invalidate refresh token
+      security:
+        - merchantAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+
+  # ==================== MERCHANT NOTIFICATION ROUTES ====================
+  /api/merchant/notifications/token:
+    post:
+      tags:
+        - Notifications
+      summary: Register merchant FCM token
+      description: |
+        Registers or updates an FCM token for push notifications.
+        If the token already exists, it updates the timestamp.
+      security:
+        - merchantAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FcmTokenRequest'
+      responses:
+        '200':
+          description: Token registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/FcmTokenRegisterResponse'
+        '400':
+          description: Invalid token format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: false
+                error:
+                  code: "FCM_TOKEN_INVALID"
+                  message: "The FCM token format is invalid"
+        '401':
+          description: Invalid or expired authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Notifications
+      summary: Unregister merchant FCM tokens
+      description: |
+        Removes all FCM tokens associated with the merchant.
+        Use this endpoint on logout to stop receiving push notifications.
+        This operation is idempotent - returns success even if no tokens existed.
+      security:
+        - merchantAuth: []
+      responses:
+        '200':
+          description: Tokens unregistered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/FcmTokenUnregisterResponse'
+        '401':
+          description: Invalid or expired authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get merchant notification list
+      description: |
+        Returns a page-based list of notifications for the authenticated merchant,
+        sorted by createdAt descending (newest first), along with the total unread count.
+        Notifications are created when customers reserve or cancel a mystery box.
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based, default 1)
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: pageSize
+          in: query
+          description: Number of notifications per page (1–100, default 20)
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Notification list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            type:
+                              type: string
+                              enum: [NEW_RESERVATION, RESERVATION_CANCELLED]
+                            payload:
+                              type: object
+                              description: Type-specific payload (see spec for field shapes)
+                            isRead:
+                              type: boolean
+                            createdAt:
+                              type: string
+                              format: date-time
+                              description: ISO-8601 timestamp in UTC (e.g. "2026-04-22T07:30:00Z")
+                              example: "2026-04-22T07:30:00Z"
+                      totalCount:
+                        type: integer
+                        example: 42
+                      page:
+                        type: integer
+                        example: 1
+                      pageSize:
+                        type: integer
+                        example: 20
+                      unreadCount:
+                        type: integer
+                        example: 3
+        '401':
+          description: Invalid or expired authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/notifications/read-all:
+    post:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      description: |
+        Sets isRead=true for all notification records belonging to the authenticated merchant.
+        This operation is idempotent — calling it when no unread notifications exist returns 200 OK.
+      security:
+        - merchantAuth: []
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: Invalid or expired authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ==================== EVENT TRACKING ROUTES ====================
+
+  /api/v1/events:
+    post:
+      tags: [Events]
+      summary: Record a single event
+      description: |
+        Records a tracking event. No authentication required.
+        Server automatically captures userAgent, ip, and createdAt.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Event recorded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/EventCreatedResponse'
+        '400':
+          description: Validation error (e.g., missing eventType)
+
+  /api/v1/events/batch:
+    post:
+      tags: [Events]
+      summary: Record multiple events in batch
+      description: Records up to 100 events in a single request. No authentication required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events:
+                  type: array
+                  maxItems: 100
+                  items:
+                    $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Events recorded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 10
+        '400':
+          description: Validation error
+
+  /api/admin/events/stats:
+    get:
+      tags: [Admin Events]
+      summary: Query event statistics
+      description: Returns aggregated event counts with optional grouping and filtering.
+      security:
+        - adminAuth: []
+      parameters:
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: campaign
+          in: query
+          schema:
+            type: string
+        - name: source
+          in: query
+          schema:
+            type: string
+        - name: medium
+          in: query
+          schema:
+            type: string
+        - name: platform
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [event_type, event_category, source, campaign, medium, platform, ref_type]
+      responses:
+        '200':
+          description: Event statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/EventStatsResponse'
+        '401':
+          description: Admin authentication required
+
+  /api/admin/events/funnel:
+    get:
+      tags: [Admin Events]
+      summary: Query conversion funnel
+      description: Returns step-by-step counts with dropoff percentages.
+      security:
+        - adminAuth: []
+      parameters:
+        - name: steps
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Comma-separated event types
+        - name: campaign
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Funnel analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/FunnelResponse'
+        '401':
+          description: Admin authentication required
+
+  /api/merchant/events/stats:
+    get:
+      tags: [Merchant Events]
+      summary: Query merchant-scoped event statistics
+      description: Same as admin stats but automatically scoped to the authenticated merchant.
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: campaign
+          in: query
+          schema:
+            type: string
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [event_type, event_category, source, campaign, medium, platform, ref_type]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Merchant event statistics
+        '401':
+          description: Merchant authentication required
+
+  /api/merchant/events/funnel:
+    get:
+      tags: [Merchant Events]
+      summary: Query merchant-scoped conversion funnel
+      description: Same as admin funnel but scoped to the authenticated merchant.
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: steps
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: campaign
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Merchant funnel analysis
+        '401':
+          description: Merchant authentication required
+
+  /api/merchant/templates:
+    get:
+      tags:
+        - Merchant
+      summary: List box templates
+      description: Returns all box templates owned by the authenticated merchant
+      security:
+        - merchantAuth: []
+      responses:
+        '200':
+          description: List of templates (empty array if none)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BoxTemplateResponse'
+        '401':
+          description: Merchant authentication required
+
+    post:
+      tags:
+        - Merchant
+      summary: Create box template
+      description: Creates a new box template for the authenticated merchant
+      security:
+        - merchantAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoxTemplateRequest'
+            example:
+              name: "週五麵包包"
+              description: "好吃的麵包"
+              originalPrice: 500
+              discountedPrice: 199
+              pickupTimeStart: "18:00"
+              pickupTimeEnd: "20:00"
+              saleTimeStart: "09:00"
+              saleTimeEnd: "15:00"
+              quantity: 5
+              imageUrl: null
+      responses:
+        '201':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/BoxTemplateResponse'
+        '400':
+          description: Missing or invalid fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Merchant authentication required
+
+  /api/merchant/templates/{id}:
+    put:
+      tags:
+        - Merchant
+      summary: Update box template
+      description: Fully replaces an existing template. Returns 404 if not found, 403 if owned by another merchant.
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoxTemplateRequest'
+      responses:
+        '200':
+          description: Template updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/BoxTemplateResponse'
+        '400':
+          description: Invalid UUID or missing fields
+        '401':
+          description: Merchant authentication required
+        '403':
+          description: Template belongs to another merchant
+        '404':
+          description: Template not found
+
+    delete:
+      tags:
+        - Merchant
+      summary: Delete box template
+      description: Deletes a template. Returns 404 if not found, 403 if owned by another merchant.
+      security:
+        - merchantAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Template deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: deleted
+        '401':
+          description: Merchant authentication required
+        '403':
+          description: Template belongs to another merchant
+        '404':
+          description: Template not found
+
+  /api/merchant/{merchantId}/profile:
+    get:
+      tags:
+        - Merchant
+      summary: Get store profile (public)
+      description: Returns the full store profile for a given merchant, including profile fields and currently available/almost-sold-out boxes. No authentication required — this is a consumer-facing endpoint.
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Store profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/MerchantProfileResponse'
+        '400':
+          description: Invalid merchantId format
+        '404':
+          description: Merchant not found
+
+  /api/merchant/profile:
+    put:
+      tags:
+        - Merchant
+      summary: Update own store profile
+      description: |
+        Allows an authenticated merchant to update their store profile fields.
+        Fields not included in the request body are preserved (patch semantics).
+
+        **Validation rules:**
+        - `bio` ≤ 100 characters
+        - `story` ≤ 500 characters
+        - `businessHours` ≤ 100 characters
+        - `photoUrls` ≤ 5 items
+      security:
+        - merchantAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMerchantProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/MerchantProfileResponse'
+        '400':
+          description: Validation error (field length exceeded or too many photos)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Merchant authentication required
+
+  /api/user/follows:
+    get:
+      tags:
+        - Follows
+      summary: Get following list
+      description: |
+        Returns all stores followed by the authenticated consumer.
+        Sorted by stores with currently available boxes first, then alphabetically by store name.
+        `hasAvailableBoxes` is true when the store has at least one box with status AVAILABLE or ALMOST_SOLD_OUT today.
+      security:
+        - userAuth: []
+      responses:
+        '200':
+          description: Following list returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        merchantId:
+                          type: string
+                          format: uuid
+                        storeName:
+                          type: string
+                        storeAddress:
+                          type: string
+                        hasAvailableBoxes:
+                          type: boolean
+        '401':
+          description: Authentication required
+
+  /api/user/follows/{merchantId}:
+    post:
+      tags:
+        - Follows
+      summary: Follow a store
+      description: Follow a store. Returns 409 if already following.
+      security:
+        - userAuth: []
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Store followed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: Authentication required
+        '404':
+          description: Merchant not found
+        '409':
+          description: Already following this store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags:
+        - Follows
+      summary: Unfollow a store
+      description: Unfollow a store. Returns 404 if not currently following.
+      security:
+        - userAuth: []
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Store unfollowed successfully
+        '401':
+          description: Authentication required
+        '404':
+          description: Not currently following this store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/recommendations:
+    get:
+      tags:
+        - Recommendations
+      summary: List active store recommendations
+      description: |
+        Returns active recommendations (status PENDING or IN_NEGOTIATION), sorted by vote count
+        descending, paginated. Each item exposes the aggregate `voteCount` and `hasVoted` for the
+        calling user — voter identities are never returned.
+      security:
+        - userAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Recommendations returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RecommendationResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalItems:
+                        type: integer
+                        format: int64
+                      totalPages:
+                        type: integer
+        '401':
+          description: Authentication required
+    post:
+      tags:
+        - Recommendations
+      summary: Create a store recommendation
+      description: |
+        Creates a recommendation (status PENDING, 0 votes). Duplicate detection: when `placeId` is
+        supplied, dedups on it (exact match = same store, so two stores sharing a name at different
+        locations each get a row); otherwise falls back to a case-insensitive, trimmed exact
+        `storeName` match. On a match, returns `200` with `possibleDuplicate: true` and the existing
+        record, and creates no row (the client may then call the vote endpoint). `reason` must be 50
+        characters or fewer. `latitude`/`longitude` (resolved via the Places proxy) are optional, but
+        if either is supplied both must be present and in range.
+      security:
+        - userAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - storeName
+                - storeAddress
+                - reason
+              properties:
+                storeName:
+                  type: string
+                  example: 好食早餐
+                storeAddress:
+                  type: string
+                reason:
+                  type: string
+                  maxLength: 50
+                placeId:
+                  type: string
+                  nullable: true
+                  description: Google Places place_id resolved via GET /api/places/{placeId}
+                latitude:
+                  type: number
+                  format: double
+                  nullable: true
+                  description: Resolved latitude (-90..90); must accompany longitude
+                longitude:
+                  type: number
+                  format: double
+                  nullable: true
+                  description: Resolved longitude (-180..180); must accompany latitude
+      responses:
+        '201':
+          description: Recommendation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      possibleDuplicate:
+                        type: boolean
+                        example: false
+                      recommendation:
+                        $ref: '#/components/schemas/RecommendationResponse'
+        '200':
+          description: Possible duplicate detected; no row created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      possibleDuplicate:
+                        type: boolean
+                        example: true
+                      match:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          storeName:
+                            type: string
+                          storeAddress:
+                            type: string
+                          voteCount:
+                            type: integer
+                            format: int64
+        '400':
+          description: Invalid request (e.g. REASON_TOO_LONG)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Authentication required
+
+  /api/recommendations/my:
+    get:
+      tags:
+        - Recommendations
+      summary: List the caller's submissions
+      description: Returns recommendations submitted by the authenticated user, with their current status, newest first.
+      security:
+        - userAuth: []
+      responses:
+        '200':
+          description: Submissions returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RecommendationResponse'
+        '401':
+          description: Authentication required
+
+  /api/recommendations/{id}/vote:
+    post:
+      tags:
+        - Recommendations
+      summary: Vote for a recommendation
+      description: Adds the caller's +1. Returns 409 if already voted or voting on own recommendation. Safe under double-tap (unique index).
+      security:
+        - userAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Vote recorded
+        '401':
+          description: Authentication required
+        '404':
+          description: Recommendation not found
+        '409':
+          description: Already voted (ALREADY_VOTED) or voting on own recommendation (CANNOT_VOTE_OWN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags:
+        - Recommendations
+      summary: Remove a vote
+      description: Removes the caller's +1. Idempotent — returns 204 even when the user had not voted.
+      security:
+        - userAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Vote removed (or no vote existed)
+        '401':
+          description: Authentication required
+
+  /api/admin/recommendations:
+    get:
+      tags:
+        - Recommendations
+      summary: List all store recommendations (admin)
+      description: |
+        Returns every recommendation regardless of status, sorted by vote count descending then
+        newest first, paginated. Optionally filtered to a single status via `status`. Each item
+        includes the recommender's id and display name. Requires an admin token — a user/merchant
+        token is rejected with 401.
+      security:
+        - adminAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: status
+          in: query
+          required: false
+          description: Filter to a single status. Omit to return all statuses.
+          schema:
+            $ref: '#/components/schemas/RecommendationStatus'
+      responses:
+        '200':
+          description: Recommendations returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AdminRecommendationListItem'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalItems:
+                        type: integer
+                        format: int64
+                      totalPages:
+                        type: integer
+        '400':
+          description: Invalid status value
+        '401':
+          description: Admin authentication required
+
+  /api/admin/recommendations/{id}:
+    get:
+      tags:
+        - Recommendations
+      summary: Get a single store recommendation (admin)
+      description: |
+        Returns one recommendation by id, including the recommender's id and display name and the
+        aggregate vote count. Requires an admin token — a user/merchant token is rejected with 401.
+      security:
+        - adminAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recommendation returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/AdminRecommendationListItem'
+        '400':
+          description: Invalid recommendation ID
+        '401':
+          description: Admin authentication required
+        '404':
+          description: Recommendation not found
+
+  /api/admin/recommendations/{id}/status:
+    patch:
+      tags:
+        - Recommendations
+      summary: Update a recommendation's status (admin)
+      description: |
+        Updates a recommendation's status. An `ONBOARDED` transition pushes an FCM notification to
+        the recommender and all voters (sent unconditionally; only users with registered tokens
+        receive it). Requires an admin token — a user/merchant token is rejected with 401.
+      security:
+        - adminAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  $ref: '#/components/schemas/RecommendationStatus'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/RecommendationResponse'
+        '400':
+          description: Invalid status value
+        '401':
+          description: Admin authentication required
+        '404':
+          description: Recommendation not found
+
+  /api/places/autocomplete:
+    get:
+      tags:
+        - Places
+      summary: Autocomplete place predictions
+      description: |
+        Proxies Google Places Autocomplete (New). The Google API key stays server-side. Pass a
+        client-generated `sessionToken` and reuse it for the follow-up details call so Google bills
+        the whole interaction as one session. Query-prediction suggestions (no concrete place) are
+        omitted.
+      security:
+        - userAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: The user's partial search input
+          schema:
+            type: string
+        - name: sessionToken
+          in: query
+          required: false
+          description: Client-generated session token, reused for the details call
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Predictions returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlacePrediction'
+        '400':
+          description: Missing required query parameter 'q'
+        '401':
+          description: Authentication required
+        '502':
+          description: Places lookup unavailable (key unset or upstream error) — PLACES_UNAVAILABLE
+
+  /api/places/{placeId}:
+    get:
+      tags:
+        - Places
+      summary: Resolve place details
+      description: |
+        Proxies Google Places Details (New) for a `placeId`, returning just the fields a
+        recommendation needs (name, address, coordinates). Pass the same `sessionToken` used for
+        autocomplete to close the billing session.
+      security:
+        - userAuth: []
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          description: Google Places place_id (from an autocomplete prediction)
+          schema:
+            type: string
+        - name: sessionToken
+          in: query
+          required: false
+          description: Session token from the autocomplete call
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Place details resolved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PlaceDetails'
+        '401':
+          description: Authentication required
+        '404':
+          description: Place not found — PLACE_NOT_FOUND
+        '502':
+          description: Places lookup unavailable (key unset or upstream error) — PLACES_UNAVAILABLE
+
+  /api/merchant/followers/count:
+    get:
+      tags:
+        - Merchant
+      summary: Get follower count
+      description: Returns the total number of consumers currently following this merchant's store.
+      security:
+        - merchantAuth: []
+      responses:
+        '200':
+          description: Follower count returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        format: int64
+                        example: 42
+        '401':
+          description: Merchant authentication required
+
+  # ==================== INTERNAL ROUTES ====================
+  /api/internal/check-expired:
+    post:
+      tags:
+        - Internal
+      summary: Process expired reservations
+      description: |
+        Marks all unpicked, uncancelled reservations whose pickup window has passed as no-shows.
+        Increments `noShowCount` for affected users and blocks users who reach the threshold.
+        Designed to be called by Cloud Scheduler. Requires `X-Internal-Api-Key` header.
+      security:
+        - internalApiKey: []
+      responses:
+        '200':
+          description: Expired reservations processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      processedCount:
+                        type: integer
+                      failedCount:
+                        type: integer
+                      usersBlocked:
+                        type: integer
+        '401':
+          description: Invalid or missing API key
+
+  /api/internal/notify-pickup-window:
+    post:
+      tags:
+        - Internal
+      summary: Send READY_FOR_PICKUP notifications
+      description: |
+        Sends FCM push notifications to consumers whose reservation pickup window just opened.
+        Respects `statusChangeEnabled` preference. Designed to be called by Cloud Scheduler every minute.
+        Requires `X-Internal-Api-Key` header.
+      security:
+        - internalApiKey: []
+      responses:
+        '200':
+          description: Notifications sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/NotificationResult'
+        '401':
+          description: Invalid or missing API key
+
+  /api/internal/notify-pickup-reminder:
+    post:
+      tags:
+        - Internal
+      summary: Send 30-minute pickup reminder notifications
+      description: |
+        Sends FCM push notifications to consumers whose reservation pickup window starts in approximately 30 minutes (25–35 min window).
+        Respects `pickupReminderEnabled` preference. Cancelled or already-reminded reservations are excluded.
+        Designed to be called by Cloud Scheduler every few minutes. Requires `X-Internal-Api-Key` header.
+      security:
+        - internalApiKey: []
+      responses:
+        '200':
+          description: Reminder notifications sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/NotificationResult'
+        '401':
+          description: Invalid or missing API key
+
+  /api/internal/notify-sale-window:
+    post:
+      tags:
+        - Internal
+      summary: Send follow-upload notifications
+      description: |
+        Sends FCM push notifications to followers of merchants whose boxes just entered the sale window.
+        Respects `listingEnabled` and `listingScope` preferences. Users with `ALL` scope are always notified; users with `FOLLOWED_ONLY` scope are notified only if they follow the publishing merchant.
+        Designed to be called by Cloud Scheduler every minute. Requires `X-Internal-Api-Key` header.
+      security:
+        - internalApiKey: []
+      responses:
+        '200':
+          description: Notifications sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/NotificationResult'
+        '401':
+          description: Invalid or missing API key
+
+  /api/internal/cleanup-images:
+    post:
+      tags:
+        - Internal
+      summary: Clean up orphaned images
+      description: |
+        Deletes image files from storage that are no longer referenced by any box.
+        Designed to be called by Cloud Scheduler (e.g., once daily). Requires `X-Internal-Api-Key` header.
+      security:
+        - internalApiKey: []
+      responses:
+        '200':
+          description: Cleanup complete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      deletedCount:
+                        type: integer
+        '401':
+          description: Invalid or missing API key
