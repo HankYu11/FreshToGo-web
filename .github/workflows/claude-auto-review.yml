@@ -1,0 +1,77 @@
+name: Claude Auto Review
+
+# Automatic PR review by Claude: reads the gemini-code-assist bot's feedback,
+# does its own correctness/security/reuse review, applies MATERIAL fixes, runs
+# the repo's verify, and pushes to the PR branch.
+#
+# REQUIRES repo secret `CLAUDE_CODE_OAUTH_TOKEN` — generate locally with
+# `claude setup-token` (Claude Pro/Max subscription; no API key needed).
+# Until it's set, this workflow is a no-op (green) — see the `guard` step.
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [develop, main]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write        # push fixes to the PR branch
+  pull-requests: write   # post the review
+  issues: write
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # On PR open/push always; on a submitted review only when it's Gemini's,
+    # so Claude responds to Gemini's feedback without reacting to every comment.
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request_review' &&
+       startsWith(github.event.review.user.login, 'gemini-code-assist'))
+    runs-on: ubuntu-latest
+    steps:
+      - id: guard
+        env:
+          TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN not set — skipping Claude auto-review."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.guard.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - if: steps.guard.outputs.present == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Use the built-in Actions token so the action skips the OIDC / Claude
+          # GitHub App flow (which would need `id-token: write` + the app installed).
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_sticky_comment: true
+          claude_args: |
+            --max-turns 30
+            --allowed-tools "Read,Edit,Write,Glob,Grep,Bash"
+          prompt: |
+            You are the automated reviewer for PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
+
+            1. Read this repo's CLAUDE.md and README for conventions and the build/test/lint commands.
+            2. Read the existing feedback on this PR, INCLUDING the gemini-code-assist bot's review:
+               `gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json comments,reviews`
+               and `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments`.
+            3. Review the PR diff yourself for correctness, security, and reuse/simplification, at HIGH confidence. De-duplicate against what Gemini already raised.
+            4. Apply fixes only for issues that are real and affect correctness, security, or the stated requirements. MATERIAL fixes only — do not restyle, do not gold-plate, do not touch unrelated code. If a Gemini point is wrong or not worth it, note that briefly rather than acting on it.
+            5. If you changed code: run the repo's verify command(s) from CLAUDE.md and make them pass (fix root causes; never weaken tests). Then commit with a conventional message and push to the PR branch.
+            6. If nothing is materially worth fixing: do NOT push.
+            7. Post ONE consolidated review comment: what you fixed (and the commit), which Gemini points you addressed vs. deliberately skipped (with the reason), and anything the author should double-check. Be concise.
+
+            Converge: if earlier runs already handled the actionable feedback and there is nothing new and material, say so briefly and exit WITHOUT pushing. Do not re-fix or restyle code that is already correct.
