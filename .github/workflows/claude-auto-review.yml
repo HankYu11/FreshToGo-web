@@ -4,8 +4,9 @@ name: Claude Auto Review
 # does its own correctness/security/reuse review, applies MATERIAL fixes, runs
 # the repo's verify, and pushes to the PR branch.
 #
-# REQUIRES repo secret `ANTHROPIC_API_KEY`. Until it's set, this workflow is a
-# no-op (green) — see the `guard` step.
+# REQUIRES repo secret `CLAUDE_CODE_OAUTH_TOKEN` — generate locally with
+# `claude setup-token` (Claude Pro/Max subscription; no API key needed).
+# Until it's set, this workflow is a no-op (green) — see the `guard` step.
 
 on:
   pull_request:
@@ -35,11 +36,11 @@ jobs:
     steps:
       - id: guard
         env:
-          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          if [ -z "$KEY" ]; then
+          if [ -z "$TOKEN" ]; then
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::ANTHROPIC_API_KEY not set — skipping Claude auto-review."
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN not set — skipping Claude auto-review."
           else
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
@@ -52,7 +53,7 @@ jobs:
       - if: steps.guard.outputs.present == 'true'
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           use_sticky_comment: true
           claude_args: |
             --max-turns 30
