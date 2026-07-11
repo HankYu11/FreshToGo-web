@@ -4,6 +4,6 @@ export const APP_STORE_URL =
 export const GOOGLE_PLAY_URL =
   'https://play.google.com/store/apps/details?id=com.handy.freshtogo'
 
-export const WEBSITE_URL = 'https://web.handyla.co/'
+export const WEBSITE_URL = 'https://handyla.co/'
 
 export const APP_SCHEME = 'freshtogo://'
