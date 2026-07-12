@@ -316,7 +316,8 @@ export default function HomePage() {
               <h4>{i.footer.legal}</h4>
               <ul>
                 <li><a href="#!">{i.footer.terms}</a></li>
-                <li><a href="#!">{i.footer.privacy}</a></li>
+                <li><Link to="/privacy">{i.footer.privacy}</Link></li>
+                <li><Link to="/account-deletion">{i.footer.accountDeletion}</Link></li>
               </ul>
             </div>
           </div>
