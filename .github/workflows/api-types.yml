@@ -1,0 +1,39 @@
+name: API Types
+
+# Fails the PR if the generated API types are out of sync with the vendored
+# OpenAPI spec (openapi/documentation.yaml). Regenerate locally with
+# `npm run gen:api` (or `npm run sync:spec` to also pull the latest spec from
+# the sibling MysteryBox-ktor checkout) and commit the result.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  api-types:
+    name: OpenAPI types in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Regenerate types from the vendored spec
+        run: npm run gen:api
+
+      - name: Fail if the committed types are stale
+        run: |
+          if ! git diff --quiet -- src/types/api-schema.ts; then
+            echo "::error::src/types/api-schema.ts is out of date. Run 'npm run gen:api' and commit."
+            git --no-pager diff -- src/types/api-schema.ts
+            exit 1
+          fi
+
+      - name: Typecheck (consumers compile against the generated types)
+        run: npx tsc -b
