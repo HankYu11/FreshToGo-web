@@ -57,6 +57,10 @@ jobs:
           # Use the built-in Actions token so the action skips the OIDC / Claude
           # GitHub App flow (which would need `id-token: write` + the app installed).
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          # This workflow intentionally responds to gemini-code-assist's review
+          # (see the job `if:` above). The action otherwise refuses bot-initiated
+          # runs ("Workflow initiated by non-human actor"), so allow that bot.
+          allowed_bots: "gemini-code-assist[bot]"
           use_sticky_comment: true
           claude_args: |
             --max-turns 30
