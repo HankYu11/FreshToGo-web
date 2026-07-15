@@ -26,10 +26,15 @@ concurrency:
 
 jobs:
   review:
-    # On PR open/push always; on a submitted review only when it's Gemini's,
-    # so Claude responds to Gemini's feedback without reacting to every comment.
+    # On PR open/push always, EXCEPT when the push came from our own bots — the
+    # auto-review pushes fixes with GITHUB_TOKEN, and reviewing its own commit is
+    # both recursive and rejected by the action's non-human-actor guard.
+    # On a submitted review, only when it's Gemini's, so Claude responds to
+    # Gemini's feedback without reacting to every comment.
     if: >-
-      github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request' &&
+       github.actor != 'github-actions[bot]' &&
+       github.actor != 'claude[bot]') ||
       (github.event_name == 'pull_request_review' &&
        startsWith(github.event.review.user.login, 'gemini-code-assist'))
     runs-on: ubuntu-latest
