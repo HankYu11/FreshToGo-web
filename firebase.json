@@ -8,6 +8,18 @@
         "**/.*",
         "**/node_modules/**"
       ],
+      "redirects": [
+        {
+          "source": "/nc",
+          "destination": "/download?source=namecard&medium=offline&campaign=business_card",
+          "type": 302
+        },
+        {
+          "source": "/nc/",
+          "destination": "/download?source=namecard&medium=offline&campaign=business_card",
+          "type": 302
+        }
+      ],
       "rewrites": [
         {
           "source": "**",
@@ -22,6 +34,18 @@
         "firebase.json",
         "**/.*",
         "**/node_modules/**"
+      ],
+      "redirects": [
+        {
+          "source": "/nc",
+          "destination": "/download?source=namecard&medium=offline&campaign=business_card",
+          "type": 302
+        },
+        {
+          "source": "/nc/",
+          "destination": "/download?source=namecard&medium=offline&campaign=business_card",
+          "type": 302
+        }
       ],
       "rewrites": [
         {
