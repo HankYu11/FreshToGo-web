@@ -89,6 +89,7 @@ const translations = {
       errorRequired: '此欄位為必填',
       errorLocation: '請從下拉選單選擇店家地址',
       errorPhone: '請輸入有效的電話號碼',
+      errorEmail: '請輸入有效的電子信箱',
       errorSubmit: '送出失敗，請稍後再試或直接與我們聯繫。',
     },
     footer: {
@@ -199,6 +200,7 @@ const translations = {
       errorRequired: 'This field is required',
       errorLocation: 'Please pick your store address from the dropdown',
       errorPhone: 'Please enter a valid phone number',
+      errorEmail: 'Please enter a valid email address',
       errorSubmit: 'Something went wrong. Please try again later or contact us directly.',
     },
     footer: {

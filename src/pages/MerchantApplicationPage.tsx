@@ -110,7 +110,7 @@ export default function MerchantApplicationPage() {
     if (!contactName.trim()) next.contactName = m.errorRequired
     if (!phone.trim()) next.phone = m.errorRequired
     else if (!PHONE_RE.test(phone.trim())) next.phone = m.errorPhone
-    if (email.trim() && !EMAIL_RE.test(email.trim())) next.email = m.errorSubmit
+    if (email.trim() && !EMAIL_RE.test(email.trim())) next.email = m.errorEmail
     if (!selectedLocation) next.location = m.errorLocation
     return next
   }
