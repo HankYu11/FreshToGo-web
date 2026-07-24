@@ -300,7 +300,7 @@ export default function HomePage() {
               <h4>{i.footer.product}</h4>
               <ul>
                 <li><a href="#mission">{i.footer.howItWorks}</a></li>
-                <li><a href="#!">{i.footer.forBusinesses}</a></li>
+                <li><Link to="/merchant-apply">{i.footer.forBusinesses}</Link></li>
                 <li><a href="#!">{i.footer.pricing}</a></li>
               </ul>
             </div>
