@@ -6,8 +6,6 @@ import appStoreIcon from '../assets/appstore-icon.svg'
 import googlePlayIcon from '../assets/googleplay-icon.svg'
 import '../App.css'
 
-const CO2_SAVED_PER_MEAL_FACTOR = 2.5
-
 function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTMLDivElement | null) => void] {
   const [count, setCount] = useState(0)
   const elRef = useRef<HTMLDivElement | null>(null)
@@ -76,8 +74,7 @@ export default function HomePage() {
       })
   }, [])
 
-  const [mealsCount, mealsRef] = useAnimatedCounter(boxesSaved)
-  const [co2Count, co2Ref] = useAnimatedCounter(boxesSaved * CO2_SAVED_PER_MEAL_FACTOR)
+  const [packsCount, packsRef] = useAnimatedCounter(boxesSaved)
   const [storesCount, storesRef] = useAnimatedCounter(merchantsCount)
   const [usersCount, usersRef] = useAnimatedCounter(fetchedUsersCount)
 
@@ -91,8 +88,9 @@ export default function HomePage() {
           <div className="navbar-brand">{i.nav.brand}</div>
           <div className="navbar-links">
             <a href="#mission">{i.nav.howItWorks}</a>
-            <a href="#app-preview">{i.nav.mission}</a>
-            <a href="#impact">{i.nav.impact}</a>
+            <a href="#hunt">{i.nav.hunt}</a>
+            <a href="#rally">{i.nav.rally}</a>
+            <Link to="/merchant-apply">{i.nav.forStores}</Link>
             <button className="lang-toggle" onClick={toggleLang}>
               {i.nav.lang}
             </button>
@@ -129,8 +127,8 @@ export default function HomePage() {
               </div>
             </div>
             <div className="floating-card card-1">
-              <div className="card-icon green">🌱</div>
-              <span>-2.5kg CO₂</span>
+              <div className="card-icon green">🥐</div>
+              <span>{i.hero.madeToday}</span>
             </div>
             <div className="floating-card card-2">
               <div className="card-icon orange">💰</div>
@@ -188,7 +186,7 @@ export default function HomePage() {
                 <span>{i.appPreview.feature2}</span>
               </div>
               <div className="feature-item">
-                <div className="feature-icon">🌍</div>
+                <div className="feature-icon">🥣</div>
                 <span>{i.appPreview.feature3}</span>
               </div>
               <div className="feature-item">
@@ -246,7 +244,65 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Impact Counter */}
+      {/* Hunt Mode */}
+      <section className="section hunt" id="hunt">
+        <div className="hunt-inner">
+          <div className="section-header">
+            <h2>{i.hunt.title}</h2>
+            <p>{i.hunt.subtitle}</p>
+          </div>
+          <div className="steps-grid">
+            <div className="step-card">
+              <div className="step-icon">🛍️</div>
+              <h3>{i.hunt.reserveTitle}</h3>
+              <p>{i.hunt.reserveDesc}</p>
+            </div>
+            <div className="step-card">
+              <div className="step-icon">👋</div>
+              <h3>{i.hunt.passTitle}</h3>
+              <p>{i.hunt.passDesc}</p>
+            </div>
+            <div className="step-card">
+              <div className="step-icon">📥</div>
+              <h3>{i.hunt.stackTitle}</h3>
+              <p>{i.hunt.stackDesc}</p>
+            </div>
+          </div>
+          <p className="hunt-recap">{i.hunt.recap}</p>
+        </div>
+      </section>
+
+      {/* Rally */}
+      <section className="section rally" id="rally">
+        <div className="rally-inner">
+          <div className="section-header">
+            <h2>{i.rally.title}</h2>
+            <p>{i.rally.subtitle}</p>
+          </div>
+          <div className="steps-grid">
+            <div className="step-card">
+              <div className="step-number">1</div>
+              <div className="step-icon">📝</div>
+              <h3>{i.rally.step1Title}</h3>
+              <p>{i.rally.step1Desc}</p>
+            </div>
+            <div className="step-card">
+              <div className="step-number">2</div>
+              <div className="step-icon">🥣</div>
+              <h3>{i.rally.step2Title}</h3>
+              <p>{i.rally.step2Desc}</p>
+            </div>
+            <div className="step-card">
+              <div className="step-number">3</div>
+              <div className="step-icon">🏪</div>
+              <h3>{i.rally.step3Title}</h3>
+              <p>{i.rally.step3Desc}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
       <section className="section impact" id="impact">
         <div className="impact-inner">
           <div className="section-header">
@@ -254,15 +310,10 @@ export default function HomePage() {
             <p>{i.impact.subtitle}</p>
           </div>
           <div className="impact-grid">
-            <div className="impact-card" ref={mealsRef}>
-              <div className="impact-icon">🍽️</div>
-              <div className="impact-number">{mealsCount.toLocaleString()}+</div>
-              <div className="impact-label">{i.impact.mealsSaved}</div>
-            </div>
-            <div className="impact-card" ref={co2Ref}>
-              <div className="impact-icon">🌿</div>
-              <div className="impact-number">{co2Count.toLocaleString()}+</div>
-              <div className="impact-label">{i.impact.co2Reduced}</div>
+            <div className="impact-card" ref={packsRef}>
+              <div className="impact-icon">🥡</div>
+              <div className="impact-number">{packsCount.toLocaleString()}+</div>
+              <div className="impact-label">{i.impact.packsGrabbed}</div>
             </div>
             <div className="impact-card" ref={storesRef}>
               <div className="impact-icon">🏪</div>
@@ -270,7 +321,7 @@ export default function HomePage() {
               <div className="impact-label">{i.impact.stores}</div>
             </div>
             <div className="impact-card" ref={usersRef}>
-              <div className="impact-icon">💚</div>
+              <div className="impact-icon">🙌</div>
               <div className="impact-number">{usersCount.toLocaleString()}+</div>
               <div className="impact-label">{i.impact.users}</div>
             </div>
