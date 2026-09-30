@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { trackEvent } from '../api'
 import StoreBadges from '../components/StoreBadges'
 import { APP_SCHEME, WEBSITE_URL } from '../constants'
-import { t } from '../i18n'
+import { t, type Lang } from '../i18n'
 import './DownloadPage.css'
 
 type Platform = 'ios' | 'android' | 'web_mobile' | 'web_desktop'
@@ -21,7 +21,7 @@ function detectPlatform(): Platform {
 
 const platform = detectPlatform()
 const isMobile = platform === 'ios' || platform === 'android'
-const lang = /^zh\b/i.test(navigator.language) ? 'zh' : 'en'
+const lang: Lang = 'zh'
 const i = t(lang)
 
 export default function DownloadPage() {

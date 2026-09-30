@@ -1,0 +1,323 @@
+.hunt-demo {
+  --card-w: 240px;
+  --card-h: calc(var(--card-w) * 1015 / 760);
+  max-width: 560px;
+  margin: 0 auto 56px;
+  user-select: none;
+}
+
+/* ---- Top bar: progress marks + stacked badge, as in the app ---- */
+.hunt-demo-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: var(--card-w);
+  height: 30px;
+  margin: 0 auto 12px;
+}
+
+.hunt-demo-marks {
+  display: flex;
+  gap: 6px;
+}
+
+.hunt-demo-mark {
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--gray-200);
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.hunt-demo-mark.is-current {
+  transform: scaleY(1.4);
+}
+
+.hunt-demo-mark-reserve { background: var(--accent); }
+.hunt-demo-mark-stack { background: var(--primary); }
+.hunt-demo-mark-pass { background: rgba(74, 85, 83, 0.35); }
+
+.hunt-demo-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 4px 10px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.3s, transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.hunt-demo-badge.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ---- Stage ---- */
+.hunt-demo-stage {
+  position: relative;
+  height: calc(var(--card-h) + 82px);
+  padding-top: 56px;
+}
+
+.hunt-demo-hint {
+  position: absolute;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-light);
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  padding: 6px 14px;
+  white-space: nowrap;
+  transition: color 0.25s, background-color 0.25s, border-color 0.25s, transform 0.25s;
+  z-index: 5;
+}
+
+.hunt-demo-hint-up {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.hunt-demo-hint-left,
+.hunt-demo-hint-right {
+  top: calc(56px + var(--card-h) / 2);
+  transform: translateY(-50%);
+}
+
+.hunt-demo-hint-left { left: 0; }
+.hunt-demo-hint-right { right: 0; }
+
+.hunt-demo-hint.is-active {
+  transform: translateX(-50%) scale(1.08);
+}
+
+.hunt-demo-hint-left.is-active,
+.hunt-demo-hint-right.is-active {
+  transform: translateY(-50%) scale(1.08);
+}
+
+.hunt-demo-hint-up.is-active {
+  color: var(--text-dark);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.hunt-demo-hint-left.is-active {
+  color: var(--white);
+  background: var(--text-medium);
+  border-color: var(--text-medium);
+}
+
+.hunt-demo-hint-right.is-active {
+  color: var(--white);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ---- Deck ---- */
+.hunt-demo-deck {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  margin: 0 auto;
+  animation: hunt-demo-deal 0.5s ease-out;
+}
+
+@keyframes hunt-demo-deal {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+.hunt-demo-card {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 90%;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+.hunt-demo-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 16px 32px rgba(29, 58, 57, 0.16));
+  pointer-events: none;
+}
+
+.hunt-demo-card.is-behind {
+  transform: translateY(calc(var(--depth) * 14px)) scale(calc(1 - var(--depth) * 0.05));
+}
+
+.hunt-demo-card.is-drag {
+  transition: transform 0.85s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.hunt-demo-card.is-drag.action-reserve { transform: translateY(-40px); }
+.hunt-demo-card.is-drag.action-pass { transform: translateX(-64px) rotate(-7deg); }
+.hunt-demo-card.is-drag.action-stack { transform: translateX(64px) rotate(7deg); }
+
+.hunt-demo-card.is-out {
+  opacity: 0;
+  transition: transform 0.5s ease-in, opacity 0.5s ease-in;
+}
+
+.hunt-demo-card.is-out.action-reserve { transform: translateY(-120%) scale(0.9); }
+.hunt-demo-card.is-out.action-pass { transform: translateX(-150%) rotate(-18deg); }
+.hunt-demo-card.is-out.action-stack { transform: translateX(150%) rotate(18deg); }
+
+/* Intent stamp: fades in as the card is dragged, like the app's drag overlay */
+.hunt-demo-stamp {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  font-size: 1.4rem;
+  font-weight: 800;
+  padding: 6px 18px;
+  border-radius: 12px;
+  border: 3px solid currentColor;
+  background: rgba(255, 255, 255, 0.92);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.85);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.stamp-reserve { color: #b07a12; }
+.stamp-pass { color: var(--text-medium); }
+.stamp-stack { color: var(--primary); }
+
+.hunt-demo-card.is-drag .hunt-demo-stamp,
+.hunt-demo-card.is-out .hunt-demo-stamp {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.hunt-demo-card.is-drag.action-pass .hunt-demo-stamp { transform: translate(-50%, -50%) rotate(8deg); }
+.hunt-demo-card.is-drag.action-stack .hunt-demo-stamp { transform: translate(-50%, -50%) rotate(-8deg); }
+
+/* Finger: presses on the card, then rides along with the drag */
+.hunt-demo-finger {
+  position: absolute;
+  top: 66%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  background: rgba(51, 101, 99, 0.28);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 14px rgba(29, 58, 57, 0.25);
+  opacity: 0;
+  transform: scale(1.4);
+  transition: opacity 0.2s, transform 0.3s;
+}
+
+.hunt-demo-card.is-press .hunt-demo-finger,
+.hunt-demo-card.is-drag .hunt-demo-finger {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.hunt-demo-card.is-out .hunt-demo-finger {
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+/* ---- Toast + recap ---- */
+.hunt-demo-toast {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 6;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 10px 20px;
+  box-shadow: 0 10px 30px rgba(237, 179, 70, 0.4);
+  opacity: 0;
+  transform: translate(-50%, -30%) scale(0.9);
+  transition: opacity 0.3s, transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+  pointer-events: none;
+}
+
+.hunt-demo-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.hunt-demo-recap {
+  position: absolute;
+  left: 50%;
+  top: calc(56px + var(--card-h) / 2);
+  width: var(--card-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, -40%);
+  transition: opacity 0.4s, transform 0.4s ease-out;
+  pointer-events: none;
+}
+
+.hunt-demo-recap.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+
+.hunt-demo-recap strong {
+  font-size: 1.25rem;
+  color: var(--text-dark);
+}
+
+.hunt-demo-recap span {
+  font-size: 0.9rem;
+  color: var(--text-medium);
+}
+
+.hunt-demo-recap img {
+  width: 55%;
+  margin-top: 10px;
+  filter: drop-shadow(0 12px 24px rgba(29, 58, 57, 0.16));
+}
+
+@media (max-width: 480px) {
+  .hunt-demo {
+    --card-w: 190px;
+  }
+
+  .hunt-demo-hint {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+  }
+
+  /* No room beside the card: tuck the side hints under it */
+  .hunt-demo-stage {
+    height: calc(var(--card-h) + 124px);
+  }
+
+  .hunt-demo-hint-left,
+  .hunt-demo-hint-right {
+    top: auto;
+    bottom: 0;
+    transform: none;
+  }
+
+  .hunt-demo-hint-left.is-active,
+  .hunt-demo-hint-right.is-active {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hunt-demo-card,
+  .hunt-demo-deck {
+    transition: none;
+    animation: none;
+  }
+}

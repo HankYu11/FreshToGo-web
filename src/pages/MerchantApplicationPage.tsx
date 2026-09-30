@@ -21,7 +21,7 @@ function newSessionToken() {
 }
 
 export default function MerchantApplicationPage() {
-  const [lang, setLang] = useState<Lang>(/^zh\b/i.test(navigator.language) ? 'zh' : 'en')
+  const [lang, setLang] = useState<Lang>('zh')
   const i = t(lang)
   const m = i.merchant
 

@@ -19,7 +19,7 @@ function renderText(text: string): ReactNode {
 }
 
 export default function LegalPage({ content }: { content: LegalContent }) {
-  const [lang, setLang] = useState<Lang>(/^zh\b/i.test(navigator.language) ? 'zh' : 'en')
+  const [lang, setLang] = useState<Lang>('zh')
   const doc = content[lang]
   const brand = lang === 'zh' ? '鮮款款' : 'FreshToGo'
   const backLabel = lang === 'zh' ? '← 返回首頁' : '← Back to Home'
