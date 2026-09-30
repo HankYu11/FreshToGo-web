@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { t, type Lang } from '../i18n'
-import { getImpactStats } from '../api'
-import appStoreIcon from '../assets/appstore-icon.svg'
-import googlePlayIcon from '../assets/googleplay-icon.svg'
+import StoreBadges from '../components/StoreBadges'
 import bakeryFeed from '../assets/app-ui/bakery.feed.webp'
 import bentoFeed from '../assets/app-ui/bento.feed.webp'
 import deliFeed from '../assets/app-ui/deli.feed.webp'
@@ -12,47 +10,6 @@ import bakeryHunt from '../assets/app-ui/bakery.hunt.webp'
 import deliHunt from '../assets/app-ui/deli.hunt.webp'
 import dessertHunt from '../assets/app-ui/dessert.hunt.webp'
 import '../App.css'
-
-function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTMLDivElement | null) => void] {
-  const [count, setCount] = useState(0)
-  const elRef = useRef<HTMLDivElement | null>(null)
-  const animatedRef = useRef(false)
-  const observerRef = useRef<IntersectionObserver | null>(null)
-
-  useEffect(() => {
-    animatedRef.current = false
-  }, [target, duration])
-
-  const ref = useCallback((el: HTMLDivElement | null) => {
-    if (observerRef.current) {
-      observerRef.current.disconnect()
-      observerRef.current = null
-    }
-
-    elRef.current = el
-    if (!el) return
-
-    observerRef.current = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !animatedRef.current) {
-          animatedRef.current = true
-          const start = performance.now()
-          const step = (now: number) => {
-            const progress = Math.min((now - start) / duration, 1)
-            const eased = 1 - Math.pow(1 - progress, 3)
-            setCount(Math.floor(eased * target))
-            if (progress < 1) requestAnimationFrame(step)
-          }
-          requestAnimationFrame(step)
-        }
-      },
-      { threshold: 0.3 },
-    )
-    observerRef.current.observe(el)
-  }, [target, duration])
-
-  return [count, ref]
-}
 
 export default function HomePage() {
   const [lang, setLang] = useState<Lang>(/^zh\b/i.test(navigator.language) ? 'zh' : 'en')
@@ -64,26 +21,6 @@ export default function HomePage() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-
-  const [boxesSaved, setBoxesSaved] = useState(52_340)
-  const [merchantsCount, setMerchantsCount] = useState(1_280)
-  const [fetchedUsersCount, setFetchedUsersCount] = useState(38_600)
-
-  useEffect(() => {
-    getImpactStats()
-      .then((stats) => {
-        setBoxesSaved(stats.boxesSaved)
-        setMerchantsCount(stats.merchantsCount)
-        setFetchedUsersCount(stats.usersCount)
-      })
-      .catch(() => {
-        // keep fallback values
-      })
-  }, [])
-
-  const [packsCount, packsRef] = useAnimatedCounter(boxesSaved)
-  const [storesCount, storesRef] = useAnimatedCounter(merchantsCount)
-  const [usersCount, usersRef] = useAnimatedCounter(fetchedUsersCount)
 
   const toggleLang = () => setLang(lang === 'zh' ? 'en' : 'zh')
 
@@ -322,19 +259,19 @@ export default function HomePage() {
             <p>{i.impact.subtitle}</p>
           </div>
           <div className="impact-grid">
-            <div className="impact-card" ref={packsRef}>
+            <div className="impact-card">
               <div className="impact-icon">🥡</div>
-              <div className="impact-number">{packsCount.toLocaleString()}+</div>
+              <div className="impact-number impact-coming-soon">{i.impact.comingSoon}</div>
               <div className="impact-label">{i.impact.packsGrabbed}</div>
             </div>
-            <div className="impact-card" ref={storesRef}>
+            <div className="impact-card">
               <div className="impact-icon">🏪</div>
-              <div className="impact-number">{storesCount.toLocaleString()}+</div>
+              <div className="impact-number impact-coming-soon">{i.impact.comingSoon}</div>
               <div className="impact-label">{i.impact.stores}</div>
             </div>
-            <div className="impact-card" ref={usersRef}>
+            <div className="impact-card">
               <div className="impact-icon">🙌</div>
-              <div className="impact-number">{usersCount.toLocaleString()}+</div>
+              <div className="impact-number impact-coming-soon">{i.impact.comingSoon}</div>
               <div className="impact-label">{i.impact.users}</div>
             </div>
           </div>
@@ -348,16 +285,7 @@ export default function HomePage() {
             <div>
               <div className="footer-brand">{i.footer.brand}</div>
               <p className="footer-tagline">{i.footer.tagline}</p>
-              <div className="store-badges">
-                <Link to="/download?source=footer_ios" className="store-badge">
-                  <img className="store-badge-icon" src={appStoreIcon} alt="App Store" />
-                  {i.footer.downloadIOS}
-                </Link>
-                <Link to="/download?source=footer_android" className="store-badge">
-                  <img className="store-badge-icon" src={googlePlayIcon} alt="Google Play" />
-                  {i.footer.downloadAndroid}
-                </Link>
-              </div>
+              <StoreBadges lang={lang} className="footer-store-badges" />
             </div>
             <div className="footer-column">
               <h4>{i.footer.product}</h4>
