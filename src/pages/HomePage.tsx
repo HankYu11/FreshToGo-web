@@ -4,6 +4,13 @@ import { t, type Lang } from '../i18n'
 import { getImpactStats } from '../api'
 import appStoreIcon from '../assets/appstore-icon.svg'
 import googlePlayIcon from '../assets/googleplay-icon.svg'
+import bakeryFeed from '../assets/app-ui/bakery.feed.webp'
+import bentoFeed from '../assets/app-ui/bento.feed.webp'
+import deliFeed from '../assets/app-ui/deli.feed.webp'
+import dessertFeed from '../assets/app-ui/dessert.feed.webp'
+import bakeryHunt from '../assets/app-ui/bakery.hunt.webp'
+import deliHunt from '../assets/app-ui/deli.hunt.webp'
+import dessertHunt from '../assets/app-ui/dessert.hunt.webp'
 import '../App.css'
 
 function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTMLDivElement | null) => void] {
@@ -117,14 +124,9 @@ export default function HomePage() {
             </div>
           </div>
           <div className="hero-visual">
-            <div className="hero-illustration">
-              <span className="hero-emoji">🥡</span>
-              <div className="hero-emoji-row">
-                <span>🥐</span>
-                <span>🍱</span>
-                <span>🥗</span>
-                <span>🍰</span>
-              </div>
+            <div className="hero-cards">
+              <img className="hero-card hero-card-back" src={dessertHunt} alt="" />
+              <img className="hero-card hero-card-front" src={bakeryFeed} alt={i.hero.cardAlt} />
             </div>
             <div className="floating-card card-1">
               <div className="card-icon green">🥐</div>
@@ -203,40 +205,10 @@ export default function HomePage() {
                   <h4>{i.appPreview.mockup.nearbyTitle}</h4>
                   <p>{i.appPreview.mockup.nearbySubtitle}</p>
                 </div>
-                <div className="phone-search">
-                  🔍 {i.appPreview.mockup.searchPlaceholder}
-                </div>
                 <div className="phone-cards">
-                  <div className="phone-card-item">
-                    <div className="phone-card-thumb" style={{ background: '#FFF3E0' }}>🥐</div>
-                    <div className="phone-card-info">
-                      <h5>{i.appPreview.mockup.store1Name}</h5>
-                      <p>{i.appPreview.mockup.store1Desc}</p>
-                    </div>
-                    <div className="phone-card-price">$89</div>
-                  </div>
-                  <div className="phone-card-item">
-                    <div className="phone-card-thumb" style={{ background: '#E8F5E9' }}>🍱</div>
-                    <div className="phone-card-info">
-                      <h5>{i.appPreview.mockup.store2Name}</h5>
-                      <p>{i.appPreview.mockup.store2Desc}</p>
-                    </div>
-                    <div className="phone-card-price">$120</div>
-                  </div>
-                  <div className="phone-card-item">
-                    <div className="phone-card-thumb" style={{ background: '#F3E5F5' }}>🍰</div>
-                    <div className="phone-card-info">
-                      <h5>{i.appPreview.mockup.store3Name}</h5>
-                      <p>{i.appPreview.mockup.store3Desc}</p>
-                    </div>
-                    <div className="phone-card-price">$99</div>
-                  </div>
-                </div>
-                <div className="phone-nav">
-                  <span>🏠</span>
-                  <span>🗺️</span>
-                  <span>💚</span>
-                  <span>👤</span>
+                  <img src={bentoFeed} alt={i.appPreview.mockup.cardAlt} />
+                  <img src={deliFeed} alt="" />
+                  <img src={dessertFeed} alt="" />
                 </div>
               </div>
             </div>
@@ -250,6 +222,11 @@ export default function HomePage() {
           <div className="section-header">
             <h2>{i.hunt.title}</h2>
             <p>{i.hunt.subtitle}</p>
+          </div>
+          <div className="hunt-deck">
+            <img src={deliHunt} alt="" />
+            <img src={dessertHunt} alt={i.hunt.cardAlt} />
+            <img src={bakeryHunt} alt="" />
           </div>
           <div className="steps-grid">
             <div className="step-card">
