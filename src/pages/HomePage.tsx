@@ -2,18 +2,18 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { t, type Lang } from '../i18n'
 import StoreBadges from '../components/StoreBadges'
+import HuntDemo, { type HuntAction } from '../components/HuntDemo'
 import bakeryFeed from '../assets/app-ui/bakery.feed.webp'
 import bentoFeed from '../assets/app-ui/bento.feed.webp'
 import deliFeed from '../assets/app-ui/deli.feed.webp'
 import dessertFeed from '../assets/app-ui/dessert.feed.webp'
-import bakeryHunt from '../assets/app-ui/bakery.hunt.webp'
-import deliHunt from '../assets/app-ui/deli.hunt.webp'
 import dessertHunt from '../assets/app-ui/dessert.hunt.webp'
 import '../App.css'
 
 export default function HomePage() {
-  const [lang, setLang] = useState<Lang>(/^zh\b/i.test(navigator.language) ? 'zh' : 'en')
+  const [lang, setLang] = useState<Lang>('zh')
   const [scrolled, setScrolled] = useState(false)
+  const [huntAction, setHuntAction] = useState<HuntAction | null>(null)
   const i = t(lang)
 
   useEffect(() => {
@@ -160,24 +160,23 @@ export default function HomePage() {
             <h2>{i.hunt.title}</h2>
             <p>{i.hunt.subtitle}</p>
           </div>
-          <div className="hunt-deck">
-            <img src={deliHunt} alt="" />
-            <img src={dessertHunt} alt={i.hunt.cardAlt} />
-            <img src={bakeryHunt} alt="" />
-          </div>
+          <HuntDemo copy={i.hunt} onActiveChange={setHuntAction} />
           <div className="steps-grid">
-            <div className="step-card">
+            <div className={`step-card hunt-step hunt-step-reserve${huntAction === 'reserve' ? ' is-active' : ''}`}>
               <div className="step-icon">🛍️</div>
+              <div className="hunt-step-gesture">↑ {i.hunt.reserveGesture}</div>
               <h3>{i.hunt.reserveTitle}</h3>
               <p>{i.hunt.reserveDesc}</p>
             </div>
-            <div className="step-card">
+            <div className={`step-card hunt-step hunt-step-pass${huntAction === 'pass' ? ' is-active' : ''}`}>
               <div className="step-icon">👋</div>
+              <div className="hunt-step-gesture">← {i.hunt.passGesture}</div>
               <h3>{i.hunt.passTitle}</h3>
               <p>{i.hunt.passDesc}</p>
             </div>
-            <div className="step-card">
+            <div className={`step-card hunt-step hunt-step-stack${huntAction === 'stack' ? ' is-active' : ''}`}>
               <div className="step-icon">📥</div>
+              <div className="hunt-step-gesture">{i.hunt.stackGesture} →</div>
               <h3>{i.hunt.stackTitle}</h3>
               <p>{i.hunt.stackDesc}</p>
             </div>
