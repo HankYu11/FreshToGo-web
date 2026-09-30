@@ -315,7 +315,7 @@ export default function HomePage() {
             <div className="footer-column">
               <h4>{i.footer.legal}</h4>
               <ul>
-                <li><a href="#!">{i.footer.terms}</a></li>
+                <li><Link to="/privacy">{i.footer.terms}</Link></li>
                 <li><Link to="/privacy">{i.footer.privacy}</Link></li>
                 <li><Link to="/account-deletion">{i.footer.accountDeletion}</Link></li>
               </ul>
