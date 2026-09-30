@@ -97,7 +97,7 @@ export default function HomePage() {
             <a href="#mission">{i.nav.howItWorks}</a>
             <a href="#hunt">{i.nav.hunt}</a>
             <a href="#rally">{i.nav.rally}</a>
-            <Link to="/merchant-apply">{i.nav.forStores}</Link>
+            <a href="#for-stores">{i.nav.forStores}</a>
             <button className="lang-toggle" onClick={toggleLang}>
               {i.nav.lang}
             </button>
@@ -279,6 +279,41 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* For Stores */}
+      <section className="section for-stores" id="for-stores">
+        <div className="for-stores-inner">
+          <div className="section-header">
+            <h2>{i.forStores.title}</h2>
+            <p>{i.forStores.subtitle}</p>
+          </div>
+          <div className="for-stores-grid">
+            <div className="for-stores-card">
+              <div className="feature-icon">🎯</div>
+              <h3>{i.forStores.eligibilityTitle}</h3>
+              <p>{i.forStores.eligibilityDesc}</p>
+            </div>
+            <div className="for-stores-card">
+              <div className="feature-icon">📋</div>
+              <h3>{i.forStores.templatesTitle}</h3>
+              <p>{i.forStores.templatesDesc}</p>
+            </div>
+            <div className="for-stores-card">
+              <div className="feature-icon">📱</div>
+              <h3>{i.forStores.pickupTitle}</h3>
+              <p>{i.forStores.pickupDesc}</p>
+            </div>
+            <div className="for-stores-card">
+              <div className="feature-icon">🥣</div>
+              <h3>{i.forStores.rallyTitle}</h3>
+              <p>{i.forStores.rallyDesc}</p>
+            </div>
+          </div>
+          <div className="for-stores-cta">
+            <Link to="/merchant-apply" className="btn-primary">{i.forStores.cta}</Link>
+          </div>
+        </div>
+      </section>
+
       {/* Stats */}
       <section className="section impact" id="impact">
         <div className="impact-inner">
@@ -329,15 +364,6 @@ export default function HomePage() {
               <ul>
                 <li><a href="#mission">{i.footer.howItWorks}</a></li>
                 <li><Link to="/merchant-apply">{i.footer.forBusinesses}</Link></li>
-                <li><a href="#!">{i.footer.pricing}</a></li>
-              </ul>
-            </div>
-            <div className="footer-column">
-              <h4>{i.footer.company}</h4>
-              <ul>
-                <li><a href="#!">{i.footer.about}</a></li>
-                <li><a href="#!">{i.footer.careers}</a></li>
-                <li><a href="#!">{i.footer.press}</a></li>
               </ul>
             </div>
             <div className="footer-column">

@@ -535,6 +535,51 @@
   background: var(--white);
 }
 
+/* ========== For Stores ========== */
+.for-stores {
+  background: var(--tertiary);
+}
+
+.for-stores-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.for-stores-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.for-stores-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 20px;
+  padding: 32px 24px;
+}
+
+.for-stores-card .feature-icon {
+  margin-bottom: 16px;
+}
+
+.for-stores-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 10px;
+}
+
+.for-stores-card p {
+  font-size: 0.95rem;
+  color: var(--text-light);
+  line-height: 1.7;
+}
+
+.for-stores-cta {
+  margin-top: 48px;
+  text-align: center;
+}
+
 /* ========== Impact Counter ========== */
 .impact {
   background: linear-gradient(165deg, var(--gray-800) 0%, #102322 100%);
@@ -608,7 +653,7 @@
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 48px;
   margin-bottom: 48px;
 }
@@ -695,6 +740,10 @@
     font-size: 2.8rem;
   }
 
+  .for-stores-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .footer-grid {
     grid-template-columns: 1fr 1fr;
     gap: 36px;
@@ -743,6 +792,12 @@
   }
 
   .steps-grid {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .for-stores-grid {
     grid-template-columns: 1fr;
     max-width: 480px;
     margin: 0 auto;
