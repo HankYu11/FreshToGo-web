@@ -565,6 +565,31 @@
   padding: 0 8px;
 }
 
+/* ========== Hunt Mode ========== */
+.hunt {
+  background: var(--gray-50);
+}
+
+.hunt-inner,
+.rally-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.hunt-recap {
+  max-width: 720px;
+  margin: 40px auto 0;
+  text-align: center;
+  font-size: 1.05rem;
+  color: var(--text-medium);
+  line-height: 1.7;
+}
+
+/* ========== Rally ========== */
+.rally {
+  background: var(--white);
+}
+
 /* ========== Impact Counter ========== */
 .impact {
   background: linear-gradient(165deg, var(--gray-800) 0%, #0d1f0d 100%);
@@ -586,7 +611,7 @@
 
 .impact-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 }
 
@@ -725,10 +750,6 @@
     font-size: 2.8rem;
   }
 
-  .impact-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .footer-grid {
     grid-template-columns: 1fr 1fr;
     gap: 36px;
@@ -796,7 +817,9 @@
   }
 
   .impact-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    max-width: 480px;
+    margin: 0 auto;
   }
 
   .impact-number {
