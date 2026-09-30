@@ -17,6 +17,7 @@ const translations = {
       cta: '下載 App',
       comingSoon: 'App Store 已上架',
       madeToday: '今天現做',
+      cardAlt: 'App 裡的鮮款包卡片',
     },
     mission: {
       title: '如何運作',
@@ -38,13 +39,7 @@ const translations = {
       mockup: {
         nearbyTitle: '今日鮮款包',
         nearbySubtitle: '你家附近的店家，今天現做的好料',
-        searchPlaceholder: '搜尋店家或餐點...',
-        store1Name: '陽光麵包坊',
-        store1Desc: '麵包鮮款包 · 500m',
-        store2Name: '好食光便當',
-        store2Desc: '便當鮮款包 · 1.2km',
-        store3Name: '甜蜜時光',
-        store3Desc: '甜點鮮款包 · 800m',
+        cardAlt: 'App 首頁的鮮款包列表',
         saved: '已省下',
       },
     },
@@ -57,6 +52,7 @@ const translations = {
       passDesc: '不是你的菜？跳過就好，它仍然留在列表裡。',
       stackTitle: '先收著',
       stackDesc: '還在猶豫？向右滑先收著，留到最後再決定。',
+      cardAlt: '狩獵模式中的鮮款包卡片',
       recap: '一輪結束時，先收著的鮮款包會再給你一次機會；在你考慮時賣完的，也會一併告訴你。',
     },
     rally: {
@@ -150,6 +146,7 @@ const translations = {
       cta: 'Download App',
       comingSoon: 'Now on the App Store',
       madeToday: 'Made today',
+      cardAlt: 'A fresh pack card in the app',
     },
     mission: {
       title: 'How It Works',
@@ -171,13 +168,7 @@ const translations = {
       mockup: {
         nearbyTitle: "Today's Fresh Packs",
         nearbySubtitle: 'Cooked and baked today, at stores near you',
-        searchPlaceholder: 'Search stores or meals...',
-        store1Name: 'Sunny Bakery',
-        store1Desc: 'Bakery Fresh Pack · 500m',
-        store2Name: 'Good Times Bento',
-        store2Desc: 'Bento Fresh Pack · 1.2km',
-        store3Name: 'Sweet Moments',
-        store3Desc: 'Dessert Fresh Pack · 800m',
+        cardAlt: 'Fresh packs in the app feed',
         saved: 'saved',
       },
     },
@@ -190,6 +181,7 @@ const translations = {
       passDesc: 'Not your thing? Pass — it stays in the feed.',
       stackTitle: 'Stack',
       stackDesc: 'Not sure yet? Swipe right to stack it and decide at the end.',
+      cardAlt: 'A fresh pack card in Hunt mode',
       recap: 'When the round ends, everything you stacked gets one more look — and you’ll see what sold out while you were thinking.',
     },
     rally: {

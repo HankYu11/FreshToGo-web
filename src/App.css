@@ -79,7 +79,7 @@
   right: -200px;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(0, 200, 83, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(51, 101, 99, 0.12) 0%, transparent 70%);
   border-radius: 50%;
 }
 
@@ -160,13 +160,13 @@
   font-size: 1.05rem;
   font-weight: 600;
   transition: all 0.25s;
-  box-shadow: 0 4px 16px rgba(0, 200, 83, 0.3);
+  box-shadow: 0 4px 16px rgba(51, 101, 99, 0.3);
 }
 
 .btn-primary:hover {
   background: var(--primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(0, 200, 83, 0.4);
+  box-shadow: 0 6px 24px rgba(51, 101, 99, 0.4);
 }
 
 .btn-secondary {
@@ -192,58 +192,45 @@
   align-items: center;
 }
 
-.hero-illustration {
+.hero-cards {
+  position: relative;
   width: 100%;
   max-width: 480px;
   aspect-ratio: 1;
-  background: linear-gradient(135deg, var(--primary-light), rgba(0, 200, 83, 0.15));
   border-radius: 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  box-shadow: 0 20px 60px rgba(0, 200, 83, 0.15);
-  position: relative;
-  overflow: hidden;
+  background: radial-gradient(circle at 50% 45%, var(--accent-light) 0%, var(--primary-light) 60%, transparent 72%);
 }
 
-.hero-illustration::before {
-  content: '';
+.hero-card {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
-  animation: shimmer 3s ease-in-out infinite;
+  width: 68%;
+  height: auto;
+  filter: drop-shadow(0 20px 40px rgba(29, 58, 57, 0.18));
 }
 
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+.hero-card-back {
+  top: 2%;
+  right: 2%;
+  transform: rotate(6deg);
 }
 
-.hero-emoji {
-  font-size: 6rem;
-  line-height: 1;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+.hero-card-front {
+  bottom: 6%;
+  left: 2%;
+  transform: rotate(-4deg);
+  animation: float 5s ease-in-out infinite;
 }
-
-.hero-emoji-row {
-  display: flex;
-  gap: 12px;
-}
-
-.hero-emoji-row span {
-  font-size: 3rem;
-  animation: float 3s ease-in-out infinite;
-}
-
-.hero-emoji-row span:nth-child(2) { animation-delay: 0.5s; }
-.hero-emoji-row span:nth-child(3) { animation-delay: 1s; }
-.hero-emoji-row span:nth-child(4) { animation-delay: 1.5s; }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%, 100% { transform: rotate(-4deg) translateY(0); }
+  50% { transform: rotate(-4deg) translateY(-8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-card-front,
+  .floating-card {
+    animation: none;
+  }
 }
 
 .floating-card {
@@ -262,14 +249,14 @@
 }
 
 .floating-card.card-1 {
-  top: 10%;
-  right: -10%;
+  top: 6%;
+  left: -4%;
   animation-delay: 0s;
 }
 
 .floating-card.card-2 {
-  bottom: 15%;
-  left: -5%;
+  bottom: 12%;
+  right: -4%;
   animation-delay: 2s;
 }
 
@@ -289,7 +276,7 @@
 }
 
 .card-icon.green { background: var(--primary-light); }
-.card-icon.orange { background: var(--tertiary); }
+.card-icon.orange { background: var(--accent-light); }
 
 /* ========== Section common ========== */
 .section {
@@ -486,88 +473,26 @@
   margin-top: 2px;
 }
 
-.phone-search {
-  margin: 12px 16px;
-  padding: 10px 16px;
-  background: var(--gray-100);
-  border-radius: 12px;
-  font-size: 0.8rem;
-  color: var(--text-light);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .phone-cards {
-  padding: 0 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   flex: 1;
   overflow: hidden;
+  background: var(--tertiary);
 }
 
-.phone-card-item {
-  background: var(--gray-50);
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.phone-card-thumb {
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.phone-card-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.phone-card-info h5 {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 2px;
-}
-
-.phone-card-info p {
-  font-size: 0.65rem;
-  color: var(--text-light);
-}
-
-.phone-card-price {
-  background: var(--primary);
-  color: var(--white);
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.phone-nav {
-  height: 52px;
-  background: var(--white);
-  border-top: 1px solid var(--gray-200);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  font-size: 1.2rem;
-  padding: 0 8px;
+.phone-cards img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 /* ========== Hunt Mode ========== */
 .hunt {
   background: var(--gray-50);
+  overflow: hidden;
 }
 
 .hunt-inner,
@@ -575,6 +500,26 @@
   max-width: 1200px;
   margin: 0 auto;
 }
+
+.hunt-deck {
+  position: relative;
+  height: 400px;
+  max-width: 560px;
+  margin: 0 auto 56px;
+}
+
+.hunt-deck img {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 260px;
+  height: auto;
+  filter: drop-shadow(0 16px 32px rgba(29, 58, 57, 0.16));
+}
+
+.hunt-deck img:nth-child(1) { transform: translateX(-110%) rotate(-10deg) translateY(24px); }
+.hunt-deck img:nth-child(2) { transform: translateX(-50%); z-index: 1; }
+.hunt-deck img:nth-child(3) { transform: translateX(10%) rotate(10deg) translateY(24px); }
 
 .hunt-recap {
   max-width: 720px;
@@ -592,7 +537,7 @@
 
 /* ========== Impact Counter ========== */
 .impact {
-  background: linear-gradient(165deg, var(--gray-800) 0%, #0d1f0d 100%);
+  background: linear-gradient(165deg, var(--gray-800) 0%, #102322 100%);
   color: var(--white);
 }
 
@@ -637,7 +582,7 @@
 .impact-number {
   font-size: 2.8rem;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--accent);
   line-height: 1.1;
   margin-bottom: 8px;
 }
@@ -671,7 +616,7 @@
 .footer-brand {
   font-size: 1.5rem;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--accent);
   margin-bottom: 12px;
 }
 
@@ -733,7 +678,7 @@
 }
 
 .footer-column a:hover {
-  color: var(--primary);
+  color: var(--accent);
 }
 
 .footer-bottom {
@@ -784,8 +729,8 @@
     order: -1;
   }
 
-  .hero-illustration {
-    max-width: 300px;
+  .hero-cards {
+    max-width: 320px;
     margin: 0 auto;
   }
 
@@ -802,6 +747,17 @@
     max-width: 480px;
     margin: 0 auto;
   }
+
+  .hunt-deck {
+    height: 300px;
+  }
+
+  .hunt-deck img {
+    width: 190px;
+  }
+
+  .hunt-deck img:nth-child(1) { transform: translateX(-95%) rotate(-10deg) translateY(20px); }
+  .hunt-deck img:nth-child(3) { transform: translateX(-5%) rotate(10deg) translateY(20px); }
 
   .app-preview-inner {
     grid-template-columns: 1fr;
