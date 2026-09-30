@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { trackEvent } from '../api'
-import appStoreIcon from '../assets/appstore-icon.svg'
-import googlePlayIcon from '../assets/googleplay-icon.svg'
-import { APP_SCHEME, APP_STORE_URL, GOOGLE_PLAY_URL, WEBSITE_URL } from '../constants'
+import StoreBadges from '../components/StoreBadges'
+import { APP_SCHEME, WEBSITE_URL } from '../constants'
 import { t } from '../i18n'
 import './DownloadPage.css'
 
@@ -65,11 +64,6 @@ export default function DownloadPage() {
     }
   }, [searchParams])
 
-  const storeUrl = platform === 'ios' ? APP_STORE_URL : platform === 'android' ? GOOGLE_PLAY_URL : null
-  const storeLabel = platform === 'ios' ? i.download.appStore : platform === 'android' ? i.download.googlePlay : null
-  const storeIcon = platform === 'ios' ? appStoreIcon : googlePlayIcon
-  const storeIconAlt = platform === 'ios' ? 'App Store' : 'Google Play'
-
   return (
     <div className="download-page">
       {state === 'loading' ? (
@@ -84,35 +78,19 @@ export default function DownloadPage() {
           <h1 className="download-tagline">{i.download.tagline}</h1>
           <p className="download-subtitle">{i.download.subtitle}</p>
           <div className="download-buttons">
-            {storeUrl ? (
-              <a
-                href={storeUrl}
-                className={`download-btn ${platform === 'ios' ? 'download-btn-appstore' : 'download-btn-google'}`}
-                rel="noopener noreferrer"
-              >
-                <img className="download-btn-icon" src={storeIcon} alt={storeIconAlt} />
-                {storeLabel}
-              </a>
-            ) : (
-              <a
-                href={WEBSITE_URL}
-                className="download-btn download-btn-website"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {i.download.website}
-              </a>
-            )}
-            {isMobile && (
-              <a
-                href={WEBSITE_URL}
-                className="download-link-website"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {i.download.website}
-              </a>
-            )}
+            <StoreBadges
+              lang={lang}
+              stores={platform === 'ios' ? ['ios'] : platform === 'android' ? ['android'] : ['ios', 'android']}
+              className="download-store-badges"
+            />
+            <a
+              href={WEBSITE_URL}
+              className="download-link-website"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {i.download.website}
+            </a>
           </div>
         </div>
       )}

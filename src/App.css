@@ -632,6 +632,11 @@
   margin-bottom: 8px;
 }
 
+.impact-number.impact-coming-soon {
+  font-size: 1.6rem;
+  line-height: 3.08rem;
+}
+
 .impact-label {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.6);
@@ -669,37 +674,6 @@
   font-size: 0.95rem;
   line-height: 1.6;
   margin-bottom: 24px;
-}
-
-.store-badges {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.store-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  padding: 10px 18px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
-  transition: background-color 0.2s, border-color 0.2s;
-  width: fit-content;
-}
-
-.store-badge:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: var(--primary);
-}
-
-.store-badge-icon {
-  width: 1.2rem;
-  height: 1.2rem;
 }
 
 .footer-column h4 {
