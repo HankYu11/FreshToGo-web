@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { t, type Lang } from '../i18n'
 import StoreBadges from '../components/StoreBadges'
 import HuntDemo, { type HuntAction } from '../components/HuntDemo'
+import logo from '../assets/logo.svg'
 import bakeryFeed from '../assets/app-ui/bakery.feed.webp'
 import bentoFeed from '../assets/app-ui/bento.feed.webp'
 import deliFeed from '../assets/app-ui/deli.feed.webp'
@@ -29,7 +30,9 @@ export default function HomePage() {
       {/* Navbar */}
       <nav className={`navbar${scrolled ? ' scrolled' : ''}`}>
         <div className="navbar-inner">
-          <div className="navbar-brand">{i.nav.brand}</div>
+          <Link to="/" className="navbar-brand">
+            <img src={logo} alt={i.nav.brand} />
+          </Link>
           <div className="navbar-links">
             <a href="#mission">{i.nav.howItWorks}</a>
             <a href="#hunt">{i.nav.hunt}</a>
@@ -177,7 +180,6 @@ export default function HomePage() {
               <p>{i.hunt.stackDesc}</p>
             </div>
           </div>
-          <p className="hunt-recap">{i.hunt.recap}</p>
         </div>
       </section>
 
