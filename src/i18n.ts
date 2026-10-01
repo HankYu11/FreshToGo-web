@@ -52,7 +52,6 @@ const translations = {
       stackTitle: '先收著',
       stackDesc: '還在猶豫？向右滑先收著，留到最後再決定。',
       cardAlt: '狩獵模式中的鮮款包卡片',
-      recap: '一輪結束時，先收著的鮮款包會再給你一次機會；在你考慮時賣完的，也會一併告訴你。',
       demoLabel: '狩獵模式操作示範',
       reserveGesture: '向上滑',
       passGesture: '向左滑',
@@ -74,7 +73,7 @@ const translations = {
     },
     forStores: {
       title: '讓路過的人走進你的店',
-      subtitle: '鮮款款幫巷口好店被看見。每一款鮮款包賣給誰由你決定，熟客照常原價。',
+      subtitle: '鮮款款幫巷口好店被看見。每一款鮮款包賣給誰由你決定。',
       eligibilityTitle: '你決定誰能買',
       eligibilityDesc: '首購限定、限購一次、熟客限定，或所有人都看得到。上架前就能看到大約有多少客人看得到。',
       templatesTitle: '上架不費工',
@@ -193,7 +192,6 @@ const translations = {
       stackTitle: 'Stack',
       stackDesc: 'Not sure yet? Swipe right to stack it and decide at the end.',
       cardAlt: 'A fresh pack card in Hunt mode',
-      recap: 'When the round ends, everything you stacked gets one more look — and you’ll see what sold out while you were thinking.',
       demoLabel: 'Hunt mode demo',
       reserveGesture: 'Swipe up',
       passGesture: 'Swipe left',
@@ -215,7 +213,7 @@ const translations = {
     },
     forStores: {
       title: 'Turn Passers-by Into Customers',
-      subtitle: 'FreshToGo helps good neighbourhood stores get found. You decide who each fresh pack is for — your regulars keep paying full price.',
+      subtitle: 'FreshToGo helps good neighbourhood stores get found. You decide who each fresh pack is for.',
       eligibilityTitle: 'You Decide Who Can Buy',
       eligibilityDesc: 'First purchase only, one purchase only, regulars only, or everyone. See roughly how many customers can see a pack before you list it.',
       templatesTitle: 'Listing Takes Seconds',

@@ -26,10 +26,14 @@
 }
 
 .navbar-brand {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--primary);
-  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-brand img {
+  display: block;
+  height: 40px;
+  width: auto;
 }
 
 .navbar-links {
@@ -517,15 +521,6 @@
 .hunt-step-pass.is-active .hunt-step-gesture { color: var(--white); background: var(--text-medium); }
 .hunt-step-stack.is-active { border-color: var(--primary); }
 .hunt-step-stack.is-active .hunt-step-gesture { color: var(--white); background: var(--primary); }
-
-.hunt-recap {
-  max-width: 720px;
-  margin: 40px auto 0;
-  text-align: center;
-  font-size: 1.05rem;
-  color: var(--text-medium);
-  line-height: 1.7;
-}
 
 /* ========== Rally ========== */
 .rally {
