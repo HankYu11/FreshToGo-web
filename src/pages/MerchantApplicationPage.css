@@ -1,6 +1,6 @@
 .merchant-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f0faf0 0%, #ffffff 50%, #f0f7ff 100%);
+  background: linear-gradient(135deg, #eef6f5 0%, #ffffff 50%, #FCF9EB 100%);
   display: flex;
   flex-direction: column;
 }
@@ -18,28 +18,28 @@
 .merchant-back {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-medium, #4a5c4a);
+  color: var(--text-medium, #4a5553);
   transition: color 0.15s ease;
 }
 
 .merchant-back:hover {
-  color: var(--primary, #00C853);
+  color: var(--primary, #336563);
 }
 
 .merchant-lang {
   background: transparent;
-  color: var(--text-medium, #4a5c4a);
+  color: var(--text-medium, #4a5553);
   font-size: 0.9rem;
   font-weight: 600;
   padding: 0.4rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid var(--gray-200, #e0e6e0);
+  border: 1px solid var(--gray-200, #dfe6e5);
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .merchant-lang:hover {
-  color: var(--primary, #00C853);
-  border-color: var(--primary, #00C853);
+  color: var(--primary, #336563);
+  border-color: var(--primary, #336563);
 }
 
 .merchant-main {
@@ -56,28 +56,28 @@
   background: var(--white, #fff);
   border-radius: 20px;
   padding: 2.5rem 2rem;
-  box-shadow: 0 10px 40px rgba(26, 46, 26, 0.08);
+  box-shadow: 0 10px 40px rgba(33, 33, 33, 0.08);
   animation: merchantFadeIn 0.4s ease;
 }
 
 .merchant-logo {
   font-size: 1.6rem;
   font-weight: 800;
-  color: var(--primary, #00C853);
+  color: var(--primary, #336563);
   margin-bottom: 1.25rem;
 }
 
 .merchant-title {
   font-size: 1.7rem;
   font-weight: 700;
-  color: var(--text-dark, #1a2e1a);
+  color: var(--text-dark, #212121);
   line-height: 1.3;
   margin-bottom: 0.6rem;
 }
 
 .merchant-subtitle {
   font-size: 1rem;
-  color: var(--text-medium, #4a5c4a);
+  color: var(--text-medium, #4a5553);
   line-height: 1.6;
   margin-bottom: 2rem;
 }
@@ -98,7 +98,7 @@
 .merchant-label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-dark, #1a2e1a);
+  color: var(--text-dark, #212121);
 }
 
 .merchant-input {
@@ -106,22 +106,22 @@
   padding: 0.8rem 1rem;
   font-size: 1rem;
   font-family: inherit;
-  color: var(--text-dark, #1a2e1a);
-  background: var(--gray-50, #f8faf8);
-  border: 1.5px solid var(--gray-200, #e0e6e0);
+  color: var(--text-dark, #212121);
+  background: var(--gray-50, #f7faf9);
+  border: 1.5px solid var(--gray-200, #dfe6e5);
   border-radius: 12px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .merchant-input::placeholder {
-  color: var(--text-light, #6b7c6b);
+  color: var(--text-light, #6b7675);
 }
 
 .merchant-input:focus {
   outline: none;
   background: var(--white, #fff);
-  border-color: var(--primary, #00C853);
-  box-shadow: 0 0 0 3px rgba(0, 200, 83, 0.12);
+  border-color: var(--primary, #336563);
+  box-shadow: 0 0 0 3px rgba(51, 101, 99, 0.12);
 }
 
 .merchant-input-error {
@@ -158,9 +158,9 @@
   right: 0;
   z-index: 20;
   background: var(--white, #fff);
-  border: 1px solid var(--gray-200, #e0e6e0);
+  border: 1px solid var(--gray-200, #dfe6e5);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(26, 46, 26, 0.12);
+  box-shadow: 0 8px 24px rgba(33, 33, 33, 0.12);
   overflow: hidden;
   max-height: 260px;
   overflow-y: auto;
@@ -178,24 +178,24 @@
 }
 
 .merchant-prediction:hover {
-  background: var(--primary-light, #e8f5e9);
+  background: var(--primary-light, #E6F2F1);
 }
 
 .merchant-prediction-primary {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-dark, #1a2e1a);
+  color: var(--text-dark, #212121);
 }
 
 .merchant-prediction-secondary {
   font-size: 0.82rem;
-  color: var(--text-light, #6b7c6b);
+  color: var(--text-light, #6b7675);
 }
 
 .merchant-prediction-empty {
   padding: 0.8rem 1rem;
   font-size: 0.9rem;
-  color: var(--text-light, #6b7c6b);
+  color: var(--text-light, #6b7675);
 }
 
 /* Selected location card */
@@ -205,8 +205,8 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.8rem 1rem;
-  background: var(--primary-light, #e8f5e9);
-  border: 1.5px solid var(--primary, #00C853);
+  background: var(--primary-light, #E6F2F1);
+  border: 1.5px solid var(--primary, #336563);
   border-radius: 12px;
 }
 
@@ -220,12 +220,12 @@
 .merchant-location-name {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-dark, #1a2e1a);
+  color: var(--text-dark, #212121);
 }
 
 .merchant-location-address {
   font-size: 0.82rem;
-  color: var(--text-medium, #4a5c4a);
+  color: var(--text-medium, #4a5553);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -236,7 +236,7 @@
   background: transparent;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--primary-dark, #00a844);
+  color: var(--primary-dark, #264b4a);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -249,14 +249,14 @@
   font-size: 1.05rem;
   font-weight: 700;
   color: #fff;
-  background: var(--primary, #00C853);
+  background: var(--primary, #336563);
   border-radius: 12px;
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .merchant-submit:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 200, 83, 0.3);
+  box-shadow: 0 6px 20px rgba(51, 101, 99, 0.3);
 }
 
 .merchant-submit:active:not(:disabled) {
@@ -269,12 +269,12 @@
 }
 
 .merchant-submit-ghost {
-  color: var(--primary-dark, #00a844);
-  background: var(--primary-light, #e8f5e9);
+  color: var(--primary-dark, #264b4a);
+  background: var(--primary-light, #E6F2F1);
 }
 
 .merchant-submit-ghost:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(0, 200, 83, 0.15);
+  box-shadow: 0 6px 20px rgba(51, 101, 99, 0.15);
 }
 
 /* Success */
@@ -294,20 +294,20 @@
   font-size: 2rem;
   font-weight: 700;
   color: #fff;
-  background: var(--primary, #00C853);
+  background: var(--primary, #336563);
   border-radius: 50%;
 }
 
 .merchant-success-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--text-dark, #1a2e1a);
+  color: var(--text-dark, #212121);
   margin-bottom: 0.6rem;
 }
 
 .merchant-success-body {
   font-size: 1rem;
-  color: var(--text-medium, #4a5c4a);
+  color: var(--text-medium, #4a5553);
   line-height: 1.6;
   margin-bottom: 2rem;
 }

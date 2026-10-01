@@ -62,14 +62,11 @@ jobs:
           prompt: |
             You are the automated reviewer for PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
 
-            1. Read this repo's CLAUDE.md and README for conventions and the build/test/lint commands.
-            2. Read the existing feedback on this PR so you don't repeat points already made:
+            1. Read the existing feedback on this PR so you don't repeat points already made:
                `gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json comments,reviews`
                and `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments`.
-            3. Review the PR diff yourself for correctness, security, and reuse/simplification, at HIGH confidence.
-            4. Apply fixes only for issues that are real and affect correctness, security, or the stated requirements. MATERIAL fixes only — do not restyle, do not gold-plate, do not touch unrelated code.
-            5. If you changed code: run the repo's verify command(s) from CLAUDE.md and make them pass (fix root causes; never weaken tests). Then commit with a conventional message and push to the PR branch.
-            6. If nothing is materially worth fixing: do NOT push.
-            7. Post ONE consolidated review comment: what you fixed (and the commit), and anything the author should double-check. Be concise.
-
-            Converge: if earlier runs already handled the actionable feedback and there is nothing new and material, say so briefly and exit WITHOUT pushing. Do not re-fix or restyle code that is already correct.
+            2. Review the PR diff yourself for correctness, security, and reuse/simplification. Report only issues you're confident are real.
+            3. Fix only issues that affect correctness, security, or the PR's stated requirements, each with the smallest change that resolves it. Leave style and unrelated code as they are — the author has to re-review every commit you push.
+            4. If you changed code: run the repo's verify command(s) from CLAUDE.md and make them pass (fix root causes; never weaken tests). Then commit with a conventional message and push to the PR branch.
+            5. If nothing needs fixing — including when earlier runs already handled the actionable feedback — don't push.
+            6. Post a single consolidated review comment: what you fixed (and the commit), and anything the author should double-check; if there was nothing new, say so in a line. Be concise.

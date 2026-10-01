@@ -1,57 +1,20 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { t, type Lang } from '../i18n'
-import { getImpactStats } from '../api'
-import appStoreIcon from '../assets/appstore-icon.svg'
-import googlePlayIcon from '../assets/googleplay-icon.svg'
+import StoreBadges from '../components/StoreBadges'
+import HuntDemo, { type HuntAction } from '../components/HuntDemo'
+import logo from '../assets/logo.svg'
+import bakeryFeed from '../assets/app-ui/bakery.feed.webp'
+import bentoFeed from '../assets/app-ui/bento.feed.webp'
+import deliFeed from '../assets/app-ui/deli.feed.webp'
+import dessertFeed from '../assets/app-ui/dessert.feed.webp'
+import dessertHunt from '../assets/app-ui/dessert.hunt.webp'
 import '../App.css'
 
-const CO2_SAVED_PER_MEAL_FACTOR = 2.5
-
-function useAnimatedCounter(target: number, duration = 2000): [number, (el: HTMLDivElement | null) => void] {
-  const [count, setCount] = useState(0)
-  const elRef = useRef<HTMLDivElement | null>(null)
-  const animatedRef = useRef(false)
-  const observerRef = useRef<IntersectionObserver | null>(null)
-
-  useEffect(() => {
-    animatedRef.current = false
-  }, [target, duration])
-
-  const ref = useCallback((el: HTMLDivElement | null) => {
-    if (observerRef.current) {
-      observerRef.current.disconnect()
-      observerRef.current = null
-    }
-
-    elRef.current = el
-    if (!el) return
-
-    observerRef.current = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !animatedRef.current) {
-          animatedRef.current = true
-          const start = performance.now()
-          const step = (now: number) => {
-            const progress = Math.min((now - start) / duration, 1)
-            const eased = 1 - Math.pow(1 - progress, 3)
-            setCount(Math.floor(eased * target))
-            if (progress < 1) requestAnimationFrame(step)
-          }
-          requestAnimationFrame(step)
-        }
-      },
-      { threshold: 0.3 },
-    )
-    observerRef.current.observe(el)
-  }, [target, duration])
-
-  return [count, ref]
-}
-
 export default function HomePage() {
-  const [lang, setLang] = useState<Lang>(/^zh\b/i.test(navigator.language) ? 'zh' : 'en')
+  const [lang, setLang] = useState<Lang>('zh')
   const [scrolled, setScrolled] = useState(false)
+  const [huntAction, setHuntAction] = useState<HuntAction | null>(null)
   const i = t(lang)
 
   useEffect(() => {
@@ -60,27 +23,6 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const [boxesSaved, setBoxesSaved] = useState(52_340)
-  const [merchantsCount, setMerchantsCount] = useState(1_280)
-  const [fetchedUsersCount, setFetchedUsersCount] = useState(38_600)
-
-  useEffect(() => {
-    getImpactStats()
-      .then((stats) => {
-        setBoxesSaved(stats.boxesSaved)
-        setMerchantsCount(stats.merchantsCount)
-        setFetchedUsersCount(stats.usersCount)
-      })
-      .catch(() => {
-        // keep fallback values
-      })
-  }, [])
-
-  const [mealsCount, mealsRef] = useAnimatedCounter(boxesSaved)
-  const [co2Count, co2Ref] = useAnimatedCounter(boxesSaved * CO2_SAVED_PER_MEAL_FACTOR)
-  const [storesCount, storesRef] = useAnimatedCounter(merchantsCount)
-  const [usersCount, usersRef] = useAnimatedCounter(fetchedUsersCount)
-
   const toggleLang = () => setLang(lang === 'zh' ? 'en' : 'zh')
 
   return (
@@ -88,11 +30,14 @@ export default function HomePage() {
       {/* Navbar */}
       <nav className={`navbar${scrolled ? ' scrolled' : ''}`}>
         <div className="navbar-inner">
-          <div className="navbar-brand">{i.nav.brand}</div>
+          <Link to="/" className="navbar-brand">
+            <img src={logo} alt={i.nav.brand} />
+          </Link>
           <div className="navbar-links">
             <a href="#mission">{i.nav.howItWorks}</a>
-            <a href="#app-preview">{i.nav.mission}</a>
-            <a href="#impact">{i.nav.impact}</a>
+            <a href="#hunt">{i.nav.hunt}</a>
+            <a href="#rally">{i.nav.rally}</a>
+            <a href="#for-stores">{i.nav.forStores}</a>
             <button className="lang-toggle" onClick={toggleLang}>
               {i.nav.lang}
             </button>
@@ -119,22 +64,13 @@ export default function HomePage() {
             </div>
           </div>
           <div className="hero-visual">
-            <div className="hero-illustration">
-              <span className="hero-emoji">🥡</span>
-              <div className="hero-emoji-row">
-                <span>🥐</span>
-                <span>🍱</span>
-                <span>🥗</span>
-                <span>🍰</span>
-              </div>
+            <div className="hero-cards">
+              <img className="hero-card hero-card-back" src={dessertHunt} alt="" />
+              <img className="hero-card hero-card-front" src={bakeryFeed} alt={i.hero.cardAlt} />
             </div>
             <div className="floating-card card-1">
-              <div className="card-icon green">🌱</div>
-              <span>-2.5kg CO₂</span>
-            </div>
-            <div className="floating-card card-2">
-              <div className="card-icon orange">💰</div>
-              <span>$120 {i.appPreview.mockup.saved}</span>
+              <div className="card-icon green">🥐</div>
+              <span>{i.hero.madeToday}</span>
             </div>
           </div>
         </div>
@@ -188,7 +124,7 @@ export default function HomePage() {
                 <span>{i.appPreview.feature2}</span>
               </div>
               <div className="feature-item">
-                <div className="feature-icon">🌍</div>
+                <div className="feature-icon">🥣</div>
                 <span>{i.appPreview.feature3}</span>
               </div>
               <div className="feature-item">
@@ -205,40 +141,10 @@ export default function HomePage() {
                   <h4>{i.appPreview.mockup.nearbyTitle}</h4>
                   <p>{i.appPreview.mockup.nearbySubtitle}</p>
                 </div>
-                <div className="phone-search">
-                  🔍 {i.appPreview.mockup.searchPlaceholder}
-                </div>
                 <div className="phone-cards">
-                  <div className="phone-card-item">
-                    <div className="phone-card-thumb" style={{ background: '#FFF3E0' }}>🥐</div>
-                    <div className="phone-card-info">
-                      <h5>{i.appPreview.mockup.store1Name}</h5>
-                      <p>{i.appPreview.mockup.store1Desc}</p>
-                    </div>
-                    <div className="phone-card-price">$89</div>
-                  </div>
-                  <div className="phone-card-item">
-                    <div className="phone-card-thumb" style={{ background: '#E8F5E9' }}>🍱</div>
-                    <div className="phone-card-info">
-                      <h5>{i.appPreview.mockup.store2Name}</h5>
-                      <p>{i.appPreview.mockup.store2Desc}</p>
-                    </div>
-                    <div className="phone-card-price">$120</div>
-                  </div>
-                  <div className="phone-card-item">
-                    <div className="phone-card-thumb" style={{ background: '#F3E5F5' }}>🍰</div>
-                    <div className="phone-card-info">
-                      <h5>{i.appPreview.mockup.store3Name}</h5>
-                      <p>{i.appPreview.mockup.store3Desc}</p>
-                    </div>
-                    <div className="phone-card-price">$99</div>
-                  </div>
-                </div>
-                <div className="phone-nav">
-                  <span>🏠</span>
-                  <span>🗺️</span>
-                  <span>💚</span>
-                  <span>👤</span>
+                  <img src={bentoFeed} alt={i.appPreview.mockup.cardAlt} />
+                  <img src={deliFeed} alt="" />
+                  <img src={dessertFeed} alt="" />
                 </div>
               </div>
             </div>
@@ -246,7 +152,103 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Impact Counter */}
+      {/* Hunt Mode */}
+      <section className="section hunt" id="hunt">
+        <div className="hunt-inner">
+          <div className="section-header">
+            <h2>{i.hunt.title}</h2>
+            <p>{i.hunt.subtitle}</p>
+          </div>
+          <HuntDemo copy={i.hunt} onActiveChange={setHuntAction} />
+          <div className="steps-grid">
+            <div className={`step-card hunt-step hunt-step-reserve${huntAction === 'reserve' ? ' is-active' : ''}`}>
+              <div className="step-icon">🛍️</div>
+              <div className="hunt-step-gesture">↑ {i.hunt.reserveGesture}</div>
+              <h3>{i.hunt.reserveTitle}</h3>
+              <p>{i.hunt.reserveDesc}</p>
+            </div>
+            <div className={`step-card hunt-step hunt-step-pass${huntAction === 'pass' ? ' is-active' : ''}`}>
+              <div className="step-icon">👋</div>
+              <div className="hunt-step-gesture">← {i.hunt.passGesture}</div>
+              <h3>{i.hunt.passTitle}</h3>
+              <p>{i.hunt.passDesc}</p>
+            </div>
+            <div className={`step-card hunt-step hunt-step-stack${huntAction === 'stack' ? ' is-active' : ''}`}>
+              <div className="step-icon">📥</div>
+              <div className="hunt-step-gesture">{i.hunt.stackGesture} →</div>
+              <h3>{i.hunt.stackTitle}</h3>
+              <p>{i.hunt.stackDesc}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Rally */}
+      <section className="section rally" id="rally">
+        <div className="rally-inner">
+          <div className="section-header">
+            <h2>{i.rally.title}</h2>
+            <p>{i.rally.subtitle}</p>
+          </div>
+          <div className="steps-grid">
+            <div className="step-card">
+              <div className="step-number">1</div>
+              <div className="step-icon">📝</div>
+              <h3>{i.rally.step1Title}</h3>
+              <p>{i.rally.step1Desc}</p>
+            </div>
+            <div className="step-card">
+              <div className="step-number">2</div>
+              <div className="step-icon">🥣</div>
+              <h3>{i.rally.step2Title}</h3>
+              <p>{i.rally.step2Desc}</p>
+            </div>
+            <div className="step-card">
+              <div className="step-number">3</div>
+              <div className="step-icon">🏪</div>
+              <h3>{i.rally.step3Title}</h3>
+              <p>{i.rally.step3Desc}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* For Stores */}
+      <section className="section for-stores" id="for-stores">
+        <div className="for-stores-inner">
+          <div className="section-header">
+            <h2>{i.forStores.title}</h2>
+            <p>{i.forStores.subtitle}</p>
+          </div>
+          <div className="for-stores-grid">
+            <div className="for-stores-card">
+              <div className="feature-icon">🎯</div>
+              <h3>{i.forStores.eligibilityTitle}</h3>
+              <p>{i.forStores.eligibilityDesc}</p>
+            </div>
+            <div className="for-stores-card">
+              <div className="feature-icon">📋</div>
+              <h3>{i.forStores.templatesTitle}</h3>
+              <p>{i.forStores.templatesDesc}</p>
+            </div>
+            <div className="for-stores-card">
+              <div className="feature-icon">📱</div>
+              <h3>{i.forStores.pickupTitle}</h3>
+              <p>{i.forStores.pickupDesc}</p>
+            </div>
+            <div className="for-stores-card">
+              <div className="feature-icon">🥣</div>
+              <h3>{i.forStores.rallyTitle}</h3>
+              <p>{i.forStores.rallyDesc}</p>
+            </div>
+          </div>
+          <div className="for-stores-cta">
+            <Link to="/merchant-apply" className="btn-primary">{i.forStores.cta}</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
       <section className="section impact" id="impact">
         <div className="impact-inner">
           <div className="section-header">
@@ -254,24 +256,19 @@ export default function HomePage() {
             <p>{i.impact.subtitle}</p>
           </div>
           <div className="impact-grid">
-            <div className="impact-card" ref={mealsRef}>
-              <div className="impact-icon">🍽️</div>
-              <div className="impact-number">{mealsCount.toLocaleString()}+</div>
-              <div className="impact-label">{i.impact.mealsSaved}</div>
+            <div className="impact-card">
+              <div className="impact-icon">🥡</div>
+              <div className="impact-number impact-coming-soon">{i.impact.comingSoon}</div>
+              <div className="impact-label">{i.impact.packsGrabbed}</div>
             </div>
-            <div className="impact-card" ref={co2Ref}>
-              <div className="impact-icon">🌿</div>
-              <div className="impact-number">{co2Count.toLocaleString()}+</div>
-              <div className="impact-label">{i.impact.co2Reduced}</div>
-            </div>
-            <div className="impact-card" ref={storesRef}>
+            <div className="impact-card">
               <div className="impact-icon">🏪</div>
-              <div className="impact-number">{storesCount.toLocaleString()}+</div>
+              <div className="impact-number impact-coming-soon">{i.impact.comingSoon}</div>
               <div className="impact-label">{i.impact.stores}</div>
             </div>
-            <div className="impact-card" ref={usersRef}>
-              <div className="impact-icon">💚</div>
-              <div className="impact-number">{usersCount.toLocaleString()}+</div>
+            <div className="impact-card">
+              <div className="impact-icon">🙌</div>
+              <div className="impact-number impact-coming-soon">{i.impact.comingSoon}</div>
               <div className="impact-label">{i.impact.users}</div>
             </div>
           </div>
@@ -285,37 +282,19 @@ export default function HomePage() {
             <div>
               <div className="footer-brand">{i.footer.brand}</div>
               <p className="footer-tagline">{i.footer.tagline}</p>
-              <div className="store-badges">
-                <Link to="/download?source=footer_ios" className="store-badge">
-                  <img className="store-badge-icon" src={appStoreIcon} alt="App Store" />
-                  {i.footer.downloadIOS}
-                </Link>
-                <Link to="/download?source=footer_android" className="store-badge">
-                  <img className="store-badge-icon" src={googlePlayIcon} alt="Google Play" />
-                  {i.footer.downloadAndroid}
-                </Link>
-              </div>
+              <StoreBadges lang={lang} className="footer-store-badges" />
             </div>
             <div className="footer-column">
               <h4>{i.footer.product}</h4>
               <ul>
                 <li><a href="#mission">{i.footer.howItWorks}</a></li>
                 <li><Link to="/merchant-apply">{i.footer.forBusinesses}</Link></li>
-                <li><a href="#!">{i.footer.pricing}</a></li>
-              </ul>
-            </div>
-            <div className="footer-column">
-              <h4>{i.footer.company}</h4>
-              <ul>
-                <li><a href="#!">{i.footer.about}</a></li>
-                <li><a href="#!">{i.footer.careers}</a></li>
-                <li><a href="#!">{i.footer.press}</a></li>
               </ul>
             </div>
             <div className="footer-column">
               <h4>{i.footer.legal}</h4>
               <ul>
-                <li><a href="#!">{i.footer.terms}</a></li>
+                <li><Link to="/privacy">{i.footer.terms}</Link></li>
                 <li><Link to="/privacy">{i.footer.privacy}</Link></li>
                 <li><Link to="/account-deletion">{i.footer.accountDeletion}</Link></li>
               </ul>
