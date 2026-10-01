@@ -254,12 +254,6 @@
   animation-delay: 0s;
 }
 
-.floating-card.card-2 {
-  bottom: 12%;
-  right: -4%;
-  animation-delay: 2s;
-}
-
 @keyframes float-card {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50% { transform: translateY(-12px) rotate(1deg); }
@@ -276,7 +270,6 @@
 }
 
 .card-icon.green { background: var(--primary-light); }
-.card-icon.orange { background: var(--accent-light); }
 
 /* ========== Section common ========== */
 .section {
