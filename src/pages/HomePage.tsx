@@ -69,10 +69,6 @@ export default function HomePage() {
               <div className="card-icon green">🥐</div>
               <span>{i.hero.madeToday}</span>
             </div>
-            <div className="floating-card card-2">
-              <div className="card-icon orange">💰</div>
-              <span>$120 {i.appPreview.mockup.saved}</span>
-            </div>
           </div>
         </div>
       </section>
