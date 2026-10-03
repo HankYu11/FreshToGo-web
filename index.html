@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant-TW">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico?v=__BUILD_HASH__" sizes="any" />
@@ -9,7 +9,77 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-    <title>鮮款款 FreshToGo</title>
+    <title>鮮款款 FreshToGo｜店家當天現做的好料，用超值的價格帶走</title>
+    <meta name="description" content="鮮款款 FreshToGo：用超值的價格吃到巷口店家當天現做的好料。打開 App 看附近店家今天的鮮款包，預約後到店取餐。App Store、Google Play 已上架。" />
+    <meta name="application-name" content="鮮款款" />
+    <meta name="theme-color" content="#336563" />
+    <script>
+      // Every route is served this same index.html, so point each page's canonical at its own path on the official domain.
+      (function () {
+        var link = document.createElement('link')
+        link.rel = 'canonical'
+        link.href = 'https://handyla.co' + (location.pathname === '/' ? '/' : location.pathname.replace(/\/+$/, ''))
+        document.head.appendChild(link)
+      })()
+    </script>
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="鮮款款 FreshToGo" />
+    <meta property="og:locale" content="zh_TW" />
+    <meta property="og:title" content="鮮款款 FreshToGo｜店家當天現做的好料，用超值的價格帶走" />
+    <meta property="og:description" content="用超值的價格吃到巷口店家當天現做的好料。App Store、Google Play 已上架。" />
+    <meta property="og:image" content="https://handyla.co/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="鮮款款 FreshToGo" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="鮮款款 FreshToGo" />
+    <meta name="twitter:description" content="用超值的價格吃到巷口店家當天現做的好料。" />
+    <meta name="twitter:image" content="https://handyla.co/og-image.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://handyla.co/#website",
+            "url": "https://handyla.co/",
+            "name": "鮮款款",
+            "alternateName": ["FreshToGo", "鮮款款 FreshToGo"],
+            "inLanguage": "zh-Hant-TW",
+            "publisher": { "@id": "https://handyla.co/#organization" }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://handyla.co/#organization",
+            "name": "鮮款款",
+            "alternateName": "FreshToGo",
+            "url": "https://handyla.co/",
+            "logo": "https://handyla.co/apple-touch-icon.png",
+            "sameAs": [
+              "https://apps.apple.com/tw/app/%E9%AE%AE%E6%AC%BE%E6%AC%BE/id6758783370",
+              "https://play.google.com/store/apps/details?id=com.handy.freshtogo"
+            ]
+          },
+          {
+            "@type": "MobileApplication",
+            "name": "鮮款款",
+            "alternateName": "FreshToGo",
+            "url": "https://handyla.co/",
+            "operatingSystem": "iOS, Android",
+            "applicationCategory": "LifestyleApplication",
+            "description": "用超值的價格吃到巷口店家當天現做的好料。",
+            "installUrl": [
+              "https://apps.apple.com/tw/app/%E9%AE%AE%E6%AC%BE%E6%AC%BE/id6758783370",
+              "https://play.google.com/store/apps/details?id=com.handy.freshtogo"
+            ],
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TWD" },
+            "publisher": { "@id": "https://handyla.co/#organization" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
