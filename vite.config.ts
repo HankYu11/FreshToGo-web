@@ -13,6 +13,20 @@ export default defineConfig(({ mode }) => ({
         return html.replaceAll('__BUILD_HASH__', buildHash)
       },
     },
+    {
+      // Production invites crawlers and points them at the sitemap; the dev deploy keeps them out.
+      name: 'robots-txt',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'robots.txt',
+          source:
+            mode === 'development'
+              ? 'User-agent: *\nDisallow: /\n'
+              : 'User-agent: *\nAllow: /\n\nSitemap: https://handyla.co/sitemap.xml\n',
+        })
+      },
+    },
   ],
   build: {
     outDir: mode === 'development' ? 'dist/dev' : 'dist/prod',
