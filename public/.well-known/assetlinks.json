@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.handy.freshtogo",
+      "sha256_cert_fingerprints": [
+        "BA:F1:21:52:10:0D:55:6F:DD:C0:52:2B:D0:FB:3D:A6:A8:C3:93:6F:F4:DF:CF:B1:18:87:05:96:31:DD:71:B9",
+        "DE:09:D7:D2:B9:56:01:42:70:68:F6:C4:C8:BD:84:BB:DE:BB:FC:4C:25:58:4E:3A:7D:8B:70:2A:6E:8F:BE:8C"
+      ]
+    }
+  }
+]
