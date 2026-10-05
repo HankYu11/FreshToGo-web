@@ -98,6 +98,11 @@ const translations = {
       subtitle: '店家今天現做的好料，用超值的價格帶走。',
       website: '前往官方網站',
     },
+    boxLink: {
+      title: '有人分享了一個鮮款包給你',
+      subtitle: '在鮮款款 App 裡打開它，看看還剩幾份、什麼時候取貨。如果這一檔已經結束，App 會帶你看看這家店的其他鮮款包。',
+      openInApp: '用鮮款款 App 打開',
+    },
     merchant: {
       backHome: '← 回首頁',
       title: '成為合作店家',
@@ -237,6 +242,11 @@ const translations = {
       tagline: 'Fresh Food to Go, Never Miss a Meal',
       subtitle: 'What local stores cooked and baked today, at a price that beats the menu.',
       website: 'Visit Official Website',
+    },
+    boxLink: {
+      title: 'Someone shared a FreshToGo pack with you',
+      subtitle: "Open it in the app to see how many are left and when to pick it up. If this one has ended, the app shows you what else the store has on.",
+      openInApp: 'Open in FreshToGo',
     },
     merchant: {
       backHome: '← Back to home',
