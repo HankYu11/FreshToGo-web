@@ -110,3 +110,18 @@
     font-size: 1rem;
   }
 }
+
+.download-open-app {
+  display: inline-block;
+  padding: 0.85rem 2rem;
+  border-radius: 999px;
+  background: var(--primary, #336563);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.download-open-app:hover {
+  background: var(--primary-dark, #264b4a);
+}

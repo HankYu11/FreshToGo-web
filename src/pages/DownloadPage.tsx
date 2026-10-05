@@ -3,21 +3,11 @@ import { useSearchParams } from 'react-router-dom'
 import { trackEvent } from '../api'
 import StoreBadges from '../components/StoreBadges'
 import { APP_SCHEME, WEBSITE_URL } from '../constants'
+import { detectPlatform } from '../platform'
 import { t, type Lang } from '../i18n'
 import './DownloadPage.css'
 
-type Platform = 'ios' | 'android' | 'web_mobile' | 'web_desktop'
 type PageState = 'loading' | 'fallback'
-
-function detectPlatform(): Platform {
-  const ua = navigator.userAgent
-  // iPadOS 13+ reports as MacIntel but has touch support
-  const isIpad = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
-  if (/iPhone|iPad|iPod/i.test(ua) || isIpad) return 'ios'
-  if (/Android/i.test(ua)) return 'android'
-  if (/Mobi|Mobile/i.test(ua)) return 'web_mobile'
-  return 'web_desktop'
-}
 
 const platform = detectPlatform()
 const isMobile = platform === 'ios' || platform === 'android'

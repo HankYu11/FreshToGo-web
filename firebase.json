@@ -5,8 +5,28 @@
       "public": "dist/prod",
       "ignore": [
         "firebase.json",
-        "**/.*",
+        "**/.DS_Store",
         "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "/.well-known/apple-app-site-association",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        {
+          "source": "/.well-known/assetlinks.json",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
       ],
       "redirects": [
         {
@@ -32,8 +52,28 @@
       "public": "dist/dev",
       "ignore": [
         "firebase.json",
-        "**/.*",
+        "**/.DS_Store",
         "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "/.well-known/apple-app-site-association",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        {
+          "source": "/.well-known/assetlinks.json",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
       ],
       "redirects": [
         {
