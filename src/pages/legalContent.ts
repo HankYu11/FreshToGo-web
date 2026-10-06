@@ -15,7 +15,7 @@ export const SUPPORT_EMAIL = 'support@handyla.co'
 export const privacyContent: LegalContent = {
   zh: {
     title: '隱私權政策',
-    updated: '最後更新日期：2026 年 9 月 30 日',
+    updated: '最後更新日期：2026 年 10 月 6 日',
     intro: '鮮款款（以下稱本服務）由奇斯科技有限公司（QI SI TECHNOLOGY LIMITED，統一編號 62071057）提供並負責營運。',
     sections: [
       {
@@ -67,7 +67,7 @@ export const privacyContent: LegalContent = {
   },
   en: {
     title: 'Privacy Policy',
-    updated: 'Last updated: September 30, 2026',
+    updated: 'Last updated: October 6, 2026',
     intro: 'FreshToGo (the "Service") is provided and operated by QI SI TECHNOLOGY LIMITED (奇斯科技有限公司, Taiwan Unified Business No. 62071057).',
     sections: [
       {
