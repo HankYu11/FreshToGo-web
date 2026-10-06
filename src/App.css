@@ -700,6 +700,10 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
+.footer-address {
+  margin-top: 4px;
+}
+
 /* ========== Responsive ========== */
 @media (max-width: 1024px) {
   .hero h1 {
