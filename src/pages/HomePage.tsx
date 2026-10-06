@@ -294,14 +294,14 @@ export default function HomePage() {
             <div className="footer-column">
               <h4>{i.footer.legal}</h4>
               <ul>
-                <li><Link to="/privacy">{i.footer.terms}</Link></li>
                 <li><Link to="/privacy">{i.footer.privacy}</Link></li>
                 <li><Link to="/account-deletion">{i.footer.accountDeletion}</Link></li>
               </ul>
             </div>
           </div>
           <div className="footer-bottom">
-            {i.footer.copyright}
+            <div>{i.footer.copyright}</div>
+            <div className="footer-address">{i.footer.address}</div>
           </div>
         </div>
       </footer>

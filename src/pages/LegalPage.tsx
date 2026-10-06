@@ -39,6 +39,7 @@ export default function LegalPage({ content }: { content: LegalContent }) {
       <main className="legal-content">
         <h1 className="legal-title">{doc.title}</h1>
         <p className="legal-updated">{doc.updated}</p>
+        {doc.intro && <p className="legal-intro">{doc.intro}</p>}
 
         {doc.sections.map((section, si) => (
           <section key={si} className="legal-section">
