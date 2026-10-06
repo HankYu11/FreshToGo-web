@@ -7,7 +7,7 @@ export type Block =
   | { kind: 'warning'; text: string }
 
 export type Section = { heading: string; blocks: Block[] }
-export type LegalDoc = { title: string; updated: string; sections: Section[] }
+export type LegalDoc = { title: string; updated: string; intro?: string; sections: Section[] }
 export type LegalContent = Record<Lang, LegalDoc>
 
 export const SUPPORT_EMAIL = 'support@handyla.co'
@@ -16,6 +16,7 @@ export const privacyContent: LegalContent = {
   zh: {
     title: '隱私權政策',
     updated: '最後更新日期：2026 年 9 月 30 日',
+    intro: '鮮款款（以下稱本服務）由奇斯科技有限公司（QI SI TECHNOLOGY LIMITED，統一編號 62071057）提供並負責營運。',
     sections: [
       {
         heading: '1. 資料蒐集',
@@ -59,6 +60,7 @@ export const privacyContent: LegalContent = {
         heading: '6. 聯絡方式',
         blocks: [
           { kind: 'p', text: `如對本隱私權政策有任何疑問，請透過應用程式內的客服功能，或來信 ${SUPPORT_EMAIL} 與我們聯繫。` },
+          { kind: 'bullets', items: ['公司名稱：奇斯科技有限公司（QI SI TECHNOLOGY LIMITED）', '統一編號：62071057', '地址：108 臺北市萬華區開封街二段 39 號 1 樓', `電子郵件：${SUPPORT_EMAIL}`] },
         ],
       },
     ],
@@ -66,6 +68,7 @@ export const privacyContent: LegalContent = {
   en: {
     title: 'Privacy Policy',
     updated: 'Last updated: September 30, 2026',
+    intro: 'FreshToGo (the "Service") is provided and operated by QI SI TECHNOLOGY LIMITED (奇斯科技有限公司, Taiwan Unified Business No. 62071057).',
     sections: [
       {
         heading: '1. Data Collection',
@@ -109,6 +112,7 @@ export const privacyContent: LegalContent = {
         heading: '6. Contact',
         blocks: [
           { kind: 'p', text: `If you have any questions about this Privacy Policy, please contact us through the in-app customer support feature or by email at ${SUPPORT_EMAIL}.` },
+          { kind: 'bullets', items: ['Company: QI SI TECHNOLOGY LIMITED (奇斯科技有限公司)', 'Unified Business No.: 62071057', 'Address: 1F., No. 39, Sec. 2, Kaifeng St., Wanhua Dist., Taipei City 108, Taiwan', `Email: ${SUPPORT_EMAIL}`] },
         ],
       },
     ],

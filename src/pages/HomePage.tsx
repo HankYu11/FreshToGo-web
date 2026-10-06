@@ -301,7 +301,8 @@ export default function HomePage() {
             </div>
           </div>
           <div className="footer-bottom">
-            {i.footer.copyright}
+            <div>{i.footer.copyright}</div>
+            <div className="footer-address">{i.footer.address}</div>
           </div>
         </div>
       </footer>

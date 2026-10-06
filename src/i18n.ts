@@ -143,7 +143,8 @@ const translations = {
       terms: '服務條款',
       privacy: '隱私政策',
       accountDeletion: '帳號刪除',
-      copyright: '© 2026 鮮款款. All rights reserved.',
+      copyright: '© 2026 奇斯科技有限公司（QI SI TECHNOLOGY LIMITED）｜統一編號 62071057｜鮮款款 FreshToGo',
+      address: '臺北市萬華區開封街二段 39 號 1 樓',
     },
   },
   en: {
@@ -288,7 +289,8 @@ const translations = {
       terms: 'Terms of Service',
       privacy: 'Privacy Policy',
       accountDeletion: 'Account Deletion',
-      copyright: '© 2026 FreshToGo. All rights reserved.',
+      copyright: '© 2026 QI SI TECHNOLOGY LIMITED. FreshToGo. All rights reserved.',
+      address: '1F., No. 39, Sec. 2, Kaifeng St., Wanhua Dist., Taipei City 108, Taiwan',
     },
   },
 } as const;

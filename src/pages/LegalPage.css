@@ -57,6 +57,11 @@
   margin-bottom: 8px;
 }
 
+.legal-intro {
+  margin-top: 24px;
+  color: var(--text-medium);
+}
+
 .legal-section {
   margin-top: 32px;
 }
