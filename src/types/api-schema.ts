@@ -4,6 +4,64 @@
  */
 
 export interface paths {
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health probe
+         * @description Liveness/readiness probe for uptime monitoring. Verifies the app can reach the database, not just that the port is open (Cloud Run's default probe is a bare TCP connect, which succeeds while Postgres is unreachable). Unauthenticated and intentionally detail-free.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Service healthy and the database is reachable */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example ok */
+                            status?: string;
+                            /** @example ok */
+                            database?: string;
+                        };
+                    };
+                };
+                /** @description Database unreachable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example degraded */
+                            status?: string;
+                            /** @example unreachable */
+                            database?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/boxes": {
         parameters: {
             query?: never;
@@ -13,7 +71,8 @@ export interface paths {
         };
         /**
          * Get all available mystery boxes
-         * @description Returns all mystery boxes for today (including BEFORE_SALE boxes not yet in their sale window)
+         * @description Returns all mystery boxes for today (including BEFORE_SALE boxes not yet in their sale window), **filtered by purchase eligibility** (see `PurchaseEligibilityType`).
+         *     Unauthenticated, but reads an `Authorization: Bearer` consumer token when one is present — send it whenever the user is signed in. A box the caller is not eligible for is ABSENT from `data`. No token, or one that cannot be verified, is anonymous and never produces a 401 here.
          */
         get: {
             parameters: {
@@ -55,7 +114,8 @@ export interface paths {
         };
         /**
          * Get box details
-         * @description Get detailed information about a specific mystery box
+         * @description Get detailed information about a specific mystery box.
+         *     Unauthenticated, but purchase-eligibility aware: send the consumer's `Authorization: Bearer` token when the user is signed in. A box the caller is not eligible for answers **403 `BOX_NOT_ELIGIBLE`**, never a 404. An anonymous caller gets that 403 for any restricted listing. A caller holding a non-cancelled order for the box always gets 200, whatever their eligibility.
          */
         get: {
             parameters: {
@@ -83,6 +143,15 @@ export interface paths {
                 };
                 /** @description Invalid box ID format */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description `BOX_NOT_ELIGIBLE` — the box exists but is not open to this caller, and cannot be reserved. Never returned to a caller who holds a non-cancelled order for this box, including one already collected. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -156,6 +225,15 @@ export interface paths {
                         "application/json": components["schemas"]["ApiResponse"];
                     };
                 };
+                /** @description More than 60 requests a minute from this client IP — RATE_LIMITED */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -204,6 +282,79 @@ export interface paths {
                 };
                 /** @description Apple token verification failed */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description More than 60 requests a minute from this client IP — RATE_LIMITED */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/google/verify-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Google ID token
+         * @description Verify a Google ID token (Sign in with Google) and authenticate the user. Returns JWT tokens for subsequent API calls. The display name and picture are read from the verified token's own claims, so the client sends nothing but the token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GoogleTokenVerifyRequest"];
+                };
+            };
+            responses: {
+                /** @description Authentication successful */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["SessionInfo"];
+                        };
+                    };
+                };
+                /** @description Google token verification failed, or Sign in with Google is not configured on this deployment */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description More than 60 requests a minute from this client IP — RATE_LIMITED */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -262,6 +413,15 @@ export interface paths {
                 };
                 /** @description Refresh token invalid or expired */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description More than 60 requests a minute from this client IP — RATE_LIMITED */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -376,8 +536,9 @@ export interface paths {
         /**
          * Delete user account
          * @description Permanently deletes the authenticated user's account and all associated data.
-         *     This includes: profile, reservations, refresh tokens, and FCM tokens.
-         *     Active reservations are automatically cancelled before deletion.
+         *     This includes: profile, reservations, refresh tokens, FCM tokens, skipped boxes and
+         *     analytics events, all removed in one transaction. Open reservations are removed rather than
+         *     cancelled, so merchants are not notified; the boxes' stock is freed either way.
          */
         delete: {
             parameters: {
@@ -568,7 +729,7 @@ export interface paths {
         get?: never;
         /**
          * Update avatar URL
-         * @description Persists the Supabase public URL as the user's pictureUrl. Call this after a successful direct upload via the presigned URL.
+         * @description Persists the Supabase public URL as the user's pictureUrl. Call this after a successful direct upload via the presigned URL. The URL must be the `publicUrl` that call returned, an object directly in the avatar bucket; anything else is 400 INVALID_IMAGE_URL.
          */
         put: {
             parameters: {
@@ -601,7 +762,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or malformed request body */
+                /** @description Missing or malformed request body, or INVALID_IMAGE_URL */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -863,11 +1024,25 @@ export interface paths {
         };
         /**
          * Get user reservations
-         * @description Get all reservations for the authenticated user
+         * @description The authenticated user's own reservations, newest first (`created_at` descending, `id` descending as a tie-break so the order is total and pages cannot repeat or skip a row).
+         *     Paging is **opt-in**: with no `limit` the whole list is returned, because app builds released before paging existed send no bound. For the same reason the 200 body stays a bare array — there is no page envelope, and a caller detects the end of the list by receiving fewer than `limit` rows.
          */
         get: {
             parameters: {
                 query?: {
+                    /**
+                     * @description Splits on the **derived** status: `true` keeps rows whose `status` is `ACTIVE`, `false` keeps every other row. Absent means both.
+                     *     This exists because the consumer's Orders screen splits on exactly that, and its History tab is everything except `ACTIVE` — which `isPickedUp` and `isCancelled` cannot express between them, so the app used to fetch the whole history and filter it on the device.
+                     *     Deliberately a boolean rather than a set of statuses to match, so the two halves are a *partition*: `true` and `false` together are always every row the caller owns, whatever statuses this API grows later. A set could only name the statuses the client already knows, so a status added later would belong to neither half and the order would be invisible in both of the app's tabs. Anything other than `true`/`false` is a 400.
+                     */
+                    active?: boolean;
+                    /**
+                     * @description Maximum rows to return. Absent means unbounded.
+                     *     Outside 1–100 is a **400, not a clamp**. This endpoint has no page envelope echoing the effective value, so its only end-of-list signal is "fewer rows than I asked for" — silently clamping `limit=200` to 100 would therefore tell the caller the list *ended* at row 100 and strand everything after it, under a 200. A non-integer is a 400 for the same reason.
+                     */
+                    limit?: number;
+                    /** @description Rows to skip, applied whether or not `limit` is given — an offset with no limit is a legitimate "everything from here on". Negative is a 400. */
+                    offset?: number;
                     /** @description Filter by picked up state */
                     isPickedUp?: boolean;
                     /** @description Filter by cancelled state */
@@ -889,6 +1064,15 @@ export interface paths {
                             success?: boolean;
                             data?: components["schemas"]["ReservationResponse"][];
                         };
+                    };
+                };
+                /** @description A non-boolean `active`, or a `limit`/`offset` that is not an integer or is out of range. All are rejected rather than adjusted: a dropped or clamped bound reports a shorter list than exists, under a 200, with nothing in the response contradicting it. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
                     };
                 };
                 /** @description Invalid or expired token */
@@ -932,7 +1116,137 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Invalid request (box sold out, user blocked, outside sale window, etc.) */
+                /** @description Invalid request (box sold out, outside sale window, etc.) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Invalid or expired token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description One of: `USER_BLOCKED` (three no-shows), or `BOX_NOT_ELIGIBLE` (the caller is not in the audience this box was listed to; the attempt creates no order). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description `RESERVATION_ALREADY_EXISTS` — the caller already holds an active reservation for this box */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reservations/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the caller's reservation counters
+         * @description The three aggregate counters the consumer profile shows, computed in SQL. Exists so the profile does not download the whole reservation history to reduce it to three integers. All three ignore cancelled reservations.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The caller's counters */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["ReservationStatsResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid or expired token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reservations/exists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Does the caller hold a reservation for this box
+         * @description Whether the caller already holds a non-cancelled reservation for one box. Picked-up reservations count — the question is "have I bought this box", not "is it still actionable". Exists so the box detail screen does not download the whole history to answer it. Answers `false` (not 404) for a box id that does not exist.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The box to ask about. Absent or malformed is a 400, never a default. */
+                    boxId: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Whether such a reservation exists */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["ReservationExistsResponse"];
+                        };
+                    };
+                };
+                /** @description `MISSING_FIELD` (no boxId) or `INVALID_FORMAT` (boxId is not a UUID) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -952,6 +1266,8 @@ export interface paths {
                 };
             };
         };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1097,6 +1413,237 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reservations/{id}/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give the store a thumbs-up
+         * @description Records a thumbs-up for the store of this reservation. Idempotent — repeating it is a no-op. Allowed only for a reservation the caller owns and has picked up. No request body. Returns the refreshed reservation so the client can reflect hasThumbedUp.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Reservation UUID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Thumbs-up recorded (or already present) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["ReservationResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid reservation ID format */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Invalid or expired token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description User is not authorized to rate this reservation */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Reservation not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Reservation has not been picked up, so it cannot be rated */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Undo a thumbs-up
+         * @description Removes the caller's thumbs-up for this reservation's store. Idempotent.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Reservation UUID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Thumbs-up removed (or none existed) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["ReservationResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid or expired token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description User is not authorized to modify this reservation */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Reservation not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send feedback to the FreshToGo team (給鮮款款的話)
+         * @description A signed-in consumer's private message to the team: an experience, a feature wish, or something
+         *     that could be better. Not tied to an order or store, and never shown to stores or other users —
+         *     only the admin inbox (/api/admin/feedback) reads it. The sender is the authenticated user.
+         *
+         *     Limited to 5 messages per user in any rolling 24 hours; the sixth is 429 RATE_LIMITED.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "category": "FEATURE_WISH",
+                     *       "message": "希望可以收藏喜歡的店家，開賣時通知我！",
+                     *       "appVersion": "1.4.0",
+                     *       "platform": "ANDROID"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CreateFeedbackRequest"];
+                };
+            };
+            responses: {
+                /** @description Feedback received */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["FeedbackCreatedResponse"];
+                        };
+                    };
+                };
+                /**
+                 * @description Blank message — MISSING_FIELD; message over 500 characters — FEEDBACK_MESSAGE_TOO_LONG;
+                 *     blank or over-long appVersion — INVALID_FORMAT; missing field or unknown category/platform.
+                 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (user token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Daily limit reached (5 per rolling 24 hours) — RATE_LIMITED */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stats/impact": {
         parameters: {
             query?: never;
@@ -1134,6 +1681,87 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/merchant/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply to become a partner store
+         * @description Public "apply to join" lead capture from the marketing website. No authentication — the
+         *     applicant is not a merchant yet. Persists a lead (store name, contact, phone, optional email,
+         *     and store location) for the team to follow up on manually. The `location` is resolved by the
+         *     client from the public Places proxy (GET /api/places/*); only `location.address` is required.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "storeName": "陽光麵包坊",
+                     *       "contactName": "王小明",
+                     *       "phone": "0912-345-678",
+                     *       "email": "owner@example.com",
+                     *       "location": {
+                     *         "placeId": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+                     *         "name": "陽光麵包坊",
+                     *         "address": "台北市大安區信義路四段 1 號",
+                     *         "latitude": 25.033,
+                     *         "longitude": 121.5654
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["MerchantApplicationRequest"];
+                };
+            };
+            responses: {
+                /** @description Application received */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["MerchantApplicationCreatedResponse"];
+                        };
+                    };
+                };
+                /** @description Missing required field (store name, contact name, phone, or address) — MISSING_FIELD */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Rate limit exceeded for this client IP — RATE_LIMITED */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1186,6 +1814,15 @@ export interface paths {
                 };
                 /** @description Invalid email or password */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description More than 10 requests a minute from this client IP — RATE_LIMITED */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1251,6 +1888,15 @@ export interface paths {
                         "application/json": components["schemas"]["ApiResponse"];
                     };
                 };
+                /** @description More than 60 requests a minute from this client IP — RATE_LIMITED */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -1293,6 +1939,153 @@ export interface paths {
                 };
                 /** @description Invalid or expired token */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/merchant/stock-photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List stock photos for box image selection (merchant)
+         * @description Returns the ACTIVE stock photos in a category, ordered by sortOrder ascending, for the box image selection step (Feature B; reuses the Feature A library). Disabled photos are excluded. `category` defaults to GENERAL (綜合) when omitted.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Category to filter by. Omit to default to GENERAL. */
+                    category?: components["schemas"]["ProductCategory"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Active stock photos in the category, ordered by sortOrder */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["StockPhotoSelectionItem"][];
+                        };
+                    };
+                };
+                /** @description Invalid category value */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/merchant/eligibility/audience-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count the audience an eligibility condition would reach (merchant)
+         * @description Given an eligibility condition, returns **how many users currently satisfy it** at the calling merchant's own store. Takes a *condition*, not a box id, so it can be called while the listing form is still open.
+         *
+         *     **The store is taken from the JWT and is not a parameter.** A `merchantId` query parameter is rejected with 403 rather than ignored.
+         *
+         *     `UNRESTRICTED` is answered, never rejected: it returns the full addressable count. Every other condition is validated by exactly the rules `POST /api/merchant/boxes` applies.
+         *
+         *     Not behind the subscription gate.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The condition to measure. **Required** — not defaulted to UNRESTRICTED, which would hand back the addressable total and read as a perfectly healthy audience. */
+                    eligibilityType: components["schemas"]["PurchaseEligibilityType"];
+                    /** @description The N of `RETURNING_CUSTOMER(N)`. Required (and must be a positive integer) when `eligibilityType=RETURNING_CUSTOMER`, otherwise ignored — the same rule box create applies, from the same code. */
+                    eligibilityThreshold?: number;
+                    /** @description The template the listing will be created from. Required for `ONCE_PER_TEMPLATE` and ignored by the others, and it must belong to the store being queried. A template that has produced no box yet is valid. */
+                    boxTemplateId?: string;
+                    /** @description **Do not send this.** The store always comes from the token. A value other than your own merchant id is refused with 403 `UNAUTHORIZED_ACTION`; your own is accepted and changes nothing. Admins name the store in the path instead. */
+                    merchantId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The audience size for that condition */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["EligibleAudienceResponse"];
+                        };
+                    };
+                };
+                /** @description `eligibilityType` missing (MISSING_FIELD) or not one of the `PurchaseEligibilityType` values (BAD_REQUEST); `RETURNING_CUSTOMER` without a positive `eligibilityThreshold` (INVALID_ELIGIBILITY_THRESHOLD); `ONCE_PER_TEMPLATE` with no `boxTemplateId` (ELIGIBILITY_TEMPLATE_REQUIRED); or a malformed `boxTemplateId` (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Merchant authentication required (an admin or consumer token does not reach this) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description A `merchantId` naming a store other than the caller's own (UNAUTHORIZED_ACTION) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description `boxTemplateId` is a well-formed UUID that is not one of this store's templates (TEMPLATE_NOT_FOUND). Also MERCHANT_NOT_FOUND in the edge case of a still-valid token for a deleted store. */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1369,7 +2162,6 @@ export interface paths {
                      *       "pickupTimeEnd": "20:00",
                      *       "saleTimeStart": "10:00",
                      *       "saleTimeEnd": "17:00",
-                     *       "imageUrl": "/uploads/images/550e8400-e29b-41d4-a716-446655440000.jpg",
                      *       "saleDate": "2025-03-20"
                      *     }
                      */
@@ -1389,7 +2181,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Invalid input or time constraints */
+                /** @description Invalid input or time constraints. Eligibility-specific codes: `INVALID_ELIGIBILITY_THRESHOLD` (RETURNING_CUSTOMER without a positive `eligibilityThreshold`), `ELIGIBILITY_TEMPLATE_REQUIRED` (ONCE_PER_TEMPLATE with no `boxTemplateId`), `INVALID_FORMAT` (malformed `boxTemplateId`). */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1400,6 +2192,15 @@ export interface paths {
                 };
                 /** @description Subscription expired (`MERCHANT_SUBSCRIPTION_EXPIRED`) — inventory writes are locked */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description `TEMPLATE_NOT_FOUND` — the supplied `boxTemplateId` does not exist, or belongs to another merchant. */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1502,7 +2303,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Invalid input or time constraints */
+                /** @description Invalid input or time constraints. Eligibility-specific codes: `INVALID_ELIGIBILITY_THRESHOLD` (RETURNING_CUSTOMER without a positive `eligibilityThreshold`), `ELIGIBILITY_TEMPLATE_REQUIRED` (ONCE_PER_TEMPLATE on a box with no template link — note `boxTemplateId` in the body is ignored on update, so the check is against the box's existing link). */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1529,7 +2330,7 @@ export interface paths {
                         "application/json": components["schemas"]["ApiResponse"];
                     };
                 };
-                /** @description Unprocessable — one of: LISTING_EXPIRED (sale_date is in the past), PRICE_CHANGE_WITH_ACTIVE_RESERVATIONS (price changed while active reservations exist), QUANTITY_BELOW_RESERVATIONS (new quantity < active reservation count) */
+                /** @description Unprocessable — one of: `LISTING_EXPIRED` (sale_date is in the past), `SALE_DATE_IMMUTABLE` (saleDate differs from the stored one), `PRICE_LOCKED` (price changed while active reservations exist), `ELIGIBILITY_LOCKED` (eligibilityType or eligibilityThreshold changed while active reservations exist; if the price changed too, `PRICE_LOCKED` is the code reported), `QUANTITY_BELOW_RESERVATIONS` (new quantity < active reservation count) */
                 422: {
                     headers: {
                         [name: string]: unknown;
@@ -1588,7 +2389,7 @@ export interface paths {
                         "application/json": components["schemas"]["ApiResponse"];
                     };
                 };
-                /** @description BOX_HAS_ACTIVE_RESERVATIONS — listing has active reservations and cannot be deleted */
+                /** @description `DELETE_WITH_ACTIVE_RESERVATIONS` — listing has active reservations and cannot be deleted */
                 422: {
                     headers: {
                         [name: string]: unknown;
@@ -1618,7 +2419,13 @@ export interface paths {
          *     **Flow:**
          *     1. Request a presigned URL using this endpoint
          *     2. Upload the image directly to Supabase using the `signedUrl`
-         *     3. Use the `publicUrl` when creating a box via POST /api/merchant/boxes
+         *     3. Use the `publicUrl` when creating a box via POST /api/merchant/boxes, when saving a template,
+         *        or when setting the store logo via PUT /api/merchant/profile
+         *
+         *     **Note:** requesting a URL records the image for lifecycle tracking. An image that ends up
+         *     referenced by nothing — no box, template, store logo, store gallery photo or stock photo — is
+         *     deleted by the daily cleanup job once it is older than the configured age threshold. Finish the
+         *     upload and save the form that uses it; see POST /api/internal/cleanup-images.
          */
         get: {
             parameters: {
@@ -1670,88 +2477,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/merchant/images": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload image
-         * @description Upload an image to use when creating mystery boxes.
-         *
-         *     **Flow:**
-         *     1. Upload image using this endpoint
-         *     2. Receive `imageUrl` in response
-         *     3. Use `imageUrl` when creating a box via POST /api/merchant/boxes
-         *
-         *     **Supported formats:** JPEG, PNG, WebP
-         *
-         *     **Max file size:** 5MB
-         *
-         *     **Note:** Orphaned images (not referenced by any box) are automatically cleaned up daily.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "multipart/form-data": {
-                        /**
-                         * Format: binary
-                         * @description Image file (JPEG, PNG, or WebP)
-                         */
-                        image: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Image uploaded successfully */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @example true */
-                            success?: boolean;
-                            data?: components["schemas"]["ImageUploadResponse"];
-                        };
-                    };
-                };
-                /** @description Invalid file type, file too large, or missing image */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiResponse"];
-                    };
-                };
-                /** @description Invalid or expired token */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiResponse"];
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1921,7 +2646,16 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Reservation is not active (already picked up or cancelled), or pickup window constraints not met */
+                /**
+                 * @description The reservation cannot be redeemed now. `error.code` names the reason:
+                 *     - `ALREADY_REDEEMED`: already picked up
+                 *     - `RESERVATION_CANCELLED`: cancelled (by the customer, the merchant or an admin)
+                 *     - `PICKUP_EXPIRED`: the pickup window has closed, or the no-show sweep has written it off
+                 *     - `NOT_PICKUP_DATE`: today is not the reservation's pickup date
+                 *     - `NOT_IN_PICKUP_WINDOW`: right day, outside the pickup hours
+                 *
+                 *     `CANNOT_REDEEM` is no longer emitted.
+                 */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -2029,7 +2763,16 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Reservation is not active (already picked up or cancelled), or pickup window constraints not met */
+                /**
+                 * @description The reservation cannot be redeemed now. `error.code` names the reason:
+                 *     - `ALREADY_REDEEMED`: already picked up
+                 *     - `RESERVATION_CANCELLED`: cancelled (by the customer, the merchant or an admin)
+                 *     - `PICKUP_EXPIRED`: the pickup window has closed, or the no-show sweep has written it off
+                 *     - `NOT_PICKUP_DATE`: today is not the reservation's pickup date
+                 *     - `NOT_IN_PICKUP_WINDOW`: right day, outside the pickup hours
+                 *
+                 *     `CANNOT_REDEEM` is no longer emitted.
+                 */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -2322,9 +3065,13 @@ export interface paths {
         };
         /**
          * Get merchant notification list
-         * @description Returns a page-based list of notifications for the authenticated merchant,
-         *     sorted by createdAt descending (newest first), along with the total unread count.
-         *     Notifications are created when customers reserve or cancel a mystery box.
+         * @description Returns one offset-paged slice of the authenticated merchant's notifications, newest first,
+         *     along with the total unread count. Notifications are created when customers reserve or
+         *     cancel a mystery box.
+         *
+         *     Paging is `page`/`pageSize` only — **this endpoint has no cursor and ignores a `cursor`
+         *     parameter.** Both bounds are clamped rather than rejected, and the response echoes the
+         *     values actually applied, so `page * pageSize < totalCount` is what says another page exists.
          */
         get: {
             parameters: {
@@ -2349,31 +3096,7 @@ export interface paths {
                         "application/json": {
                             /** @example true */
                             success?: boolean;
-                            data?: {
-                                items?: {
-                                    /** Format: uuid */
-                                    id?: string;
-                                    /** @enum {string} */
-                                    type?: "NEW_RESERVATION" | "RESERVATION_CANCELLED";
-                                    /** @description Type-specific payload (see spec for field shapes) */
-                                    payload?: Record<string, never>;
-                                    isRead?: boolean;
-                                    /**
-                                     * Format: date-time
-                                     * @description ISO-8601 timestamp in UTC (e.g. "2026-04-22T07:30:00Z")
-                                     * @example 2026-04-22T07:30:00Z
-                                     */
-                                    createdAt?: string;
-                                }[];
-                                /** @example 42 */
-                                totalCount?: number;
-                                /** @example 1 */
-                                page?: number;
-                                /** @example 20 */
-                                pageSize?: number;
-                                /** @example 3 */
-                                unreadCount?: number;
-                            };
+                            data?: components["schemas"]["MerchantNotificationListResponse"];
                         };
                     };
                 };
@@ -2459,8 +3182,11 @@ export interface paths {
         put?: never;
         /**
          * Record a single event
-         * @description Records a tracking event. No authentication required.
-         *     Server automatically captures userAgent, ip, and createdAt.
+         * @description Records a tracking event. No authentication required, but a user access token, when
+         *     present and valid, sets the stored userId; a merchant, expired or invalid token is
+         *     treated as anonymous rather than refused. Server captures userAgent, ip (the address
+         *     Cloud Run saw) and createdAt, and derives merchantId from the box for `refType: box`.
+         *     String fields are limited to their column widths (100 or 255) and the body to 256 KB.
          */
         post: {
             parameters: {
@@ -2488,8 +3214,22 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Validation error (e.g., missing eventType) */
+                /** @description Validation error — EVENT_TYPE_REQUIRED, or EVENT_FIELD_TOO_LONG for a field or metadata over its limit */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Request body over 256 KB — PAYLOAD_TOO_LARGE */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Rate limit exceeded for this client IP — RATE_LIMITED */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2514,7 +3254,7 @@ export interface paths {
         put?: never;
         /**
          * Record multiple events in batch
-         * @description Records up to 100 events in a single request. No authentication required.
+         * @description Records up to 100 events in a single request, with the same rules as the single-event endpoint. One invalid event rejects the whole batch.
          */
         post: {
             parameters: {
@@ -2547,8 +3287,22 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Validation error */
+                /** @description Validation error — BATCH_TOO_LARGE, EVENT_TYPE_REQUIRED or EVENT_FIELD_TOO_LONG */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Request body over 256 KB — PAYLOAD_TOO_LARGE */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Rate limit exceeded for this client IP — RATE_LIMITED */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2785,7 +3539,7 @@ export interface paths {
         };
         /**
          * List box templates
-         * @description Returns all box templates owned by the authenticated merchant
+         * @description Returns all box templates owned by the authenticated merchant, each with a server-resolved `resolvedImageUrl` (bound stock photo > category default photo).
          */
         get: {
             parameters: {
@@ -2842,7 +3596,8 @@ export interface paths {
                      *       "saleTimeStart": "09:00",
                      *       "saleTimeEnd": "15:00",
                      *       "quantity": 5,
-                     *       "imageUrl": null
+                     *       "category": "BAKERY",
+                     *       "imageId": "550e8400-e29b-41d4-a716-446655440000"
                      *     }
                      */
                     "application/json": components["schemas"]["BoxTemplateRequest"];
@@ -2861,7 +3616,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid fields */
+                /** @description Missing or invalid fields, a malformed `imageId` (INVALID_FORMAT), or `INVALID_ELIGIBILITY_THRESHOLD` (RETURNING_CUSTOMER without a positive `eligibilityThreshold`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -2876,6 +3631,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description The given `imageId` is a well-formed UUID but no such stock photo exists (STOCK_PHOTO_NOT_FOUND). The template is not created. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
                 };
             };
         };
@@ -2895,7 +3659,7 @@ export interface paths {
         get?: never;
         /**
          * Update box template
-         * @description Fully replaces an existing template. Returns 404 if not found, 403 if owned by another merchant.
+         * @description Fully replaces an existing template. Returns 404 if not found **or owned by another merchant** — the two are deliberately indistinguishable, since a 403 would confirm the id exists. This matches the box endpoints. Full-PUT semantics apply to the image strategy too: an omitted `category` resets the template to GENERAL and an omitted `imageId` clears any existing binding. The `imageId` is validated before the write, so a bad one cannot partially apply the update.
          */
         put: {
             parameters: {
@@ -2924,7 +3688,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Invalid UUID or missing fields */
+                /** @description Invalid UUID, missing fields, a value breaking one of the shared box/template rules (see `BoxTemplateRequest`), a malformed `imageId` (INVALID_FORMAT), or `INVALID_ELIGIBILITY_THRESHOLD` (RETURNING_CUSTOMER without a positive `eligibilityThreshold`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -2938,14 +3702,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Template belongs to another merchant */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Template not found */
+                /** @description Template not found or owned by another merchant, or the given `imageId` is a well-formed UUID with no matching stock photo (STOCK_PHOTO_NOT_FOUND). In every case the template is left unmodified. */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -2957,7 +3714,7 @@ export interface paths {
         post?: never;
         /**
          * Delete box template
-         * @description Deletes a template. Returns 404 if not found, 403 if owned by another merchant.
+         * @description Deletes a template. Returns 404 if not found **or owned by another merchant** — indistinguishable by design, as on PUT.
          */
         delete: {
             parameters: {
@@ -2992,14 +3749,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Template belongs to another merchant */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Template not found */
+                /** @description Template not found, or owned by another merchant */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -3008,6 +3758,365 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/merchant/scheduled-listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List scheduled days
+         * @description Every scheduled day of the merchant's enabled template schedules between `from` and `to` (merchant-local, inclusive), ordered by date then sale start. Defaults to today and the six days after it; the range is capped at 31 days.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Scheduled days (empty array if the merchant has no enabled schedule) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["ScheduledListingResponse"][];
+                        };
+                    };
+                };
+                /** @description A malformed date, or `to` before `from` (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Merchant authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/merchant/scheduled-listings/{templateId}/{saleDate}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check in for a scheduled day
+         * @description Lists the day: creates a box from the template as it is now, with the day's quantity override, linked to the template. Allowed from 18:00 merchant-local the evening before until the template's `saleTimeStart` on the day. Idempotent — if the day already has a box (from an earlier confirm or created manually from this template), that box is returned and no second one is created.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: components["parameters"]["ScheduledTemplateId"];
+                    /** @description Merchant-local date of the scheduled day. */
+                    saleDate: components["parameters"]["ScheduledSaleDate"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The day's box */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["MysteryBoxResponse"];
+                        };
+                    };
+                };
+                /** @description Malformed template id or date (INVALID_FORMAT), or the template no longer satisfies a box rule */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Merchant authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Subscription expired (MERCHANT_SUBSCRIPTION_EXPIRED) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description TEMPLATE_NOT_FOUND (no such template, or another merchant's), or SCHEDULED_LISTING_NOT_FOUND (the template is not scheduled on that date) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description SCHEDULED_LISTING_NOT_OPEN (before 18:00 the evening before), SCHEDULED_LISTING_LAPSED (at or after the sale start), SCHEDULED_LISTING_SKIPPED (marked closed; restore it first), or SCHEDULED_LISTING_CONFIRMING (another confirm is in flight) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/merchant/scheduled-listings/{templateId}/{saleDate}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark a scheduled day closed
+         * @description The day will not be offered for check-in or reminded. Allowed until its check-in deadline.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: components["parameters"]["ScheduledTemplateId"];
+                    /** @description Merchant-local date of the scheduled day. */
+                    saleDate: components["parameters"]["ScheduledSaleDate"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Skipped */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Malformed template id or date (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Merchant authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Subscription expired (MERCHANT_SUBSCRIPTION_EXPIRED) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description TEMPLATE_NOT_FOUND or SCHEDULED_LISTING_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description SCHEDULED_LISTING_ALREADY_CONFIRMED (the day is listed) or SCHEDULED_LISTING_LAPSED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /** Restore a skipped day */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: components["parameters"]["ScheduledTemplateId"];
+                    /** @description Merchant-local date of the scheduled day. */
+                    saleDate: components["parameters"]["ScheduledSaleDate"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Restored */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Malformed template id or date (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Merchant authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Subscription expired (MERCHANT_SUBSCRIPTION_EXPIRED) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description TEMPLATE_NOT_FOUND or SCHEDULED_LISTING_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description SCHEDULED_LISTING_ALREADY_CONFIRMED or SCHEDULED_LISTING_LAPSED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/merchant/scheduled-listings/{templateId}/{saleDate}/quantity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a scheduled day's quantity
+         * @description Overrides the template's quantity for this day only. Allowed until its check-in deadline.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: components["parameters"]["ScheduledTemplateId"];
+                    /** @description Merchant-local date of the scheduled day. */
+                    saleDate: components["parameters"]["ScheduledSaleDate"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ScheduledListingQuantityRequest"];
+                };
+            };
+            responses: {
+                /** @description Quantity updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Malformed template id, date or body, or quantity below 1 (INVALID_QUANTITY) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Merchant authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Subscription expired (MERCHANT_SUBSCRIPTION_EXPIRED) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description TEMPLATE_NOT_FOUND or SCHEDULED_LISTING_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description SCHEDULED_LISTING_ALREADY_CONFIRMED or SCHEDULED_LISTING_LAPSED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3023,6 +4132,7 @@ export interface paths {
         /**
          * Get store profile (public)
          * @description Returns the full store profile for a given merchant, including profile fields and currently available/almost-sold-out boxes. No authentication required — this is a consumer-facing endpoint.
+         *     `availableBoxes` is **filtered by purchase eligibility** (see `PurchaseEligibilityType`), so send the consumer's `Authorization: Bearer` token when the user is signed in. An anonymous or unverifiable token sees UNRESTRICTED listings only, never a 401.
          */
         get: {
             parameters: {
@@ -3117,7 +4227,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Validation error (field length exceeded or too many photos) */
+                /** @description Validation error (field length exceeded, too many photos, or INVALID_IMAGE_URL) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -3142,6 +4252,358 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/user/food-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my food log (我的食記)
+         * @description The caller's own entries, newest pickup first (pickedUpAt DESC, then id), excluding deleted ones.
+         *     An entry is created automatically for every order verified as picked up.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Entries returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["FoodLogEntryPage"];
+                        };
+                    };
+                };
+                /** @description Authentication required (user token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/food-log/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My food log totals */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Totals returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["FoodLogSummaryResponse"];
+                        };
+                    };
+                };
+                /** @description Authentication required (user token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/food-log/by-reservation/{reservationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my food-log entry for a reservation
+         * @description The entry the pickup created; used by the pickup-completed screen.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reservationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Entry returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["FoodLogEntryResponse"];
+                        };
+                    };
+                };
+                /** @description Malformed reservation id — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (user token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /**
+                 * @description No entry of the caller's for this reservation (not picked up, someone else's, or deleted) —
+                 *     FOOD_LOG_ENTRY_NOT_FOUND
+                 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/food-log/{entryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entryId: string;
+            };
+            cookie?: never;
+        };
+        /** Get one of my food-log entries */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Entry returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["FoodLogEntryResponse"];
+                        };
+                    };
+                };
+                /** @description Malformed entry id — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (user token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not found, someone else's, or deleted — FOOD_LOG_ENTRY_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /**
+         * Set the photo and note of one of my food-log entries
+         * @description Full replacement of photoUrl and note; returns the updated entry.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "photoUrl": "https://<project>.supabase.co/storage/v1/object/public/user_profile/0b6f1c1e-5d1a-4c55-9a43-2f3c1f1d9e10.jpg",
+                     *       "note": "可頌超酥，下次還要再來！"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["UpdateFoodLogEntryRequest"];
+                };
+            };
+            responses: {
+                /** @description Entry updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["FoodLogEntryResponse"];
+                        };
+                    };
+                };
+                /**
+                 * @description Note over 200 characters — FOOD_LOG_NOTE_TOO_LONG; photoUrl not from the avatar upload and not
+                 *     the current photo — INVALID_IMAGE_URL; malformed id or body — BAD_REQUEST / INVALID_FORMAT.
+                 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (user token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not found, someone else's, or deleted — FOOD_LOG_ENTRY_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete one of my food-log entries
+         * @description Soft delete: the entry disappears from the log and the summary and is never recreated. The
+         *     reservation itself is untouched.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Entry deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                /** @example Food log entry deleted */
+                                message?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Malformed entry id — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (user token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not found, someone else's, or already deleted — FOOD_LOG_ENTRY_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/user/follows": {
         parameters: {
             query?: never;
@@ -3153,7 +4615,8 @@ export interface paths {
          * Get following list
          * @description Returns all stores followed by the authenticated consumer.
          *     Sorted by stores with currently available boxes first, then alphabetically by store name.
-         *     `hasAvailableBoxes` is true when the store has at least one box with status AVAILABLE or ALMOST_SOLD_OUT today.
+         *     `hasAvailableBoxes` is true when the store has at least one box with status AVAILABLE or
+         *     ALMOST_SOLD_OUT today **that this consumer is eligible to buy** (see `PurchaseEligibilityType`).
          */
         get: {
             parameters: {
@@ -3306,6 +4769,163 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/user/skipped-boxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the caller's skip list
+         * @description Box ids the caller has passed on in Hunt mode, so the client can subtract them when dealing a hand. The client is expected to hold this only for the session.
+         *
+         *     **Filtered to boxes still on today's consumer feed** - the same predicate `GET /api/boxes` uses (a non-null sale window that has not closed, and a `saleDate` equal to today in the *merchant's* timezone). An id this endpoint omits is one the feed cannot return either, so the caller never has to reason about ids for packs that have already expired.
+         *
+         *     There is no state beyond membership: a reserved box is known through `GET /api/reservations/exists`, so "skipped" is the only thing recorded here. Nothing reads the history and nothing archives it.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Skipped box ids */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: string[];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/skipped-boxes/{boxId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Skip a box
+         * @description Records that the caller has passed on this box. **Idempotent and takes no request body** - one (user, box) has one skip, so repeating the call is not an error and there is no 409.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    boxId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Box skipped */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description boxId is not a valid UUID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Box not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Un-skip a box
+         * @description Removes the box from the caller's skip list - the undo behind the hunt's pass snackbar. **Idempotent: 204 whether or not a skip was there**, because the caller's goal is "this box is not skipped" and that is the resulting state either way. No 404.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    boxId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Box is not skipped */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description boxId is not a valid UUID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recommendations": {
         parameters: {
             query?: never;
@@ -3314,16 +4934,26 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List active store recommendations
-         * @description Returns active recommendations (status PENDING or IN_NEGOTIATION), sorted by vote count
-         *     descending, paginated. Each item exposes the aggregate `voteCount` and `hasVoted` for the
-         *     calling user — voter identities are never returned.
+         * List active store recommendations (legacy 敲碗榜)
+         * @deprecated
+         * @description **Deprecated (敲碗 v3).** Kept, unchanged, for app versions released before the city chart and
+         *     feed; it will be removed in a follow-up once the force-update floor (`min_supported`) no longer
+         *     includes a build that calls it. New clients use `/chart`, `/feed`, `/onboarded`, `/lookup`.
+         *
+         *     Returns active recommendations (status PENDING or IN_NEGOTIATION), sorted by vote count
+         *     descending, paginated. With all of `lat`/`lng`/`radiusKm` the list is instead filtered to that
+         *     radius and ordered nearest-first, as a single page. Each item exposes the aggregate
+         *     `voteCount` and `hasVoted` for the calling user — voter identities are never returned.
          */
         get: {
             parameters: {
                 query?: {
                     page?: number;
                     size?: number;
+                    lat?: number;
+                    lng?: number;
+                    /** @description All three of lat/lng/radiusKm or none; radiusKm in (0, 500]. */
+                    radiusKm?: number;
                 };
                 header?: never;
                 path?: never;
@@ -3351,6 +4981,13 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Partial or out-of-range lat/lng/radiusKm (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description Authentication required */
                 401: {
                     headers: {
@@ -3362,14 +4999,20 @@ export interface paths {
         };
         put?: never;
         /**
-         * Create a store recommendation
-         * @description Creates a recommendation (status PENDING, 0 votes). Duplicate detection: when `placeId` is
-         *     supplied, dedups on it (exact match = same store, so two stores sharing a name at different
-         *     locations each get a row); otherwise falls back to a case-insensitive, trimmed exact
-         *     `storeName` match. On a match, returns `200` with `possibleDuplicate: true` and the existing
-         *     record, and creates no row (the client may then call the vote endpoint). `reason` must be 50
-         *     characters or fewer. `latitude`/`longitude` (resolved via the Places proxy) are optional, but
-         *     if either is supplied both must be present and in range.
+         * Create a store recommendation (knock a new store)
+         * @description Creates a recommendation (status PENDING) with the recommender's answers, or reports a
+         *     possible duplicate. v3 clients must send `visitFrequency` and at least one `wantedItems`;
+         *     legacy clients sending only `reason` still succeed (see CreateRecommendationRequest). The city
+         *     is derived server-side from `storeAddress`.
+         *
+         *     Duplicate detection: when `placeId` is supplied, dedups on it against **active** rows (so a
+         *     REJECTED store can be knocked again — that creates a fresh row); otherwise falls back to a
+         *     case-insensitive, trimmed exact `storeName` match. On a match, returns `200` with
+         *     `possibleDuplicate: true` and the existing record, and creates no row (the client may then
+         *     call the vote endpoint).
+         *
+         *     Every created row (never a duplicate) posts one best-effort Discord ping to ops, without a
+         *     mention; a Discord failure never fails the request.
          */
         post: {
             parameters: {
@@ -3380,24 +5023,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": {
-                        /** @example 好食早餐 */
-                        storeName: string;
-                        storeAddress: string;
-                        reason: string;
-                        /** @description Google Places place_id resolved via GET /api/places/{placeId} */
-                        placeId?: string | null;
-                        /**
-                         * Format: double
-                         * @description Resolved latitude (-90..90); must accompany longitude
-                         */
-                        latitude?: number | null;
-                        /**
-                         * Format: double
-                         * @description Resolved longitude (-180..180); must accompany latitude
-                         */
-                        longitude?: number | null;
-                    };
+                    "application/json": components["schemas"]["CreateRecommendationRequest"];
                 };
             };
             responses: {
@@ -3410,18 +5036,7 @@ export interface paths {
                         "application/json": {
                             /** @example true */
                             success?: boolean;
-                            data?: {
-                                /** @example true */
-                                possibleDuplicate?: boolean;
-                                match?: {
-                                    /** Format: uuid */
-                                    id?: string;
-                                    storeName?: string;
-                                    storeAddress?: string;
-                                    /** Format: int64 */
-                                    voteCount?: number;
-                                };
-                            };
+                            data?: components["schemas"]["CreateRecommendationResponse"];
                         };
                     };
                 };
@@ -3434,15 +5049,15 @@ export interface paths {
                         "application/json": {
                             /** @example true */
                             success?: boolean;
-                            data?: {
-                                /** @example false */
-                                possibleDuplicate?: boolean;
-                                recommendation?: components["schemas"]["RecommendationResponse"];
-                            };
+                            data?: components["schemas"]["CreateRecommendationResponse"];
                         };
                     };
                 };
-                /** @description Invalid request (e.g. REASON_TOO_LONG) */
+                /**
+                 * @description RECOMMENDATION_ANSWERS_REQUIRED (missing frequency / items, or neither answers nor reason),
+                 *     RECOMMENDATION_NOTE_TOO_LONG, REASON_TOO_LONG, MISSING_FIELD / INVALID_FORMAT (bad JSON or
+                 *     an unknown enum value), BAD_REQUEST (invalid coordinates)
+                 */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -3474,8 +5089,16 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List the caller's submissions
-         * @description Returns recommendations submitted by the authenticated user, with their current status, newest first.
+         * List stores the caller knocked for (我敲過的店)
+         * @description Every recommendation the authenticated user **submitted or voted on**, newest first, with
+         *     `myRole` distinguishing the two.
+         *
+         *     Unlike `GET /api/recommendations`, this returns **all four statuses**, including `ONBOARDED`
+         *     and `REJECTED`. That is the point of the endpoint: most people who knock only ever +1, and
+         *     they previously had no way to learn the outcome of a store they backed.
+         *
+         *     Carries no threshold information. The 敲碗 alert threshold is admin-only — surfacing progress
+         *     towards it would read as a promise of merchant outreach.
          */
         get: {
             parameters: {
@@ -3486,7 +5109,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Submissions returned successfully */
+                /** @description Knocked-for stores returned successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -3495,12 +5118,363 @@ export interface paths {
                         "application/json": {
                             /** @example true */
                             success?: boolean;
-                            data?: components["schemas"]["RecommendationResponse"][];
+                            data?: components["schemas"]["MyRecommendationResponse"][];
                         };
                     };
                 };
                 /** @description Authentication required */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recommendations/chart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 城市敲碗榜 — top stores in a city
+         * @description The 10 active (PENDING / IN_NEGOTIATION) recommendations in `city` with the most distinct
+         *     knockers, ties broken by the most recent activity. Not paginated. REJECTED and ONBOARDED rows
+         *     drop off immediately.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description One of the 22 cities/counties; 臺 is accepted and folded to 台. Otherwise 400 INVALID_CITY. */
+                    city: components["schemas"]["TaiwanCity"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Chart returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["RecommendationItem"][];
+                        };
+                    };
+                };
+                /** @description Missing or unknown city (INVALID_CITY) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recommendations/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 附近正在敲碗 — recent activity near you or in a city
+         * @description Active recommendations either in `city` **or** within `radiusKm` of (`lat`, `lng`) — exactly
+         *     one of the two scopes, else 400 — sorted by `lastActivityAt` descending (newest knock first,
+         *     so a brand-new store is seen), paginated. The radius scope ignores city and includes rows
+         *     whose city is unknown. Optional `status` narrows to one active status (e.g. IN_NEGOTIATION
+         *     for 洽談中).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description City scope (one of TaiwanCity; 臺 accepted). Mutually exclusive with lat/lng/radiusKm. */
+                    city?: components["schemas"]["TaiwanCity"];
+                    lat?: number;
+                    lng?: number;
+                    /** @description Radius scope — all three of lat/lng/radiusKm, radiusKm in (0, 500]. */
+                    radiusKm?: number;
+                    status?: "PENDING" | "IN_NEGOTIATION";
+                    page?: number;
+                    size?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Feed page returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                items: components["schemas"]["RecommendationItem"][];
+                                page: number;
+                                size: number;
+                                /** Format: int64 */
+                                totalItems: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /**
+                 * @description Neither or both scopes, partial/out-of-range coordinates or a bad status (INVALID_FORMAT);
+                 *     unknown city (INVALID_CITY)
+                 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recommendations/onboarded": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 剛上架 — stores that joined because of knocks
+         * @description ONBOARDED recommendations in `city` that a merchant was created from, newest merchant first.
+         *     Each item carries `merchantId` and `distinctKnockers` for the credit line
+         *     (「因為 23 位鄰居敲碗，○○烘焙加入了」). ONBOARDED rows without a merchant are left out.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description One of the 22 cities/counties; 臺 is accepted and folded to 台. Otherwise 400 INVALID_CITY. */
+                    city: components["schemas"]["TaiwanCity"];
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Wins returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["RecommendationItem"][];
+                        };
+                    };
+                };
+                /** @description Missing or unknown city (INVALID_CITY) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recommendations/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve a picked place for the 敲碗 search
+         * @description What the search should do with a place picked from `GET /api/places/autocomplete?purpose=recommendation`:
+         *     `ON_PLATFORM` (a merchant has this place_id → open the store), `KNOCKED` (an active
+         *     recommendation has it → +1; includes `hasVoted` / `isOwnRecommendation`), or `NEW` (knock it).
+         *     REJECTED and ONBOARDED-without-merchant rows read as NEW.
+         */
+        get: {
+            parameters: {
+                query: {
+                    placeId: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Lookup result */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["RecommendationLookupResponse"];
+                        };
+                    };
+                };
+                /** @description Missing placeId (MISSING_FIELD) or not place-id shaped (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recommendations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One recommendation (public — share links)
+         * @description A single recommendation in any status, for the share deep link and the FreshToGo-web
+         *     `/knock/:id` fallback page. **Public**: no authentication required, rate-limited per client
+         *     IP (60/min). With a valid user access token, `hasVoted`, `isOwnRecommendation` and
+         *     `myAnswers` reflect the caller; without one (or with an expired/invalid/merchant token, which
+         *     is treated as anonymous rather than 401) they are false/null. REJECTED rows are returned with
+         *     their status so the client can render them as 不適合; ONBOARDED rows carry `merchantId`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recommendation returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["RecommendationItem"];
+                        };
+                    };
+                };
+                /** @description Invalid recommendation ID (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Recommendation not found (RECOMMENDATION_NOT_FOUND) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Rate limit exceeded for this client IP — RATE_LIMITED */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3526,8 +5500,14 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Vote for a recommendation
-         * @description Adds the caller's +1. Returns 409 if already voted or voting on own recommendation. Safe under double-tap (unique index).
+         * Vote for a recommendation (one-tap +1)
+         * @description Adds the caller's +1. The body is **optional**: send none for the one-tap +1 (and old apps
+         *     send none), or send the answers to store them with the vote. Answers can also be added later
+         *     with `PUT /api/recommendations/{id}/answers`. Returns 409 if already voted or voting on own
+         *     recommendation. Safe under double-tap (unique index).
+         *
+         *     The response keeps the pre-v3 `message` and adds `item`, the updated recommendation (its
+         *     `distinctKnockers` is 「你是第 N 位敲碗的鄰居」).
          */
         post: {
             parameters: {
@@ -3538,14 +5518,33 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["KnockAnswersRequest"];
+                };
+            };
             responses: {
                 /** @description Vote recorded */
                 201: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["VoteResponse"];
+                        };
+                    };
+                };
+                /** @description Malformed answers body (INVALID_FORMAT), RECOMMENDATION_NOTE_TOO_LONG, invalid ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
                 };
                 /** @description Authentication required */
                 401: {
@@ -3574,7 +5573,8 @@ export interface paths {
         };
         /**
          * Remove a vote
-         * @description Removes the caller's +1. Idempotent — returns 204 even when the user had not voted.
+         * @description Removes the caller's +1, and with it the caller's answers on this recommendation. Idempotent —
+         *     returns 204 even when the user had not voted.
          */
         delete: {
             parameters: {
@@ -3608,6 +5608,1418 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recommendations/{id}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add or replace the caller's answers
+         * @description Upserts the caller's structured answers (the optional sheet after a one-tap +1). Replaces the
+         *     caller's answers as a whole — omitted fields are cleared. Only a knocker may answer: the
+         *     recommender or someone who has voted; anyone else gets 403 RECOMMENDATION_NOT_KNOCKED.
+         *     Returns the updated recommendation (with `myAnswers`).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KnockAnswersRequest"];
+                };
+            };
+            responses: {
+                /** @description Answers saved */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["RecommendationItem"];
+                        };
+                    };
+                };
+                /** @description Malformed body / unknown enum value (INVALID_FORMAT), RECOMMENDATION_NOTE_TOO_LONG, invalid ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The caller neither submitted nor voted for it (RECOMMENDATION_NOT_KNOCKED) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Recommendation not found (RECOMMENDATION_NOT_FOUND) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/merchants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List merchants (admin)
+         * @description Returns merchants paginated, newest first. Optionally filtered by free-text `search`
+         *     (store name / email), `isVerified`, and `subscriptionFilter`. Each item includes the
+         *     server-computed `subscriptionStatus` and `subscriptionEndDate`. Requires an admin token —
+         *     a user/merchant token is rejected with 401.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                    /** @description Case-insensitive substring match against store name or email. */
+                    search?: string;
+                    /** @description Filter by verification status. Omit or send empty to return both. Any other non-boolean value is a 400, never a silently unfiltered list. */
+                    isVerified?: boolean;
+                    /** @description Subscription bucket filter computed against today (Asia/Taipei). Omit/blank = no filter. NONE = no end date set; EXPIRED = end date before today; EXPIRING_SOON = end date between today and today+30 days inclusive; PAYING = end date after today+30 days. */
+                    subscriptionFilter?: "PAYING" | "EXPIRING_SOON" | "EXPIRED" | "NONE";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Merchants returned successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                items?: components["schemas"]["AdminMerchantListItem"][];
+                                page?: number;
+                                size?: number;
+                                /** Format: int64 */
+                                totalItems?: number;
+                                totalPages?: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Unrecognised `subscriptionFilter` value (BAD_REQUEST), or a non-empty `isVerified` that is not `true`/`false` (INVALID_FORMAT). A filter is never dropped silently — an unusable one is refused. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a merchant (admin)
+         * @description Creates a new merchant account on behalf of an admin. New merchants are auto-verified
+         *     (`isVerified: true`). Optionally onboards from a community recommendation via
+         *     `recommendationId` — the recommendation is transitioned to ONBOARDED and the recommender is
+         *     credited on the store profile once the merchant is created. Requires an admin token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminCreateMerchantRequest"];
+                };
+            };
+            responses: {
+                /** @description Merchant created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminMerchantDetail"];
+                        };
+                    };
+                };
+                /** @description Invalid request — invalid coordinates/timezone/recommendation ID format, or a lone latitude/longitude without its pair. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description recommendationId does not match any recommendation */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Email already exists */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/merchants/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a merchant detail (admin)
+         * @description Returns full detail for a single merchant, including active/total reservation counts and the
+         *     store logo URL. Requires an admin token.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Merchant returned successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminMerchantDetail"];
+                        };
+                    };
+                };
+                /** @description Invalid merchant ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Merchant not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Delete a merchant (admin)
+         * @description Permanently deletes a merchant and all associated data (boxes, reservations, refresh tokens,
+         *     FCM tokens, images) via cascading deletes. This action cannot be undone. Requires an admin
+         *     token.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Merchant deleted successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                /** @example Merchant deleted successfully */
+                                message?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid merchant ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Merchant not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Update a merchant (admin)
+         * @description Partially updates a merchant's profile and admin-managed fields (see
+         *     `AdminUpdateMerchantRequest` — all fields optional, an omitted field is left unchanged).
+         *     Setting `logoUrl` writes directly to the merchant's profile (the same field the merchant can
+         *     set themselves via `PUT /api/merchant/profile`) and preserves any other profile fields
+         *     already set. Requires an admin token.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminUpdateMerchantRequest"];
+                };
+            };
+            responses: {
+                /** @description Merchant updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminMerchantDetail"];
+                        };
+                    };
+                };
+                /** @description Invalid request (invalid coordinates/timezone/date format) or invalid merchant ID. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Merchant not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/admin/merchants/{merchantId}/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a merchant's box templates
+         * @description Returns every box template owned by the named merchant, each with a server-resolved `resolvedImageUrl`. Identical payload to `GET /api/merchant/templates`, but the merchant is named in the path instead of taken from the JWT. A store may hold any number of templates.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    merchantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description List of the merchant's templates (empty array if none) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["BoxTemplateResponse"][];
+                        };
+                    };
+                };
+                /** @description Malformed `merchantId` (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such merchant (MERCHANT_NOT_FOUND) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a box template for a merchant
+         * @description Creates a template owned by the named merchant, on their behalf. Built for the store-visit flow: a template is prepared in a demo account so the owner can see their store inside the real merchant app, then recreated in their own account once they agree.
+         *
+         *     Applies **exactly** the validation `POST /api/merchant/templates` applies — the same `BoxInputValidator` rules, not a parallel copy — so an admin cannot save a template the merchant's own box create would later reject.
+         *
+         *     Unlike the merchant endpoint, this is **not** behind the subscription gate: pre-sales work happens on accounts that are not subscribed yet.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    merchantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "name": "芝山店 - 週五麵包包",
+                     *       "description": "好吃的麵包",
+                     *       "originalPrice": 500,
+                     *       "discountedPrice": 199,
+                     *       "pickupTimeStart": "18:00",
+                     *       "pickupTimeEnd": "20:00",
+                     *       "saleTimeStart": "09:00",
+                     *       "saleTimeEnd": "15:00",
+                     *       "quantity": 5,
+                     *       "category": "BAKERY",
+                     *       "imageId": "550e8400-e29b-41d4-a716-446655440000"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["BoxTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description Template created, owned by the named merchant */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["BoxTemplateResponse"];
+                        };
+                    };
+                };
+                /** @description Malformed `merchantId`, missing fields, a value breaking one of the shared box/template rules (see `BoxTemplateRequest`), or a malformed `imageId` (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such merchant (MERCHANT_NOT_FOUND), or `imageId` is a well-formed UUID with no matching stock photo (STOCK_PHOTO_NOT_FOUND). Nothing is written in either case. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/merchants/{merchantId}/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update a merchant's box template
+         * @description Fully replaces a template belonging to the named merchant. Same full-PUT semantics as the merchant endpoint: an omitted `category` resets to GENERAL and an omitted `imageId` clears any binding.
+         *
+         *     The write is scoped by `(id AND merchantId)` in SQL, so a template id that belongs to a *different* merchant matches nothing and returns 404 `TEMPLATE_NOT_FOUND` — a mistyped `merchantId` cannot overwrite another store's template.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    merchantId: string;
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BoxTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description Template updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["BoxTemplateResponse"];
+                        };
+                    };
+                };
+                /** @description Malformed UUID, missing fields, a value breaking one of the shared box/template rules, or a malformed `imageId` (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such merchant (MERCHANT_NOT_FOUND); or the template does not exist or belongs to another merchant (TEMPLATE_NOT_FOUND); or `imageId` has no matching stock photo (STOCK_PHOTO_NOT_FOUND). The template is left unmodified in every case. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete a merchant's box template
+         * @description Deletes a template belonging to the named merchant. Scoped by `(id AND merchantId)` in SQL, as on PUT, so another store's template cannot be deleted through a mismatched pair.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    merchantId: string;
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Template deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: {
+                                /** @example deleted */
+                                status?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Malformed UUID (INVALID_FORMAT) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such merchant (MERCHANT_NOT_FOUND), or the template does not exist or belongs to another merchant (TEMPLATE_NOT_FOUND) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/merchants/{merchantId}/eligibility/audience-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count the audience an eligibility condition would reach at any store
+         * @description The admin twin of `GET /api/merchant/eligibility/audience-count`, for any store. Identical payload and identical rules, with the store named in the path instead of taken from the JWT.
+         *
+         *     `adminAuth` is a separate JWT scheme from `merchantAuth`, so a merchant token cannot reach this path.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description The condition to measure. **Required** — not defaulted to UNRESTRICTED, which would hand back the addressable total and read as a perfectly healthy audience. */
+                    eligibilityType: components["schemas"]["PurchaseEligibilityType"];
+                    /** @description The N of `RETURNING_CUSTOMER(N)`. Required (and must be a positive integer) when `eligibilityType=RETURNING_CUSTOMER`, otherwise ignored — the same rule box create applies, from the same code. */
+                    eligibilityThreshold?: number;
+                    /** @description The template the listing will be created from — the scope `ONCE_PER_TEMPLATE` counts within. Required for that type and ignored by the others, and it must belong to the store being queried. A template that has produced no box yet is perfectly valid: nobody can hold an order from it, so the count is the full addressable audience. */
+                    boxTemplateId?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description The store to measure. A mistyped id is 404, never a plausible count. */
+                    merchantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The audience size for that condition */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["EligibleAudienceResponse"];
+                        };
+                    };
+                };
+                /** @description Malformed `merchantId` (INVALID_FORMAT), or any of the condition errors listed on the merchant endpoint (MISSING_FIELD, BAD_REQUEST, INVALID_ELIGIBILITY_THRESHOLD, ELIGIBILITY_TEMPLATE_REQUIRED) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required (a merchant token does not reach this) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description No such merchant (MERCHANT_NOT_FOUND), or `boxTemplateId` is a well-formed UUID that is not one of that store's templates (TEMPLATE_NOT_FOUND) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/stock-photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List stock photos (admin)
+         * @description Returns stock photos paginated, optionally filtered by `category` and/or `status`, ordered by
+         *     category then sortOrder then createdAt. Includes DISABLED photos (admins manage the full
+         *     library). Each item carries its `usageCount`. Requires an admin token — a user/merchant token
+         *     is rejected with 401.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                    /** @description Filter to a single category. Omit to return all categories. */
+                    category?: components["schemas"]["ProductCategory"];
+                    /** @description Filter to a single status. Omit to return both ACTIVE and DISABLED. */
+                    status?: components["schemas"]["StockPhotoStatus"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stock photos returned successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                items?: components["schemas"]["StockPhotoResponse"][];
+                                page?: number;
+                                size?: number;
+                                /** Format: int64 */
+                                totalItems?: number;
+                                totalPages?: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid category or status value */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Register a stock photo (admin)
+         * @description Registers a stock photo in the library and assigns it a category. The image is uploaded first
+         *     (or any reachable URL) and recorded here. Requires an admin token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateStockPhotoRequest"];
+                };
+            };
+            responses: {
+                /** @description Stock photo created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["StockPhotoResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid request (e.g. unknown category) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/stock-photos/images/presigned": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get presigned upload URL for a stock photo
+         * @description Returns a presigned URL for direct client-side image upload to Supabase Storage.
+         *
+         *     **Flow:**
+         *     1. Request a presigned URL using this endpoint
+         *     2. Upload the image directly to Supabase using the `signedUrl`
+         *     3. Use the `publicUrl` as `imageUrl` when registering the photo via POST /api/admin/stock-photos
+         */
+        get: {
+            parameters: {
+                query: {
+                    /**
+                     * @description MIME type of the image to upload
+                     * @example image/jpeg
+                     */
+                    contentType: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Presigned URL generated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["PresignedUploadResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid content type or storage not configured */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/stock-photos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a single stock photo (admin)
+         * @description Returns one stock photo by id, including its usageCount. Requires an admin token.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stock photo returned successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["StockPhotoResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid stock photo ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Stock photo not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a stock photo (admin)
+         * @description Patches a stock photo: reassign its category, enable/disable it, and/or adjust sortOrder. All
+         *     body fields are optional; an omitted field is left unchanged. Requires an admin token.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateStockPhotoRequest"];
+                };
+            };
+            responses: {
+                /** @description Stock photo updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["StockPhotoResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid request or stock photo ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Stock photo not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/admin/merchant-applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List merchant application leads (admin)
+         * @description Returns "apply to join" leads submitted via POST /api/merchant/apply, newest first, paginated.
+         *     Optionally filtered to a single status via `status`. Requires an admin token.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                    /** @description Filter to a single status (IDLE, IN_PROGRESS, FAILED, COMPLETED) */
+                    status?: components["schemas"]["MerchantApplicationStatus"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Leads returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                items?: components["schemas"]["MerchantApplicationResponse"][];
+                                page?: number;
+                                size?: number;
+                                /** Format: int64 */
+                                totalItems?: number;
+                                totalPages?: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid status filter — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (admin token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/merchant-applications/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a lead's follow-up status (admin)
+         * @description Moves a lead through its contact workflow (IDLE → IN_PROGRESS → FAILED / COMPLETED).
+         *     Returns the updated lead. Requires an admin token.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "status": "IN_PROGRESS"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["UpdateMerchantApplicationStatusRequest"];
+                };
+            };
+            responses: {
+                /** @description Updated lead */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["MerchantApplicationResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid application id or status value — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (admin token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lead not found — MERCHANT_APPLICATION_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/admin/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List consumer feedback (admin)
+         * @description Feedback messages, newest first, paginated. Optional `status` and `category` filters
+         *     (case-insensitive; empty means no filter; an unknown value is 400). The unread count is
+         *     `?status=NEW&size=1` → `totalItems`. Requires an admin token.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                    status?: components["schemas"]["FeedbackStatus"];
+                    category?: components["schemas"]["FeedbackCategory"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Feedback returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                items?: components["schemas"]["AdminFeedbackResponse"][];
+                                page?: number;
+                                size?: number;
+                                /** Format: int64 */
+                                totalItems?: number;
+                                totalPages?: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid status or category filter — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (admin token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/feedback/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one feedback message (admin)
+         * @description Returns the message without changing its status. Requires an admin token.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Feedback returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminFeedbackResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid feedback id — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (admin token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Feedback not found — FEEDBACK_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/feedback/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark a feedback message read (admin)
+         * @description Sets status READ and stamps readAt. Idempotent: an already-READ message keeps its first readAt.
+         *     Returns the message. Requires an admin token.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Updated feedback */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminFeedbackResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid feedback id — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (admin token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Feedback not found — FEEDBACK_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/admin/recommendations": {
         parameters: {
             query?: never;
@@ -3619,7 +7031,8 @@ export interface paths {
          * List all store recommendations (admin)
          * @description Returns every recommendation regardless of status, sorted by vote count descending then
          *     newest first, paginated. Optionally filtered to a single status via `status`. Each item
-         *     includes the recommender's id and display name. Requires an admin token — a user/merchant
+         *     includes the recommender's id and display name, the city, `distinctKnockers`, and the
+         *     aggregated structured answers (`answers`, with up to 3 recent notes). Requires an admin token — a user/merchant
          *     token is rejected with 401.
          */
         get: {
@@ -3689,8 +7102,9 @@ export interface paths {
         };
         /**
          * Get a single store recommendation (admin)
-         * @description Returns one recommendation by id, including the recommender's id and display name and the
-         *     aggregate vote count. Requires an admin token — a user/merchant token is rejected with 401.
+         * @description Returns one recommendation by id, including the recommender's id and display name, the
+         *     aggregate vote count, `distinctKnockers`, and the aggregated structured answers (`answers`,
+         *     with up to 20 recent notes). Requires an admin token — a user/merchant token is rejected with 401.
          */
         get: {
             parameters: {
@@ -3834,6 +7248,9 @@ export interface paths {
          *     client-generated `sessionToken` and reuse it for the follow-up details call so Google bills
          *     the whole interaction as one session. Query-prediction suggestions (no concrete place) are
          *     omitted.
+         *
+         *     Public endpoint — no authentication required. Used by the consumer app and by the public
+         *     merchant "apply to join" form (POST /api/merchant/apply), where the caller has no session.
          */
         get: {
             parameters: {
@@ -3842,6 +7259,15 @@ export interface paths {
                     q: string;
                     /** @description Client-generated session token, reused for the details call */
                     sessionToken?: string;
+                    /** @description Caller's locale (e.g. zh-TW), forwarded to Google so names come back localized */
+                    languageCode?: string;
+                    /**
+                     * @description Opt-in restriction. `recommendation` (the 敲碗 store search) limits results to food
+                     *     businesses: Google `includedPrimaryTypes` = restaurant, bakery, cafe, meal_takeaway,
+                     *     food_store. Chains are not filtered. Omitted = unrestricted (unchanged behaviour); any
+                     *     other value is 400 INVALID_FORMAT.
+                     */
+                    purpose?: "recommendation";
                 };
                 header?: never;
                 path?: never;
@@ -3862,15 +7288,15 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing required query parameter 'q' */
+                /** @description Missing required query parameter 'q' (MISSING_FIELD) or unknown purpose (INVALID_FORMAT) */
                 400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Authentication required */
-                401: {
+                /** @description Rate limit exceeded for this client IP — RATE_LIMITED */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3903,8 +7329,10 @@ export interface paths {
         /**
          * Resolve place details
          * @description Proxies Google Places Details (New) for a `placeId`, returning just the fields a
-         *     recommendation needs (name, address, coordinates). Pass the same `sessionToken` used for
+         *     recommendation needs (name, address, coordinates, and the Taiwan `city` when known). Pass the same `sessionToken` used for
          *     autocomplete to close the billing session.
+         *
+         *     Public endpoint — no authentication required (see the autocomplete endpoint).
          */
         get: {
             parameters: {
@@ -3934,15 +7362,15 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Authentication required */
-                401: {
+                /** @description Place not found — PLACE_NOT_FOUND */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Place not found — PLACE_NOT_FOUND */
-                404: {
+                /** @description Rate limit exceeded for this client IP — RATE_LIMITED */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -4076,6 +7504,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/internal/scheduled-listings/tick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scheduled-day check-in reminders and lapses
+         * @description For each enabled template schedule running today (merchant-local): sends the merchant one
+         *     `SCHEDULED_LISTING_CHECKIN` push (notification with zh-TW copy plus data `type`, `templateId`, `saleDate`; no inbox row) from 60 minutes before the sale
+         *     start if the day is still unconfirmed, and records the day MISSED once the sale start has passed.
+         *     Nothing is sent on the day before. Skips merchants whose subscription has lapsed.
+         *     Designed to be called by Cloud Scheduler every 5 minutes. Requires `X-Internal-Api-Key` header.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Tick processed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["ScheduledListingTickResult"];
+                        };
+                    };
+                };
+                /** @description Invalid or missing API key */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/send-rating-prompts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send post-pickup thumbs-up prompts
+         * @description Sends FCM push notifications inviting customers to give a thumbs-up, for reservations picked up
+         *     at least ~1 hour ago that have not yet been prompted or rated. Stamps `rating_prompt_notified_at`
+         *     so each reservation is prompted once. Respects the `ratingPromptEnabled` preference.
+         *     Designed to be called by Cloud Scheduler. Requires `X-Internal-Api-Key` header.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Prompts sent */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success?: boolean;
+                            data?: components["schemas"]["NotificationResult"];
+                        };
+                    };
+                };
+                /** @description Invalid or missing API key */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/internal/notify-pickup-window": {
         parameters: {
             query?: never;
@@ -4191,6 +7724,7 @@ export interface paths {
          * Send follow-upload notifications
          * @description Sends FCM push notifications to followers of merchants whose boxes just entered the sale window.
          *     Respects `listingEnabled` and `listingScope` preferences. Users with `ALL` scope are always notified; users with `FOLLOWED_ONLY` scope are notified only if they follow the publishing merchant.
+         *     Purchase eligibility (`eligibilityType`) then narrows that audience further: a recipient who cannot see the box in the consumer list is not told about it either. A box whose whole audience is ineligible is still marked notified, so it is not retried. Order-related pushes (pickup window, pickup reminder, rating prompt, cancellation) are exempt — their audience is the order's owner, not an eligible audience.
          *     Designed to be called by Cloud Scheduler every minute. Requires `X-Internal-Api-Key` header.
          */
         post: {
@@ -4240,12 +7774,33 @@ export interface paths {
         put?: never;
         /**
          * Clean up orphaned images
-         * @description Deletes image files from storage that are no longer referenced by any box.
-         *     Designed to be called by Cloud Scheduler (e.g., once daily). Requires `X-Internal-Api-Key` header.
+         * @description Deletes tracked image files from storage, plus their metadata rows, once nothing references them
+         *     any more. Designed to be called by Cloud Scheduler (once daily). Requires `X-Internal-Api-Key`.
+         *
+         *     **An image counts as referenced** when its URL appears in any of:
+         *     - `mystery_boxes.image_url` — a box's custom cover
+         *     - `box_templates.image_url` — a template's custom cover
+         *     - `merchant_profiles.logo_url` — the store logo
+         *     - `merchant_profiles.photo_urls` — the store photo gallery (a JSON array)
+         *     - `stock_photos.image_url` — a curated stock photo
+         *
+         *     Missing a reference site here is destructive and irreversible, so two rails apply:
+         *     - **Age threshold** (`imageCleanup.minAgeDays`, default 7 days). A metadata row is written when the
+         *       presigned upload URL is *issued*, not when the upload completes or the merchant saves — so
+         *       recent rows may still belong to an in-flight upload and are skipped.
+         *     - **Per-run cap** (`imageCleanup.maxDeletionsPerRun`, default 50). When more orphans are eligible
+         *       than the cap allows, `capped` is true and a warning is logged. A persistently capped run is a
+         *       signal that a reference site may be missing.
+         *
+         *     Run with `dryRun=true` first after any change to the reference sites: nothing is deleted, and the
+         *     response plus the logs report exactly what would have gone.
          */
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description When true, report what would be deleted without deleting anything. `deletedCount` is 0 and `candidates` reports the eligible orphans. */
+                    dryRun?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -4260,13 +7815,467 @@ export interface paths {
                     content: {
                         "application/json": {
                             success?: boolean;
-                            data?: {
-                                deletedCount?: number;
-                            };
+                            data?: components["schemas"]["ImageCleanupResult"];
                         };
                     };
                 };
                 /** @description Invalid or missing API key */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description INTERNAL_API_KEY is not configured on the server */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/app/version-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get per-platform app version requirements
+         * @description Public (unauthenticated) — clients must gate before login. Returns the forced-update floor per
+         *     platform: `minSupported` (hard floor; a client below it must update) and optional `latest`
+         *     (newest published version, for a soft "update available" nudge). Both `android` and `ios`
+         *     keys are always present.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Version requirements returned successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AppVersionRequirementsResponse"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/app/version-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update per-platform app version requirements (admin)
+         * @description Upserts the version requirements for both platforms and sets `updated_at`; the next public GET
+         *     reflects the change immediately. Requires an admin token — a user/merchant token is rejected
+         *     with 401. Version strings must be dotted-numeric (e.g. `1.2.0`); when `latest` is provided it
+         *     must be `>= minSupported` (component-wise numeric compare). Invalid input yields a 400.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateAppVersionRequirementsRequest"];
+                };
+            };
+            responses: {
+                /** @description Requirements updated; returns the new per-platform values */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AppVersionRequirementsResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid version format or latest < minSupported */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/settings/recommendation-threshold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the 敲碗 vote threshold (admin)
+         * @description Returns the vote count at which a store recommendation fires its Discord alert, plus whether
+         *     that value is the built-in default (no override stored). Requires an admin token — a user or
+         *     merchant token is rejected with 401.
+         *
+         *     There is deliberately **no consumer counterpart** to this endpoint. Exposing the threshold to
+         *     the app would amount to promising merchant outreach once a store reaches it, and the fallout
+         *     when a store declines is worse than never having promised.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The effective threshold */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["RecommendationThresholdResponse"];
+                        };
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /**
+         * Set the 敲碗 vote threshold (admin)
+         * @description Stores an override, effective immediately for subsequent votes — no redeploy needed.
+         *
+         *     Changes are **not retroactive in either direction**. Raising the threshold does not roll back
+         *     alerts that already fired; lowering it does not back-fill alerts for recommendations that
+         *     already exceed the new value. Those are re-evaluated only on their next incoming vote, and
+         *     there is no batch sweep.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateRecommendationThresholdRequest"];
+                };
+            };
+            responses: {
+                /** @description Threshold updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["RecommendationThresholdResponse"];
+                        };
+                    };
+                };
+                /** @description Threshold is not a positive integer */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin login
+         * @description Exchanges admin credentials for a JWT pair. The access token carries `type: "admin"` and is the
+         *     only kind accepted by the `/api/admin/**` endpoints — a user or merchant token is rejected.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminLoginRequest"];
+                };
+            };
+            responses: {
+                /** @description Authenticated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminResponse"];
+                        };
+                    };
+                };
+                /** @description Invalid email or password */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description More than 10 requests a minute from this client IP — RATE_LIMITED */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh admin token */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RefreshTokenRequest"];
+                };
+            };
+            responses: {
+                /** @description Token refreshed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminTokenRefreshResponse"];
+                        };
+                    };
+                };
+                /** @description Missing or malformed refreshToken */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Refresh token invalid or expired */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description More than 60 requests a minute from this client IP — RATE_LIMITED */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current admin
+         * @description Returns the authenticated admin. `token` and `refreshToken` are absent here.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Admin returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminResponse"];
+                        };
+                    };
+                };
+                /** @description Admin authentication required, or the account no longer exists */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin logout
+         * @description Revokes the admin's refresh tokens. The access token remains valid until it expires.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Logged out */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -4281,10 +8290,1392 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dashboard totals
+         * @description Platform-wide counters for the admin home screen. "Today" is Asia/Taipei.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Dashboard returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminDashboardResponse"];
+                        };
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/analytics/timeseries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daily time series for one metric
+         * @description One data point per day between `dateFrom` and `dateTo` inclusive. Both default to the last
+         *     30 days, resolved against Asia/Taipei rather than the server's UTC clock.
+         */
+        get: {
+            parameters: {
+                query: {
+                    metric: "new_users" | "reservations" | "revenue" | "no_shows";
+                    dateFrom?: string;
+                    dateTo?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Series returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminTimeseriesResponse"];
+                        };
+                    };
+                };
+                /** @description Missing or unrecognised metric */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{userId}/food-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a user's food log (admin)
+         * @description The user's non-deleted entries, same shape and order the owner sees. Requires an admin token.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Entries returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["FoodLogEntryPage"];
+                        };
+                    };
+                };
+                /** @description Malformed user id — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (admin token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description User not found — USER_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/food-log/{entryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a food-log entry (admin moderation)
+         * @description Soft delete of any user's entry; logged with the admin id for audit. Requires an admin token.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Entry deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                /** @example Food log entry deleted */
+                                message?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Malformed entry id — BAD_REQUEST */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required (admin token) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not found or already deleted — FOOD_LOG_ENTRY_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List users (admin)
+         * @description Consumers, newest first. `search` and `isBlocked` compose — supplying both narrows to their
+         *     intersection.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                    /** @description Case-insensitive substring match against display name. */
+                    search?: string;
+                    /** @description Omit or send empty to return both blocked and unblocked users. Any other non-boolean value is a 400, never a silently unfiltered list. */
+                    isBlocked?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Users returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                items?: components["schemas"]["AdminUserListItem"][];
+                                page?: number;
+                                size?: number;
+                                /** Format: int64 */
+                                totalItems?: number;
+                                totalPages?: number;
+                            };
+                        };
+                    };
+                };
+                /** @description A non-empty `isBlocked` that is not `true`/`false` (INVALID_FORMAT). A filter is never dropped silently — an unusable one is refused. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/at-risk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Users approaching the no-show block
+         * @description Users whose `noShowCount` has reached `minNoShowCount`. Unpaginated. The block threshold is 3,
+         *     so the default of 2 surfaces people one no-show away from losing reservation access.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Omit or send empty for the default of 2. A non-empty value that is not an integer is a 400 rather than a silent fall back to the default. */
+                    minNoShowCount?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Users returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminUserListItem"][];
+                        };
+                    };
+                };
+                /** @description A non-empty `minNoShowCount` that is not an integer (INVALID_FORMAT). */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** User detail with reservation stats */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminUserDetail"];
+                        };
+                    };
+                };
+                /** @description Malformed user ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such user */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Delete a user account
+         * @description Cancels the user's active reservations — restoring the boxes to sale — then deletes the
+         *     account. Reservations, refresh tokens and FCM tokens cascade. Irreversible.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description User deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Malformed user ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such user */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Block, unblock, or adjust a user's no-show count
+         * @description `isBlocked` is the single gate on creating reservations, so clearing it restores access
+         *     immediately. Setting `noShowCount` back to 0 is the usual way to give someone a clean slate —
+         *     it does not by itself unblock them.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminUpdateUserRequest"];
+                };
+            };
+            responses: {
+                /** @description User updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminUserDetail"];
+                        };
+                    };
+                };
+                /** @description Malformed user ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such user */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/admin/boxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List boxes (admin)
+         * @description Boxes across all merchants, newest first. Every filter composes — supplying several narrows to
+         *     their intersection.
+         *
+         *     `status` matches the derived `BoxStatus` each item reports, including the two that depend on
+         *     the clock rather than on stock (BEFORE_SALE, EXPIRED). Accepts a comma-separated list, is
+         *     case-insensitive, and rejects anything outside the enum with 400 rather than returning an
+         *     empty page.
+         *
+         *     `eligibilityType` follows exactly that discipline: comma-separated, case-insensitive, and a
+         *     400 listing the accepted values for anything outside `PurchaseEligibilityType`. It matches the
+         *     rule each row *reads as*, so `eligibilityType=UNRESTRICTED` includes every listing created
+         *     before purchase eligibility existed (those store NULL and render as UNRESTRICTED).
+         *
+         *     **Sale date comes in two forms and they cannot be combined.** `saleDate` is one exact day;
+         *     `saleDateFrom`/`saleDateTo` are an inclusive range, and either end may be given alone. Sending
+         *     `saleDate` together with either range bound is a 400, and so is a malformed date. An empty value
+         *     (`?saleDate=`) counts as absent.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                    /** @description Scope to one merchant. Omit or send empty for all merchants; a non-empty value that is not a UUID is a 400, never a silently unfiltered list. */
+                    merchantId?: string;
+                    /** @description One exact sale date. Cannot be combined with saleDateFrom/saleDateTo. */
+                    saleDate?: string;
+                    /** @description Earliest sale date, inclusive. May be sent without saleDateTo. Cannot be combined with saleDate. */
+                    saleDateFrom?: string;
+                    /** @description Latest sale date, inclusive. May be sent without saleDateFrom. Cannot be combined with saleDate. */
+                    saleDateTo?: string;
+                    /** @description One or more BoxStatus values, comma-separated. */
+                    status?: string;
+                    /** @description One or more PurchaseEligibilityType values, comma-separated and case-insensitive. Anything outside the enum is a 400 listing the accepted values. */
+                    eligibilityType?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Boxes returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                items?: components["schemas"]["AdminBoxListItem"][];
+                                page?: number;
+                                size?: number;
+                                /** Format: int64 */
+                                totalItems?: number;
+                                totalPages?: number;
+                            };
+                        };
+                    };
+                };
+                /** @description `BAD_REQUEST` — a status or eligibilityType outside its enum, saleDate combined with a range bound, or saleDateFrom after saleDateTo. `INVALID_FORMAT` — a sale-date parameter that is not an ISO-8601 date, or a non-empty merchantId that is not a UUID. A filter is never dropped silently — an unusable one is refused. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/boxes/eligibility-breakdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Eligibility mix of a window of listings (admin)
+         * @description The restricted-listing share and the per-value counts for every listing whose **sale date**
+         *     falls in `saleDateFrom`..`saleDateTo`, optionally narrowed to one merchant.
+         *
+         *     Sale date, not creation time: it is the date the box list filters and sorts on, so
+         *     `GET /api/admin/boxes?saleDateFrom=…&saleDateTo=…&eligibilityType=…` returns exactly the
+         *     listings that were counted.
+         *
+         *     **Both window bounds are required.**
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Earliest sale date counted, inclusive. */
+                    saleDateFrom: string;
+                    /** @description Latest sale date counted, inclusive. Must not be earlier than saleDateFrom. */
+                    saleDateTo: string;
+                    /** @description Narrow to one store. Omit for every merchant. Stricter than the list endpoint's `merchantId`: a value that is not a UUID is a 400, not a silently widened scope. */
+                    merchantId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Breakdown returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminEligibilityBreakdown"];
+                        };
+                    };
+                };
+                /** @description `MISSING_FIELD` — saleDateFrom or saleDateTo absent. `INVALID_FORMAT` — a sale-date parameter that is not an ISO-8601 date, or a merchantId that is not a UUID. `BAD_REQUEST` — saleDateFrom after saleDateTo, or saleDate sent alongside the range. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description `MERCHANT_NOT_FOUND` — the given merchantId names no store. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/boxes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Box detail with its reservations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Box returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminBoxDetail"];
+                        };
+                    };
+                };
+                /** @description Malformed box ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such box */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List reservations (admin)
+         * @description Reservations across all merchants, newest first. Every filter composes — supplying several
+         *     narrows to their intersection, and `merchantId` scopes to that merchant's boxes only (a
+         *     merchant with no boxes returns nothing).
+         *
+         *     `status` matches the derived `ReservationStatus` each item reports, so EXPIRED is separated
+         *     from ACTIVE by the pickup window. Case-insensitive; anything outside the enum is a 400 rather
+         *     than a silently unfiltered list.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                    /** @description Scope to one merchant's boxes. Omit or send empty for all merchants; a non-empty value that is not a UUID is a 400, never a silently unfiltered list. */
+                    merchantId?: string;
+                    /** @description Scope to one customer. Omit or send empty for all; a non-empty value that is not a UUID is a 400. */
+                    userId?: string;
+                    /** @description Inclusive lower bound on pickup date. */
+                    dateFrom?: string;
+                    /** @description Inclusive upper bound on pickup date. */
+                    dateTo?: string;
+                    status?: components["schemas"]["ReservationStatus"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Reservations returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: {
+                                items?: components["schemas"]["AdminReservationListItem"][];
+                                page?: number;
+                                size?: number;
+                                /** Format: int64 */
+                                totalItems?: number;
+                                totalPages?: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Unrecognised `status` value (BAD_REQUEST), or a non-empty `merchantId`/`userId` that is not a UUID (INVALID_FORMAT). A filter is never dropped silently — an unusable one is refused. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reservations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reservation detail */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Reservation returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["AdminReservationDetail"];
+                        };
+                    };
+                };
+                /** @description Malformed reservation ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such reservation, or its box/merchant/user is missing */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reservations/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Cancel a reservation (admin)
+         * @description Cancels on the customer's behalf, restoring the box's remaining count and pushing a
+         *     cancellation notice to the customer and the merchant. Only a reservation that is neither
+         *     picked up nor already cancelled can be cancelled.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Reservation cancelled */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Malformed reservation ID, or the reservation is already picked up or cancelled */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such reservation */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/admin/reservations/{id}/pickup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark a reservation picked up (admin)
+         * @description Completes a pickup from the admin console — the recovery path when the merchant could not
+         *     redeem in their app. Recorded with `redemptionMethod: "admin"`, and resets the customer's
+         *     no-show count as a normal redemption does.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Reservation marked as picked up */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Malformed reservation ID, or the reservation is already picked up or cancelled */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such reservation */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/admin/notifications/broadcast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Broadcast a push notification
+         * @description Sends a push to every consumer or every merchant holding a registered FCM token. Sent as an
+         *     announcement, so notification preferences are not consulted. There is no undo.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BroadcastNotificationRequest"];
+                };
+            };
+            responses: {
+                /** @description Broadcast dispatched */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["BroadcastResult"];
+                        };
+                    };
+                };
+                /** @description Unrecognised target */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Admin authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reservations/{id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wait for a reservation state change (long poll)
+         * @description Long-polls for the next change to the caller's own reservation, so the pickup screen can react
+         *     the moment the merchant redeems the code instead of polling on a timer.
+         *
+         *     Returns as soon as the reservation is picked up or cancelled; if nothing happens before the
+         *     server-side timeout it returns the current state anyway, and the client simply calls again.
+         *     The subscription is opened before the reservation is read, so an event landing during that
+         *     window is not lost.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The reservation's state, either after a change or at timeout */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success?: boolean;
+                            data?: components["schemas"]["ReservationResponse"];
+                        };
+                    };
+                };
+                /** @description Malformed reservation ID */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description User authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The reservation belongs to another user */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No such reservation */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description Fixed 8-value product category, used by the stock-photo library and box listings. The wire
+         *     value is a stable ASCII code, NOT the Chinese display string (the label is a client concern).
+         *     Code -> label: BAKERY=烘焙麵包, DELI=便當・熟食, PRODUCE=生鮮蔬果, BEVERAGE=飲料・咖啡,
+         *     DESSERT=甜點・蛋糕, GROCERY=雜貨零食, FROZEN=冷凍・即食, GENERAL=綜合 (catch-all & default).
+         * @enum {string}
+         */
+        ProductCategory: "BAKERY" | "DELI" | "PRODUCE" | "BEVERAGE" | "DESSERT" | "GROCERY" | "FROZEN" | "GENERAL";
+        /**
+         * @description Who a listing is open to. Exactly one value per box or template. Filtering is server-side: a
+         *     listing the caller is not eligible for is absent from the response, never returned disabled.
+         *
+         *     - UNRESTRICTED         anyone. The default, and what an omitted or unknown value means.
+         *     - FIRST_TIME_AT_STORE  only a caller with NO live order at this merchant. Live = neither
+         *                            cancelled nor recorded as a no-show; a COLLECTED order still counts.
+         *     - ONCE_PER_TEMPLATE    only a caller with no live order from this box's `boxTemplateId`, so the
+         *                            same template run on consecutive days is one entitlement, not one per day.
+         *     - RETURNING_CUSTOMER   only a caller with at least `eligibilityThreshold` COLLECTED orders at
+         *                            this merchant. Note this counts completed pickups where the rules above
+         *                            count live orders.
+         *
+         *     An unauthenticated caller is eligible for UNRESTRICTED listings only.
+         * @enum {string}
+         */
+        PurchaseEligibilityType: "UNRESTRICTED" | "FIRST_TIME_AT_STORE" | "ONCE_PER_TEMPLATE" | "RETURNING_CUSTOMER";
+        /** @description How many people a listing would be open to under one eligibility condition. The three request values are echoed back so a client firing this on every change to the eligibility picker can match an answer to the current form state and discard a stale one. */
+        EligibleAudienceResponse: {
+            /**
+             * Format: uuid
+             * @description The store the count was measured at. On the merchant path, always the caller's own.
+             */
+            merchantId: string;
+            eligibilityType: components["schemas"]["PurchaseEligibilityType"];
+            /** @description The N of `RETURNING_CUSTOMER(N)`. Null/absent for every other type, exactly as a box stores it — a threshold sent with a type that does not read one is dropped, not rejected. */
+            eligibilityThreshold?: number | null;
+            /**
+             * Format: uuid
+             * @description The provenance scope the count was measured in, echoed as supplied. Only ONCE_PER_TEMPLATE reads it.
+             */
+            boxTemplateId?: string | null;
+            /** @description How many addressable consumers satisfy the condition right now. Uncached: it reads committed state at the moment of the call. */
+            eligibleUserCount: number;
+            /** @description How many consumers could buy *anything* right now — every account that is not blocked. The denominator, so a client can say "3 of 240" rather than a bare number. UNRESTRICTED returns this same value as `eligibleUserCount`. */
+            addressableUserCount: number;
+        };
+        /**
+         * @description Lifecycle of a stock photo. DISABLED photos are excluded from the merchant-facing by-category
+         *     selection list but remain visible to admins.
+         * @enum {string}
+         */
+        StockPhotoStatus: "ACTIVE" | "DISABLED";
+        /** @description Admin-facing view of a stock photo, including status and (optional) usage stats. */
+        StockPhotoResponse: {
+            /** Format: uuid */
+            id: string;
+            imageUrl: string;
+            category: components["schemas"]["ProductCategory"];
+            status: components["schemas"]["StockPhotoStatus"];
+            sortOrder: number;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: int64
+             * @description Number of boxes AND box templates currently bound to this stock photo via image_id, summed into one figure. Present on admin list/detail responses; null/absent on the merchant-facing selection list. Templates count because retiring a photo SET NULLs their binding too, so a box-only number would report a photo as safe to retire when it is not.
+             */
+            usageCount?: number | null;
+        };
+        /** @description Merchant-facing view of a stock photo for the selection step (active-only list). */
+        StockPhotoSelectionItem: {
+            /** Format: uuid */
+            id: string;
+            imageUrl: string;
+            category: components["schemas"]["ProductCategory"];
+            sortOrder: number;
+        };
+        CreateStockPhotoRequest: {
+            /** @description Image URL (uploaded first via the image upload endpoint, or any reachable URL). */
+            imageUrl: string;
+            category: components["schemas"]["ProductCategory"];
+            /** @description Defaults to ACTIVE so a freshly uploaded photo is immediately selectable. */
+            status?: components["schemas"]["StockPhotoStatus"];
+            /**
+             * @description Ordering within a category (ascending). Defaults to 0.
+             * @default 0
+             */
+            sortOrder: number;
+        };
+        /** @description All fields optional; an omitted field is left unchanged. */
+        UpdateStockPhotoRequest: {
+            category?: components["schemas"]["ProductCategory"];
+            status?: components["schemas"]["StockPhotoStatus"];
+            sortOrder?: number | null;
+        };
+        /** @description Per-platform version requirement. Used both in the public read response and (per platform) in the admin write request, so the shape is symmetric. */
+        PlatformVersionRequirement: {
+            /**
+             * @description Hard floor (dotted-numeric, e.g. "1.4.0"). A client below this must update.
+             * @example 1.4.0
+             */
+            minSupported: string;
+            /**
+             * @description Newest published version (dotted-numeric); optional, for a soft update nudge.
+             * @example 1.5.0
+             */
+            latest?: string | null;
+        };
+        /** @description Per-platform app version requirements. Both keys are always present. */
+        AppVersionRequirementsResponse: {
+            android: components["schemas"]["PlatformVersionRequirement"];
+            ios: components["schemas"]["PlatformVersionRequirement"];
+        };
+        /** @description Admin upsert payload; both platforms are required and are written together. Same per-platform shape as the read response. */
+        UpdateAppVersionRequirementsRequest: {
+            android: components["schemas"]["PlatformVersionRequirement"];
+            ios: components["schemas"]["PlatformVersionRequirement"];
+        };
+        /**
+         * @description How the caller is involved in a recommendation on their 我敲過的店 list.
+         * @enum {string}
+         */
+        MyRecommendationRole: "RECOMMENDER" | "VOTER";
+        /** @description An entry on 我敲過的店. Distinct from RecommendationResponse because the two endpoints answer different questions — the 敲碗榜 shows active rows, this shows outcomes. Never carries threshold or thresholdReachedAt. */
+        MyRecommendationResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @example 好食早餐 */
+            storeName: string;
+            /** @example 台北市信義區 123 */
+            storeAddress: string;
+            /** @example 想吃他們的蛋餅 */
+            reason: string;
+            placeId?: string | null;
+            status: components["schemas"]["RecommendationStatus"];
+            /**
+             * Format: int64
+             * @example 51
+             */
+            voteCount: number;
+            myRole: components["schemas"]["MyRecommendationRole"];
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
+            /** @example 2026-08-06T10:00:00Z */
+            createdAt: string;
+        };
+        /** @description The effective 敲碗 vote threshold. Admin-only — this value is deliberately never exposed to consumer clients, since showing progress towards it would read as a promise of merchant outreach. */
+        RecommendationThresholdResponse: {
+            /**
+             * @description Vote count at which the Discord alert fires.
+             * @example 50
+             */
+            threshold: number;
+            /**
+             * @description True when no override is stored and the built-in default is in force. Lets the admin UI distinguish "never configured" from "explicitly set to the same number".
+             * @example true
+             */
+            isDefault: boolean;
+            /**
+             * @description UTC timestamp of the last override write; null when isDefault is true.
+             * @example 2026-08-06T10:00:00Z
+             */
+            updatedAt?: string | null;
+        };
+        UpdateRecommendationThresholdRequest: {
+            /**
+             * @description New vote threshold. Must be a positive integer.
+             * @example 50
+             */
+            threshold: number;
+        };
         /**
          * @description Derived reservation lifecycle state.
          *     - ACTIVE: confirmed, pickup window has not yet closed
@@ -4296,8 +9687,9 @@ export interface components {
          */
         ReservationStatus: "ACTIVE" | "PICKED_UP" | "CANCELLED" | "NO_SHOW" | "EXPIRED";
         /**
-         * @description Lifecycle of a store recommendation. Only PENDING and IN_NEGOTIATION appear in the public
-         *     listing; ONBOARDED and REJECTED drop out.
+         * @description Lifecycle of a store recommendation. Only PENDING and IN_NEGOTIATION ("active") appear on the
+         *     public listing, the city chart, the feed and lookup; ONBOARDED and REJECTED drop out.
+         *     ONBOARDED rows with a merchant appear on the wins list (GET /api/recommendations/onboarded).
          * @enum {string}
          */
         RecommendationStatus: "PENDING" | "IN_NEGOTIATION" | "ONBOARDED" | "REJECTED";
@@ -4313,32 +9705,287 @@ export interface components {
             voteCount?: number;
             /** @description Whether the calling user has voted for this recommendation */
             hasVoted?: boolean;
-            /** @description Whether the calling user authored this recommendation (the client renders own recommendations read-only) */
+            /** @description Whether the calling user authored this recommendation (the client renders own recommendations read-only). Omitted when false. */
             isOwnRecommendation?: boolean;
+            /**
+             * Format: double
+             * @description Store latitude when known (omitted when null)
+             */
+            latitude?: number | null;
+            /**
+             * Format: double
+             * @description Store longitude when known (omitted when null)
+             */
+            longitude?: number | null;
             /** Format: date-time */
             createdAt?: string;
         };
         /**
          * @description Admin view of a recommendation. Unlike RecommendationResponse, it exposes the recommender's
-         *     identity (id and display name) and omits the consumer-only hasVoted/isOwnRecommendation flags.
+         *     identity (id and display name) and the aggregated structured answers (敲碗 v3), and omits the
+         *     consumer-only hasVoted/isOwnRecommendation flags.
          */
         AdminRecommendationListItem: {
             /** Format: uuid */
-            id?: string;
-            storeName?: string;
-            storeAddress?: string;
-            reason?: string;
-            placeId?: string | null;
-            status?: components["schemas"]["RecommendationStatus"];
+            id: string;
+            storeName: string;
+            storeAddress: string;
+            /** @description The recommender's free text (legacy `reason`, or the v3 `note`). Empty when none. */
+            reason: string;
+            placeId: string | null;
+            status: components["schemas"]["RecommendationStatus"];
             /** Format: int64 */
-            voteCount?: number;
+            voteCount: number;
             /** Format: uuid */
-            recommenderUserId?: string;
-            recommenderDisplayName?: string;
+            recommenderUserId: string;
+            recommenderDisplayName: string;
             /** @description Whether the recommender opted to stay anonymous (name hidden on the public store profile) */
-            anonymous?: boolean;
+            anonymous: boolean;
             /** Format: date-time */
-            createdAt?: string;
+            createdAt: string;
+            /** @description City derived server-side from the address; null when the address names no Taiwan city. */
+            city: components["schemas"]["TaiwanCity"] | null;
+            /**
+             * Format: int64
+             * @description The recommender plus every voter (`voteCount + 1`). The alert threshold is compared against this.
+             */
+            distinctKnockers: number;
+            answers: components["schemas"]["KnockAnswerAggregates"];
+        };
+        /**
+         * @description Taiwan's 22 cities and counties (縣市), the scope of the 敲碗 city chart, city feed and wins.
+         *     This fixed list is the city picker's source — there is no endpoint for it.
+         *     **One spelling: 台, never 臺** (it matches Google's zh-TW formatted addresses). The `city` query
+         *     parameter also accepts the 臺 spelling (臺北市 → 台北市); responses always use 台.
+         * @enum {string}
+         */
+        TaiwanCity: "台北市" | "新北市" | "基隆市" | "桃園市" | "新竹市" | "新竹縣" | "苗栗縣" | "台中市" | "彰化縣" | "南投縣" | "雲林縣" | "嘉義市" | "嘉義縣" | "台南市" | "高雄市" | "屏東縣" | "宜蘭縣" | "花蓮縣" | "台東縣" | "澎湖縣" | "金門縣" | "連江縣";
+        /**
+         * @description 你多常去？ — WEEKLY 每週去 · MONTHLY 每月去 · RARELY 偶爾
+         * @enum {string}
+         */
+        VisitFrequency: "WEEKLY" | "MONTHLY" | "RARELY";
+        /**
+         * @description 你想救什麼？ — BREAD 麵包 · BENTO 便當 · DESSERT 甜點 · DELI 熟食 · DRINKS 飲料 · OTHER 其他
+         * @enum {string}
+         */
+        WantedItem: "BREAD" | "BENTO" | "DESSERT" | "DELI" | "DRINKS" | "OTHER";
+        /**
+         * @description Two accepted shapes:
+         *     - **v3 clients** send `visitFrequency` and at least one `wantedItems` value (both required as
+         *       soon as any of `visitFrequency` / `wantedItems` / `note` is present) plus an optional `note`.
+         *     - **Legacy clients** send only `reason` and no answers. Still accepted; `reason` is kept as
+         *       the recommender's note.
+         *
+         *     `note` wins over `reason` when both are sent. A body with neither answers nor `reason` is
+         *     400 `RECOMMENDATION_ANSWERS_REQUIRED`. The city is never sent: the server derives it from
+         *     `storeAddress`.
+         */
+        CreateRecommendationRequest: {
+            /** @example 好食早餐 */
+            storeName: string;
+            /**
+             * @description The Places formatted address. The server parses the city (縣市) from it.
+             * @example 110台灣台北市信義區松壽路1號
+             */
+            storeAddress: string;
+            /** @description Legacy free text (pre-v3 apps). Optional; maps to `note`. */
+            reason?: string | null;
+            /** @description Google Places place_id resolved via GET /api/places/{placeId} */
+            placeId?: string | null;
+            /**
+             * Format: double
+             * @description Resolved latitude (-90..90); must accompany longitude
+             */
+            latitude?: number | null;
+            /**
+             * Format: double
+             * @description Resolved longitude (-180..180); must accompany latitude
+             */
+            longitude?: number | null;
+            /**
+             * @description When true the recommender's name is hidden on the store's profile credit.
+             * @default false
+             */
+            anonymous: boolean;
+            /** @description Required for v3 submissions. */
+            visitFrequency?: components["schemas"]["VisitFrequency"] | null;
+            /** @description Required (at least one) for v3 submissions. Duplicates are ignored. */
+            wantedItems?: components["schemas"]["WantedItem"][] | null;
+            /** @description Optional free text (trimmed; blank = none). */
+            note?: string | null;
+        };
+        /** @description The existing active recommendation returned when a create is a possible duplicate. */
+        RecommendationMatch: {
+            /** Format: uuid */
+            id: string;
+            storeName: string;
+            storeAddress: string;
+            /** Format: int64 */
+            voteCount: number;
+        };
+        /**
+         * @description Either a row was created (`possibleDuplicate: false`, `recommendation` and `item` set) or an
+         *     active match was found (`possibleDuplicate: true`, `match` and `item` set, no row created).
+         *     `recommendation` and `match` keep their pre-v3 shapes for old apps; `item` is the v3 shape of
+         *     the created row or the match. Absent fields are omitted from the JSON.
+         */
+        CreateRecommendationResponse: {
+            possibleDuplicate: boolean;
+            match?: components["schemas"]["RecommendationMatch"] | null;
+            recommendation?: components["schemas"]["RecommendationResponse"] | null;
+            item?: components["schemas"]["RecommendationItem"] | null;
+        };
+        /**
+         * @description A knocker's structured answers — the optional body of the vote, and the body of the answers
+         *     upsert (which replaces the caller's answers as a whole). Every field is optional.
+         */
+        KnockAnswersRequest: {
+            visitFrequency?: components["schemas"]["VisitFrequency"] | null;
+            /** @description Duplicates are ignored. */
+            wantedItems?: components["schemas"]["WantedItem"][] | null;
+            /** @description Trimmed; blank = none. Over 50 characters is 400 RECOMMENDATION_NOTE_TOO_LONG. */
+            note?: string | null;
+        };
+        /** @description The caller's own answers (never anyone else's). */
+        KnockAnswersResponse: {
+            visitFrequency: components["schemas"]["VisitFrequency"] | null;
+            /** @description In enum order, no duplicates. Empty when none. */
+            wantedItems: components["schemas"]["WantedItem"][];
+            note: string | null;
+        };
+        /**
+         * @description The one consumer shape of a 敲碗 store, shared by the chart, feed, wins, lookup, detail, and the
+         *     create / vote / answers responses.
+         *
+         *     Aggregates only: other knockers' answers and notes never appear (`topWantedItems` is a
+         *     count-ranked list of enum values), and there is deliberately **no threshold and no
+         *     thresholdReachedAt** — counts show neighbours, never progress toward a goal. There is no
+         *     `reason` either (on someone else's store it would be another user's note).
+         */
+        RecommendationItem: {
+            /** Format: uuid */
+            id: string;
+            /** @example 好食早餐 */
+            storeName: string;
+            storeAddress: string;
+            placeId: string | null;
+            /** @description Null when the address names no Taiwan city (such rows only appear in the radius feed). */
+            city: components["schemas"]["TaiwanCity"] | null;
+            /** Format: double */
+            latitude: number | null;
+            /** Format: double */
+            longitude: number | null;
+            status: components["schemas"]["RecommendationStatus"];
+            /**
+             * Format: int64
+             * @description The recommender plus every voter — 「你是第 N 位敲碗的鄰居」.
+             * @example 5
+             */
+            distinctKnockers: number;
+            /**
+             * Format: int64
+             * @description Knocks (the create and each vote) in the last 7 days — 「本週 +N」.
+             * @example 2
+             */
+            weeklyKnocks: number;
+            /**
+             * Format: date-time
+             * @description The latest knock (create or vote). Answer edits do not count. The feed sorts on it.
+             * @example 2026-10-06T10:00:00Z
+             */
+            lastActivityAt: string;
+            /** @description Up to 3 most-wanted items across all knockers' answers, most first (ties in enum order). Empty until someone answers. */
+            topWantedItems: components["schemas"]["WantedItem"][];
+            /** @description Whether the caller voted. Always false for an anonymous caller. */
+            hasVoted: boolean;
+            /** @description Whether the caller submitted it. Always false for an anonymous caller. */
+            isOwnRecommendation: boolean;
+            /** @description The caller's own answers, to prefill the optional sheet. Null when none or anonymous. */
+            myAnswers: components["schemas"]["KnockAnswersResponse"] | null;
+            /**
+             * Format: uuid
+             * @description The merchant created from this recommendation, if any (wins credit line; share links can open the store).
+             */
+            merchantId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        VoteResponse: {
+            /**
+             * @description Unchanged from before v3, so old apps that read it keep working.
+             * @example Vote recorded
+             */
+            message: string;
+            item: components["schemas"]["RecommendationItem"];
+        };
+        /**
+         * @description - ON_PLATFORM: a merchant has this place_id → open the store (`merchantId`)
+         *     - KNOCKED: an active (PENDING / IN_NEGOTIATION) recommendation has it → +1 (`recommendation`)
+         *     - NEW: neither (REJECTED and ONBOARDED-without-merchant rows also read as NEW) → knock it
+         * @enum {string}
+         */
+        RecommendationLookupState: "ON_PLATFORM" | "KNOCKED" | "NEW";
+        RecommendationLookupResponse: {
+            state: components["schemas"]["RecommendationLookupState"];
+            /**
+             * Format: uuid
+             * @description Set only for ON_PLATFORM.
+             */
+            merchantId: string | null;
+            /** @description Set only for KNOCKED. */
+            recommendation: components["schemas"]["RecommendationItem"] | null;
+        };
+        /** @description A note left by one knocker (admin-only). */
+        KnockNote: {
+            note: string;
+            /**
+             * Format: date-time
+             * @description When the answers carrying this note were last written.
+             */
+            at: string;
+        };
+        /**
+         * @description Admin-only aggregate of a recommendation's structured answers. Both count maps always carry
+         *     every enum key (zero-filled). "N of M answered" is `answeredCount` of `knockerCount`.
+         */
+        KnockAnswerAggregates: {
+            /**
+             * Format: int64
+             * @description distinctKnockers (the recommender plus every voter).
+             */
+            knockerCount: number;
+            /**
+             * Format: int64
+             * @description Knockers who answered at least one structured question (a note alone does not count).
+             */
+            answeredCount: number;
+            /** @description Knockers per visit frequency. */
+            visitFrequency: {
+                /** Format: int64 */
+                WEEKLY: number;
+                /** Format: int64 */
+                MONTHLY: number;
+                /** Format: int64 */
+                RARELY: number;
+            };
+            /** @description Knockers who want each item. */
+            wantedItems: {
+                /** Format: int64 */
+                BREAD: number;
+                /** Format: int64 */
+                BENTO: number;
+                /** Format: int64 */
+                DESSERT: number;
+                /** Format: int64 */
+                DELI: number;
+                /** Format: int64 */
+                DRINKS: number;
+                /** Format: int64 */
+                OTHER: number;
+            };
+            /** @description Newest first — up to 3 on the list endpoint, up to 20 on the detail endpoint. */
+            recentNotes: components["schemas"]["KnockNote"][];
         };
         /** @description A single Google Places autocomplete suggestion (proxied, slimmed down) */
         PlacePrediction: {
@@ -4350,13 +9997,19 @@ export interface components {
         };
         /** @description Resolved place details (proxied, slimmed down) */
         PlaceDetails: {
-            placeId?: string;
-            name?: string;
-            address?: string;
+            placeId: string;
+            name: string;
+            address: string;
             /** Format: double */
-            latitude?: number;
+            latitude: number;
             /** Format: double */
-            longitude?: number;
+            longitude: number;
+            /**
+             * @description Taiwan city from Google's administrative_area_level_1 (臺 folded to 台), falling back to
+             *     parsing the address. Omitted when unknown or outside Taiwan. Display-only — POST
+             *     /api/recommendations derives the stored city itself.
+             */
+            city?: components["schemas"]["TaiwanCity"] | null;
         };
         ApiResponse: {
             success?: boolean;
@@ -4381,6 +10034,12 @@ export interface components {
             fullName?: string | null;
             /** @description User's email (only provided on first sign-in with Apple) */
             email?: string | null;
+            /** @description The raw nonce generated for this sign-in. Set `ASAuthorizationAppleIDRequest.nonce` to its SHA-256 as lowercase hex and send the raw value here. When the identity token carries a nonce, this is required and must hash to it. A token without one is accepted unless the server sets APPLE_REQUIRE_NONCE. */
+            nonce?: string | null;
+        };
+        GoogleTokenVerifyRequest: {
+            /** @description Google ID token (JWT from Credential Manager on Android, or the GoogleSignIn SDK on iOS) */
+            idToken: string;
         };
         RefreshTokenRequest: {
             refreshToken: string;
@@ -4390,6 +10049,195 @@ export interface components {
             email: string;
             /** Format: password */
             password: string;
+        };
+        /** @description A public "apply to join" lead submitted from the marketing website. */
+        MerchantApplicationRequest: {
+            /** @description Store / business name (as entered by the applicant) */
+            storeName: string;
+            /** @description Name of the person to contact */
+            contactName: string;
+            /** @description Contact phone number */
+            phone: string;
+            /**
+             * Format: email
+             * @description Optional contact email
+             */
+            email?: string | null;
+            location: components["schemas"]["MerchantApplicationLocation"];
+        };
+        /** @description Store location, as resolved by the client from GET /api/places/{placeId}. */
+        MerchantApplicationLocation: {
+            /** @description Google Places place_id, if a place was picked */
+            placeId?: string | null;
+            /** @description The place's own name from Google (may differ from storeName) */
+            name?: string | null;
+            /** @description Store address */
+            address: string;
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
+        };
+        MerchantApplicationCreatedResponse: {
+            /**
+             * Format: uuid
+             * @description The created application's id
+             */
+            id?: string;
+        };
+        /**
+         * @description Contact-workflow state of a lead. New submissions default to IDLE; the ops team advances it.
+         *     - IDLE: not yet contacted
+         *     - IN_PROGRESS: outreach underway
+         *     - FAILED: could not be reached / did not work out
+         *     - COMPLETED: onboarded / done
+         * @enum {string}
+         */
+        MerchantApplicationStatus: "IDLE" | "IN_PROGRESS" | "FAILED" | "COMPLETED";
+        /** @description A lead as seen by an admin — everything needed to decide whom to contact and track follow-up. */
+        MerchantApplicationResponse: {
+            /** Format: uuid */
+            id?: string;
+            storeName?: string;
+            contactName?: string;
+            phone?: string;
+            email?: string | null;
+            placeId?: string | null;
+            placeName?: string | null;
+            storeAddress?: string;
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
+            status?: components["schemas"]["MerchantApplicationStatus"];
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        /**
+         * @description What the message is about, picked from the app's chips.
+         *     - SHARE_EXPERIENCE: 分享心得
+         *     - FEATURE_WISH: 許願新功能
+         *     - COULD_BE_BETTER: 哪裡可以更好
+         *     - OTHER: 其他
+         * @enum {string}
+         */
+        FeedbackCategory: "SHARE_EXPERIENCE" | "FEATURE_WISH" | "COULD_BE_BETTER" | "OTHER";
+        /** @enum {string} */
+        FeedbackPlatform: "ANDROID" | "IOS";
+        /**
+         * @description Inbox state. NEW until an admin first opens the message, then READ.
+         * @enum {string}
+         */
+        FeedbackStatus: "NEW" | "READ";
+        CreateFeedbackRequest: {
+            category: components["schemas"]["FeedbackCategory"];
+            /** @description Trimmed before storing; must be non-blank and at most 500 characters. */
+            message: string;
+            /** @description Installed app version name, e.g. "1.4.0". Non-blank, at most 32 characters. */
+            appVersion: string;
+            platform: components["schemas"]["FeedbackPlatform"];
+        };
+        FeedbackCreatedResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description A feedback message as seen by an admin. Not returned by any consumer or merchant endpoint. */
+        AdminFeedbackResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            userId: string;
+            userDisplayName: string;
+            category: components["schemas"]["FeedbackCategory"];
+            message: string;
+            appVersion: string;
+            platform: components["schemas"]["FeedbackPlatform"];
+            status: components["schemas"]["FeedbackStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description When an admin first opened it; null while NEW.
+             */
+            readAt?: string | null;
+        };
+        /**
+         * @description One 我的食記 entry: created automatically when an order is verified as picked up (核銷). Only
+         *     ever returned to its owner (and to admins); never by a merchant-facing or public endpoint.
+         */
+        FoodLogEntryResponse: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The picked-up reservation this entry belongs to (one entry per reservation).
+             */
+            reservationId: string;
+            /**
+             * @description The reservation's human order number.
+             * @example #8821
+             */
+            orderId: string;
+            /** Format: uuid */
+            storeId: string;
+            /** @description Store name as it was at pickup (snapshot). */
+            storeName: string;
+            /** @description What the reservation paid (snapshot). */
+            pricePaid: number;
+            /**
+             * Format: date-time
+             * @description When the order was picked up, ISO-8601 UTC with Z. For pickups from before this was recorded,
+             *     the end of the pickup window (else the reservation's creation time).
+             * @example 2026-01-15T10:30:00Z
+             */
+            pickedUpAt: string;
+            /** @description Always present; null when no photo. */
+            photoUrl: string | null;
+            /** @description Always present; null when no note. */
+            note: string | null;
+            /**
+             * @description PRIVATE for every entry in phase 1; PUBLIC is reserved.
+             * @enum {string}
+             */
+            visibility: "PRIVATE" | "PUBLIC";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description A page of food-log entries, newest pickup first (pickedUpAt DESC, then id). */
+        FoodLogEntryPage: {
+            items: components["schemas"]["FoodLogEntryResponse"][];
+            page: number;
+            size: number;
+            /** Format: int64 */
+            totalItems: number;
+            totalPages: number;
+        };
+        FoodLogSummaryResponse: {
+            /** @description Non-deleted entries. */
+            entryCount: number;
+            /** @description Distinct stores among the non-deleted entries. */
+            storeCount: number;
+        };
+        /** @description Full replacement of the editable fields: an absent or null field clears it. */
+        UpdateFoodLogEntryRequest: {
+            /**
+             * @description The publicUrl from GET /api/user/images/presigned (an object directly in the avatar bucket),
+             *     or the entry's current photoUrl unchanged. Anything else is 400 INVALID_IMAGE_URL.
+             */
+            photoUrl?: string | null;
+            /**
+             * @description Trimmed; blank is stored as null. At most 200 characters, counted as UTF-16 code units
+             *     (Kotlin String.length — an emoji outside the BMP counts as 2); longer is 400
+             *     FOOD_LOG_NOTE_TOO_LONG.
+             */
+            note?: string | null;
+        };
+        UpdateMerchantApplicationStatusRequest: {
+            status: components["schemas"]["MerchantApplicationStatus"];
         };
         CreateReservationRequest: {
             /** Format: uuid */
@@ -4410,21 +10258,36 @@ export interface components {
             /** @example 17:00 */
             saleTimeEnd: string;
             /**
-             * @description Image URL from POST /api/merchant/images (upload image first, then use returned URL here)
-             * @example /uploads/images/550e8400-e29b-41d4-a716-446655440000.jpg
-             */
-            imageUrl?: string | null;
-            /**
              * @description Sale date in yyyy-MM-dd format (e.g., 2025-01-15). Defaults to today if not provided. Cannot be in the past.
              * @example 2025-03-20
              */
             saleDate?: string | null;
+            /** @description Product category for this box. Optional; defaults to GENERAL (綜合) when omitted. */
+            category?: components["schemas"]["ProductCategory"];
+            /**
+             * Format: uuid
+             * @description The selected stock photo (from GET /api/merchant/stock-photos). Optional; when omitted the box resolves to the category default image. A malformed id is 400 INVALID_FORMAT; a well-formed id with no matching photo is 404 STOCK_PHOTO_NOT_FOUND.
+             */
+            imageId?: string | null;
+            /** @description Who this listing is open to. Optional; **omitted means UNRESTRICTED**. Full PUT on update, so omitting the field RESETS the box to UNRESTRICTED. Frozen once the box has any active reservation: changing it is 422 ELIGIBILITY_LOCKED. */
+            eligibilityType?: components["schemas"]["PurchaseEligibilityType"];
+            /**
+             * @description The N of RETURNING_CUSTOMER(N) — the number of collected orders at this store a caller needs. REQUIRED when eligibilityType is RETURNING_CUSTOMER; a missing or non-positive value is 400 INVALID_ELIGIBILITY_THRESHOLD. Ignored for every other type.
+             * @example 3
+             */
+            eligibilityThreshold?: number | null;
+            /**
+             * Format: uuid
+             * @description The template this listing is being created from. Set at CREATE time only; an update ignores this field. REQUIRED when eligibilityType is ONCE_PER_TEMPLATE — an ad-hoc box with that setting is 400 ELIGIBILITY_TEMPLATE_REQUIRED. A malformed id is 400 INVALID_FORMAT; an id that does not exist or belongs to another merchant is 404 TEMPLATE_NOT_FOUND.
+             */
+            boxTemplateId?: string | null;
         };
         UserResponse: {
             /** Format: uuid */
             id?: string;
             lineUserId?: string | null;
             appleUserId?: string | null;
+            googleUserId?: string | null;
             displayName?: string;
             pictureUrl?: string | null;
             noShowCount?: number;
@@ -4471,6 +10334,135 @@ export interface components {
             token?: string | null;
             refreshToken?: string | null;
         };
+        AdminMerchantListItem: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            storeName?: string;
+            storeAddress?: string;
+            /** Format: double */
+            storeLatitude?: number | null;
+            /** Format: double */
+            storeLongitude?: number | null;
+            /**
+             * @description IANA timezone name for this merchant (e.g. "Asia/Taipei", "America/New_York")
+             * @example Asia/Taipei
+             */
+            timezone?: string;
+            isVerified?: boolean;
+            /**
+             * @description Server-computed subscription state (Asia/Taipei). ACTIVE when no end date is set or the end date is today-or-later; EXPIRED (the only write-locked state) once a set end date has passed.
+             * @example ACTIVE
+             * @enum {string}
+             */
+            subscriptionStatus?: "ACTIVE" | "EXPIRED";
+            /**
+             * Format: date
+             * @description Admin-set expiry as a date-only `yyyy-MM-dd` (Asia/Taipei). Null when no limit is set (unlimited / grandfathered access).
+             * @example 2027-01-15
+             */
+            subscriptionEndDate?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            boxCount?: number;
+            /** Format: int64 */
+            reservationCount?: number;
+            /**
+             * Format: int64
+             * @description Store-level count of customer thumbs-up across all of this merchant's boxes.
+             */
+            thumbsUpCount?: number;
+            /** @description Google Places place_id of the store (敲碗 v3: GET /api/recommendations/lookup answers ON_PLATFORM for it). Omitted when unknown. */
+            placeId?: string | null;
+        };
+        AdminMerchantDetail: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            storeName?: string;
+            storeAddress?: string;
+            /** Format: double */
+            storeLatitude?: number | null;
+            /** Format: double */
+            storeLongitude?: number | null;
+            /**
+             * @description IANA timezone name for this merchant (e.g. "Asia/Taipei", "America/New_York")
+             * @example Asia/Taipei
+             */
+            timezone?: string;
+            isVerified?: boolean;
+            /**
+             * @example ACTIVE
+             * @enum {string}
+             */
+            subscriptionStatus?: "ACTIVE" | "EXPIRED";
+            /**
+             * Format: date
+             * @example 2027-01-15
+             */
+            subscriptionEndDate?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            boxCount?: number;
+            /** Format: int64 */
+            activeReservationCount?: number;
+            /** Format: int64 */
+            totalReservationCount?: number;
+            /** @description The store logo, from the merchant's profile. Null when the merchant (or admin, on their behalf) hasn't set one. */
+            logoUrl?: string | null;
+            /**
+             * Format: int64
+             * @description Store-level count of customer thumbs-up across all of this merchant's boxes.
+             */
+            thumbsUpCount?: number;
+            /** @description Google Places place_id of the store (敲碗 v3: GET /api/recommendations/lookup answers ON_PLATFORM for it). Omitted when unknown. */
+            placeId?: string | null;
+        };
+        AdminCreateMerchantRequest: {
+            email: string;
+            password: string;
+            storeName: string;
+            storeAddress: string;
+            /** Format: double */
+            storeLatitude?: number | null;
+            /** Format: double */
+            storeLongitude?: number | null;
+            /** @description IANA timezone name (e.g. "Asia/Taipei"). Defaults server-side when omitted. */
+            timezone?: string | null;
+            /**
+             * Format: uuid
+             * @description Optional community recommendation this store is being onboarded from. When set, the recommendation is transitioned to ONBOARDED and the recommender is credited on the store profile.
+             */
+            recommendationId?: string | null;
+            /** @description Optional store logo URL (already uploaded via the presigned flow); saved to the new merchant's profile at creation time. */
+            logoUrl?: string | null;
+            /** @description Optional Google Places place_id of the store. When omitted and `recommendationId` is set, the recommendation's place_id is used. 400 INVALID_FORMAT if not place-id shaped. */
+            placeId?: string | null;
+        };
+        /** @description All fields are optional; an omitted field is left unchanged. */
+        AdminUpdateMerchantRequest: {
+            storeName?: string;
+            storeAddress?: string;
+            /** Format: double */
+            storeLatitude?: number;
+            /** Format: double */
+            storeLongitude?: number;
+            isVerified?: boolean;
+            /** @description IANA timezone name (e.g. "Asia/Taipei") */
+            timezone?: string;
+            /**
+             * Format: date
+             * @description Date-only `yyyy-MM-dd` (Asia/Taipei). Set a future date to grant a paid period, a past date to cut a merchant off. Omitted/null leaves the current value unchanged (cannot be cleared via this endpoint).
+             * @example 2027-01-15
+             */
+            subscriptionEndDate?: string;
+            /** @description Sets the merchant's store logo (same field the merchant can set themselves via `PUT /api/merchant/profile`). Omitted/null leaves the current value unchanged. */
+            logoUrl?: string;
+            /** @description Google Places place_id of the store. Omitted/null leaves it unchanged; an empty string clears it. 400 INVALID_FORMAT if not place-id shaped. */
+            placeId?: string;
+        };
         BoxTemplateResponse: {
             /** Format: uuid */
             id?: string;
@@ -4487,8 +10479,69 @@ export interface components {
             /** @example 15:00 */
             saleTimeEnd?: string;
             quantity?: number;
-            imageUrl?: string | null;
+            /** @description Product category of this template. Always present; defaults to GENERAL (綜合). */
+            category?: components["schemas"]["ProductCategory"];
+            /** @description Who boxes created from this template will be open to. Always present; UNRESTRICTED for a template saved without one. */
+            eligibilityType?: components["schemas"]["PurchaseEligibilityType"];
+            /**
+             * @description The N of RETURNING_CUSTOMER(N). Absent for every other eligibility type.
+             * @example 3
+             */
+            eligibilityThreshold?: number | null;
+            /**
+             * Format: uuid
+             * @description The stock photo this template is bound to, or null when no image was selected. Clients render resolvedImageUrl regardless; imageId is for the selection UI to highlight the chosen photo.
+             */
+            imageId?: string | null;
+            /** @description The image the client should display, resolved server-side: the bound stock photo's URL, else the category default photo's URL. Null only if the category has no active photos. */
+            resolvedImageUrl?: string | null;
+            /** @description Always present. An unscheduled template has no weekdays and enabled = false. */
+            schedule?: components["schemas"]["TemplateSchedule"];
         };
+        /** @description The weekdays a template is offered on. Each scheduled day is listed only once the merchant checks in for it (see `/api/merchant/scheduled-listings`); an unconfirmed day never becomes a box. */
+        TemplateSchedule: {
+            /** @description ISO order on output. Empty when unscheduled. */
+            weekdays?: ("MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN")[];
+            enabled?: boolean;
+        };
+        /** @description One scheduled day of one template. Not a box: it becomes one only on confirm. `state` is UPCOMING (awaiting check-in), SKIPPED (marked closed ahead of time), CONFIRMED (listed; `boxId` set unless that box was since deleted) or MISSED (check-in deadline passed unconfirmed). */
+        ScheduledListingResponse: {
+            /** Format: uuid */
+            templateId: string;
+            templateName: string;
+            /**
+             * Format: date
+             * @description Merchant-local date.
+             */
+            saleDate: string;
+            /** @enum {string} */
+            state: "UPCOMING" | "SKIPPED" | "CONFIRMED" | "MISSED";
+            /** @description What a confirm would list — `quantityOverride` when set, else the template's quantity. */
+            quantity: number;
+            quantityOverride?: number | null;
+            /** @example 09:00 */
+            saleTimeStart: string;
+            /**
+             * Format: date-time
+             * @description 18:00 merchant-local on the day before `saleDate`, as a UTC instant.
+             */
+            checkInOpensAt: string;
+            /**
+             * Format: date-time
+             * @description `saleTimeStart` on `saleDate`, as a UTC instant. Confirming at or after it is 409 SCHEDULED_LISTING_LAPSED.
+             */
+            checkInDeadline: string;
+            /** Format: uuid */
+            boxId?: string | null;
+        };
+        ScheduledListingQuantityRequest: {
+            quantity: number;
+        };
+        ScheduledListingTickResult: {
+            reminded?: number;
+            missed?: number;
+        };
+        /** @description A template is a box minus its `saleDate`, and is validated as one: every rule `POST /api/merchant/boxes` applies to these fields applies here too, so a template that is saved successfully can always be turned into a listing. The shared rules are `originalPrice > 0`, `discountedPrice > 0`, `discountedPrice <= originalPrice`, `quantity >= 1`, all four times parsing as `HH:mm`, `saleTimeStart < saleTimeEnd`, `pickupTimeStart < pickupTimeEnd`, and `saleTimeEnd <= pickupTimeEnd`. Breaking any of them is a 400 with the same error code the box endpoint returns. */
         BoxTemplateRequest: {
             name: string;
             description?: string | null;
@@ -4503,7 +10556,22 @@ export interface components {
             /** @example 15:00 */
             saleTimeEnd: string;
             quantity: number;
-            imageUrl?: string | null;
+            /** @description Product category for this template. Optional; defaults to GENERAL (綜合) when omitted. Note this is full-PUT: an omitted category on update resets the template to GENERAL. */
+            category?: components["schemas"]["ProductCategory"];
+            /**
+             * Format: uuid
+             * @description The stock photo (from GET /api/merchant/stock-photos) the merchant selected. Optional; when omitted the template resolves to the category default image. A malformed id is 400 INVALID_FORMAT; a well-formed id with no matching photo is 404 STOCK_PHOTO_NOT_FOUND.
+             */
+            imageId?: string | null;
+            /** @description Who boxes created from this template will be open to. Optional; **omitted means UNRESTRICTED**. Full PUT, so an omitted eligibilityType on update RESETS the template to UNRESTRICTED. ONCE_PER_TEMPLATE needs no companion field here, unlike a box. */
+            eligibilityType?: components["schemas"]["PurchaseEligibilityType"];
+            /** @description Template-only (a box has a `saleDate` instead). **Unlike every other field, omitted or null leaves the stored schedule unchanged**, so a client that predates scheduling cannot wipe one. `enabled: true` with no weekdays is 400 SCHEDULE_WEEKDAYS_REQUIRED. */
+            schedule?: components["schemas"]["TemplateSchedule"];
+            /**
+             * @description The N of RETURNING_CUSTOMER(N). REQUIRED when eligibilityType is RETURNING_CUSTOMER; a missing or non-positive value is 400 INVALID_ELIGIBILITY_THRESHOLD. Ignored for every other type.
+             * @example 3
+             */
+            eligibilityThreshold?: number | null;
         };
         MysteryBoxResponse: {
             /** Format: uuid */
@@ -4514,7 +10582,6 @@ export interface components {
             description?: string | null;
             originalPrice?: number;
             discountedPrice?: number;
-            imageUrl?: string | null;
             storeName?: string;
             storeAddress?: string;
             /** Format: double */
@@ -4526,6 +10593,8 @@ export interface components {
              * @example Asia/Taipei
              */
             merchantTimezone?: string;
+            /** @description The store/merchant logo URL, from the merchant's profile. Null when the merchant has not set a logo; clients fall back to a store-name-initial badge. */
+            storeLogoUrl?: string | null;
             pickupTimeStart?: string;
             pickupTimeEnd?: string;
             saleTimeStart?: string;
@@ -4541,6 +10610,32 @@ export interface components {
              * @example 2025-03-20
              */
             saleDate?: string;
+            /** @description Product category of this box. Always present; defaults to GENERAL (綜合). */
+            category?: components["schemas"]["ProductCategory"];
+            /** @description Who this box is open to. Always present; UNRESTRICTED for a listing saved without one. */
+            eligibilityType?: components["schemas"]["PurchaseEligibilityType"];
+            /**
+             * @description The N of RETURNING_CUSTOMER(N). Absent for every other eligibility type.
+             * @example 3
+             */
+            eligibilityThreshold?: number | null;
+            /**
+             * Format: uuid
+             * @description The template this box was created from. Absent for an ad-hoc box, and for a box whose template has since been deleted.
+             */
+            boxTemplateId?: string | null;
+            /**
+             * Format: uuid
+             * @description The stock photo this box is bound to, or null when no image was selected. Clients render resolvedImageUrl regardless; imageId is for the selection UI to highlight the chosen photo.
+             */
+            imageId?: string | null;
+            /** @description The image the client should display, resolved server-side: the bound stock photo's URL, else the category default photo's URL. Null only if the category has no active photos. */
+            resolvedImageUrl?: string | null;
+            /**
+             * @description Store-level count of customer thumbs-up across all of this merchant's boxes. Always present; 0 when the store has no endorsements yet (client hides the badge at 0).
+             * @example 128
+             */
+            thumbsUpCount?: number;
             /**
              * @description Number of active (not picked-up, not cancelled) reservations for this box. Populated only on merchant-facing endpoints; absent from customer-facing responses.
              * @example 2
@@ -4560,8 +10655,11 @@ export interface components {
              * @description Who initiated the cancellation. Null for non-cancelled reservations.
              * @enum {string|null}
              */
-            cancelledBy?: "consumer" | "merchant" | null;
-            /** @description Merchant-provided reason string. Populated only when cancelledBy is merchant. */
+            cancelledBy?: "consumer" | "merchant" | "admin" | null;
+            /**
+             * @description Merchant-provided reason string, as `<reason>` or `<reason> — <note>` when the merchant added a note (required for 其他). Populated only when cancelledBy is merchant.
+             * @example 其他 — 臨時停電無法正常出餐
+             */
             cancellationReason?: string | null;
             box?: components["schemas"]["MysteryBoxResponse"];
             /**
@@ -4587,6 +10685,39 @@ export interface components {
              * @description Timestamp when the no-show batch job stamped this reservation. Null until processed.
              */
             noShowProcessedAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Timestamp when the reservation was picked up (redeemed). Null until picked up.
+             */
+            pickedUpAt?: string | null;
+            /** @description Whether this customer has already given the store a thumbs-up for this reservation. */
+            hasThumbedUp?: boolean;
+            /** @description Whether a thumbs-up is currently allowed (true once the reservation is picked up). Combine with hasThumbedUp to decide whether to surface the prompt. */
+            canThumbUp?: boolean;
+        };
+        ReservationStatsResponse: {
+            /**
+             * Format: int64
+             * @description Non-cancelled reservations the caller holds, of any status.
+             * @example 14
+             */
+            boxesPurchased?: number;
+            /**
+             * Format: int64
+             * @description Distinct merchants among those reservations. Counted by merchant id rather than store name, since two merchants may share a name.
+             * @example 6
+             */
+            storesVisited?: number;
+            /**
+             * Format: int64
+             * @description Reservations with status PICKED_UP. Follows the same precedence as the derived status, so a cancelled reservation is never counted here even if it carries the picked-up flag.
+             * @example 11
+             */
+            completedPickups?: number;
+        };
+        ReservationExistsResponse: {
+            /** @description Whether the caller holds a non-cancelled reservation for the requested box. */
+            hasReservation?: boolean;
         };
         ReservationCreatedResponse: {
             /** Format: uuid */
@@ -4630,6 +10761,7 @@ export interface components {
             todayRevenue?: number;
             revenueChangePercent?: number;
             todayOrders?: number;
+            /** @description Packs listed and not yet over — on sale now (AVAILABLE, ALMOST_SOLD_OUT) or waiting for their sale window (BEFORE_SALE). */
             activeBoxes?: number;
             totalNoShows?: number;
             activeReservations?: components["schemas"]["MerchantOrderSummaryResponse"][];
@@ -4675,6 +10807,13 @@ export interface components {
              * @example 2025-03-20T18:00:00
              */
             pickupWindowEndUtc?: string | null;
+            /** @description The eligibility setting of the box this order is for. Always present; UNRESTRICTED for a listing saved without one. */
+            eligibilityType?: components["schemas"]["PurchaseEligibilityType"];
+            /**
+             * @description The N of RETURNING_CUSTOMER(N). Absent for every other eligibility type.
+             * @example 3
+             */
+            eligibilityThreshold?: number | null;
         };
         ImpactStatsResponse: {
             /**
@@ -4708,17 +10847,23 @@ export interface components {
              */
             path?: string;
             /**
-             * @description The public URL to access the image after upload (use this in CreateBoxRequest.imageUrl)
+             * @description The public URL to access the image after upload (use it as a merchant store logo or gallery photo)
              * @example https://your-project.supabase.co/storage/v1/object/public/bucket/images/550e8400.jpg
              */
             publicUrl?: string;
         };
-        ImageUploadResponse: {
-            /**
-             * @description The URL path to the uploaded image (use this in CreateBoxRequest.imageUrl)
-             * @example /uploads/images/550e8400-e29b-41d4-a716-446655440000.jpg
-             */
-            imageUrl?: string;
+        /** @description Outcome of one orphaned-image cleanup run. */
+        ImageCleanupResult: {
+            /** @description Images whose metadata row was removed (their file was deleted, or was already gone). Always 0 on a dry run. */
+            deletedCount?: number;
+            /** @description Orphans eligible this run, after the age threshold and the per-run cap. */
+            candidates?: number;
+            /** @description Orphans whose file delete failed or threw. Their metadata row is still removed so they stop being re-examined nightly. */
+            failed?: number;
+            /** @description True when more orphans were eligible than the per-run cap allows; the remainder is retried on the next run. Persistently true suggests a missing reference site. */
+            capped?: boolean;
+            /** @description True when nothing was actually deleted because the run was a dry run. */
+            dryRun?: boolean;
         };
         FcmTokenRequest: {
             /**
@@ -4747,6 +10892,8 @@ export interface components {
             pickupReminderEnabled?: boolean;
             /** @description Whether to receive a push notification when the pickup window opens (READY_FOR_PICKUP) */
             statusChangeEnabled?: boolean;
+            /** @description Whether to receive the post-pickup thumbs-up prompt (~1h after pickup) */
+            ratingPromptEnabled?: boolean;
         };
         /** @description Partial update — only provided fields are changed. At least one field must be present. */
         UpdateNotificationPreferencesRequest: {
@@ -4755,12 +10902,59 @@ export interface components {
             listingScope?: "ALL" | "FOLLOWED_ONLY" | null;
             pickupReminderEnabled?: boolean | null;
             statusChangeEnabled?: boolean | null;
+            ratingPromptEnabled?: boolean | null;
         };
         NotificationResult: {
             /** @description Number of reservations/users successfully notified */
             notifiedCount?: number;
             /** @description Number of notification sends that failed */
             failedCount?: number;
+        };
+        MerchantNotificationResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            type: "NEW_RESERVATION" | "RESERVATION_CANCELLED";
+            /** @description Type-specific payload; every value is a string. */
+            payload: Record<string, never>;
+            isRead: boolean;
+            /**
+             * Format: date-time
+             * @description ISO-8601 timestamp in UTC (e.g. "2026-04-22T07:30:00Z")
+             * @example 2026-04-22T07:30:00Z
+             */
+            createdAt: string;
+        };
+        /**
+         * @description One page of a merchant's notifications, newest first.
+         *
+         *     **Offset-paged — there is no cursor.** `page` and `pageSize` are echoed back as actually
+         *     applied (both are clamped, never rejected), so a client reads "is there another page" off
+         *     `page * pageSize < totalCount` rather than off a token. A client that expects a `nextCursor`
+         *     here finds no such field, decodes a first page, and then believes the list ended.
+         */
+        MerchantNotificationListResponse: {
+            items: components["schemas"]["MerchantNotificationResponse"][];
+            /**
+             * @description Every notification this merchant has, not just the ones on this page.
+             * @example 42
+             */
+            totalCount: number;
+            /**
+             * @description The 1-based page actually served, after clamping.
+             * @example 1
+             */
+            page: number;
+            /**
+             * @description The page size actually applied, after clamping.
+             * @example 20
+             */
+            pageSize: number;
+            /**
+             * @description Unread across the whole list, not just this page.
+             * @example 3
+             */
+            unreadCount: number;
         };
         CreateEventRequest: {
             /**
@@ -4772,10 +10966,16 @@ export interface components {
             eventCategory?: string;
             /** @description Client-generated device identifier */
             deviceId?: string;
-            /** @description Logged-in user ID (nullable for anonymous) */
+            /**
+             * @deprecated
+             * @description Ignored. The stored user is the one whose user access token is on the request (send it as `Authorization: Bearer`); without a valid one the event is anonymous.
+             */
             userId?: string;
             sessionId?: string;
-            /** @description Associated merchant ID */
+            /**
+             * @deprecated
+             * @description Ignored. For `refType: box` the server stores the box's own merchant; any other event is attributed to no merchant.
+             */
             merchantId?: string;
             /**
              * @description UTM source
@@ -4795,7 +10995,7 @@ export interface components {
             /** @example ios */
             platform?: string;
             /**
-             * @description Arbitrary JSON metadata
+             * @description Arbitrary JSON metadata, at most 4096 characters once serialized
              * @example {
              *       "referrer": "https://line.me/..."
              *     }
@@ -4884,6 +11084,16 @@ export interface components {
             anonymous?: boolean;
             name?: string | null;
         };
+        /**
+         * @description Partial update. For `logoUrl`, `bio`, `story` and `businessHours`, an omitted or null field
+         *     keeps the stored value and a blank string clears it (stored and returned as null).
+         *     `photoUrls`, when present, replaces the whole list.
+         *
+         *     A new `logoUrl` or photo must be the `publicUrl` returned by
+         *     `GET /api/merchant/images/presigned`, i.e. an object directly in the store-image bucket;
+         *     anything else is 400 INVALID_IMAGE_URL. A URL already saved on the profile is accepted
+         *     unchanged, so profiles saved before this rule can still be edited.
+         */
         UpdateMerchantProfileRequest: {
             logoUrl?: string | null;
             bio?: string | null;
@@ -4891,9 +11101,298 @@ export interface components {
             businessHours?: string | null;
             photoUrls?: string[] | null;
         };
+        /**
+         * @description Server-derived listing state. Not a stored column — it is computed per request from the
+         *     consumed-reservation count *and* the merchant's local clock, so the same row can report a
+         *     different value at a different time of day.
+         *
+         *     BEFORE_SALE = sale window has not opened yet; AVAILABLE = more than 2 left;
+         *     ALMOST_SOLD_OUT = 1-2 left; SOLD_OUT = none left; EXPIRED = the pickup window has passed
+         *     (or the sale date is behind us).
+         * @enum {string}
+         */
+        BoxStatus: "BEFORE_SALE" | "AVAILABLE" | "ALMOST_SOLD_OUT" | "SOLD_OUT" | "EXPIRED";
+        AdminLoginRequest: {
+            /** Format: email */
+            email: string;
+            /** Format: password */
+            password: string;
+        };
+        /**
+         * @description The admin account. `token` and `refreshToken` are populated on login only; `GET /api/admin/me`
+         *     omits both.
+         */
+        AdminResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: email */
+            email?: string;
+            /** @example super_admin */
+            role?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            token?: string | null;
+            refreshToken?: string | null;
+        };
+        AdminTokenRefreshResponse: {
+            accessToken?: string;
+            refreshToken?: string;
+            /**
+             * Format: int64
+             * @description Access-token lifetime in seconds.
+             */
+            expiresIn?: number;
+        };
+        AdminUserListItem: {
+            /** Format: uuid */
+            id?: string;
+            displayName?: string;
+            pictureUrl?: string | null;
+            noShowCount?: number;
+            /** @description Blocked users cannot create reservations. Reset `noShowCount` to unblock. */
+            isBlocked?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            reservationCount?: number;
+        };
+        AdminUserDetail: {
+            /** Format: uuid */
+            id?: string;
+            displayName?: string;
+            pictureUrl?: string | null;
+            noShowCount?: number;
+            isBlocked?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            totalReservations?: number;
+            /** Format: int64 */
+            completedPickups?: number;
+            /** Format: int64 */
+            cancellations?: number;
+            /** Format: int64 */
+            noShows?: number;
+        };
+        /** @description Patch semantics — omitted fields are left unchanged. */
+        AdminUpdateUserRequest: {
+            isBlocked?: boolean | null;
+            noShowCount?: number | null;
+        };
+        AdminBoxListItem: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** Format: uuid */
+            merchantId?: string;
+            merchantStoreName?: string;
+            originalPrice?: number;
+            discountedPrice?: number;
+            quantity?: number;
+            remainingCount?: number;
+            status?: components["schemas"]["BoxStatus"];
+            /** Format: date */
+            saleDate?: string;
+            /** @example 18:00 */
+            saleTimeStart?: string;
+            /** @example 20:00 */
+            saleTimeEnd?: string;
+            /** @example 18:00 */
+            pickupTimeStart?: string;
+            /** @example 21:00 */
+            pickupTimeEnd?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** @description Who this box is open to. Always present; UNRESTRICTED for a listing saved without one. */
+            eligibilityType?: components["schemas"]["PurchaseEligibilityType"];
+            /**
+             * @description The N of RETURNING_CUSTOMER(N). Absent for every other eligibility type.
+             * @example 3
+             */
+            eligibilityThreshold?: number | null;
+        };
+        AdminBoxDetail: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            description?: string | null;
+            /** Format: uuid */
+            merchantId?: string;
+            merchantStoreName?: string;
+            merchantStoreAddress?: string;
+            originalPrice?: number;
+            discountedPrice?: number;
+            /** @description The resolved cover (bound stock photo, else the category default), the same value consumer responses expose as `resolvedImageUrl`. Null when the category has no active stock photo. */
+            imageUrl?: string | null;
+            quantity?: number;
+            remainingCount?: number;
+            status?: components["schemas"]["BoxStatus"];
+            /** Format: date */
+            saleDate?: string;
+            saleTimeStart?: string;
+            saleTimeEnd?: string;
+            pickupTimeStart?: string;
+            pickupTimeEnd?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** @description Who this box is open to. Always present; UNRESTRICTED for a listing saved without one. */
+            eligibilityType?: components["schemas"]["PurchaseEligibilityType"];
+            /**
+             * @description The N of RETURNING_CUSTOMER(N). Absent for every other eligibility type.
+             * @example 3
+             */
+            eligibilityThreshold?: number | null;
+            /**
+             * Format: uuid
+             * @description The template this box was created from. Absent for an ad-hoc box, and for a box whose template has since been deleted.
+             */
+            boxTemplateId?: string | null;
+            reservations?: components["schemas"]["AdminReservationListItem"][];
+        };
+        AdminReservationListItem: {
+            /** Format: uuid */
+            id?: string;
+            /** @example #8821 */
+            orderId?: string;
+            /** Format: uuid */
+            userId?: string;
+            userDisplayName?: string;
+            /** Format: uuid */
+            boxId?: string;
+            boxName?: string;
+            /** Format: uuid */
+            merchantId?: string;
+            merchantStoreName?: string;
+            price?: number;
+            status?: components["schemas"]["ReservationStatus"];
+            /** Format: date */
+            pickupDate?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AdminReservationDetail: {
+            /** Format: uuid */
+            id?: string;
+            orderId?: string;
+            /** Format: uuid */
+            userId?: string;
+            userDisplayName?: string;
+            /** Format: uuid */
+            boxId?: string;
+            boxName?: string;
+            /** Format: uuid */
+            merchantId?: string;
+            merchantStoreName?: string;
+            price?: number;
+            isCancelled?: boolean;
+            /**
+             * Format: date-time
+             * @description Set by the no-show cron once an unpicked reservation's pickup window has passed.
+             */
+            noShowProcessedAt?: string | null;
+            /** Format: date-time */
+            pickedUpAt?: string | null;
+            /** @enum {string|null} */
+            redemptionMethod?: "code" | "manual" | "admin" | null;
+            /** Format: date */
+            pickupDate?: string;
+            redemptionCode?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            status?: components["schemas"]["ReservationStatus"];
+        };
+        AdminDashboardResponse: {
+            /** Format: int64 */
+            totalUsers?: number;
+            /** Format: int64 */
+            totalMerchants?: number;
+            /** Format: int64 */
+            activeMerchants?: number;
+            /** Format: int64 */
+            todayReservations?: number;
+            /** Format: int64 */
+            todayRevenue?: number;
+            /** Format: double */
+            noShowRate?: number;
+        };
+        AdminTimeseriesResponse: {
+            /** @enum {string} */
+            metric?: "new_users" | "reservations" | "revenue" | "no_shows";
+            /** Format: date */
+            dateFrom?: string;
+            /** Format: date */
+            dateTo?: string;
+            data?: components["schemas"]["TimeseriesDataPoint"][];
+        };
+        TimeseriesDataPoint: {
+            /** Format: date */
+            date?: string;
+            /** Format: int64 */
+            value?: number;
+        };
+        BroadcastNotificationRequest: {
+            /**
+             * @description Which audience receives the push.
+             * @enum {string}
+             */
+            target: "all_users" | "all_merchants";
+            title: string;
+            body: string;
+        };
+        BroadcastResult: {
+            /** @description Recipients with a registered FCM token. */
+            targetCount?: number;
+            successCount?: number;
+            failureCount?: number;
+        };
+        /**
+         * @description How many listings in a sale-date window carry each eligibility rule, and what share of them is restricted (anything other than UNRESTRICTED).
+         *
+         *     `merchantId` is omitted from the JSON — not sent as `null` — when the window covers every merchant. Treat absent and null as the same thing.
+         */
+        AdminEligibilityBreakdown: {
+            /**
+             * Format: date
+             * @description First sale date counted, inclusive, echoed as supplied.
+             */
+            saleDateFrom: string;
+            /**
+             * Format: date
+             * @description Last sale date counted, inclusive, echoed as supplied.
+             */
+            saleDateTo: string;
+            /**
+             * Format: uuid
+             * @description The store the window was narrowed to, echoed as supplied. Absent (not `null`) when the window covers every merchant.
+             */
+            merchantId?: string | null;
+            /** @description Listings in the window. The denominator, and the sum of every `breakdown` entry. */
+            totalListings: number;
+            /** @description Listings whose rule is anything other than UNRESTRICTED. */
+            restrictedListings: number;
+            /**
+             * Format: double
+             * @description `restrictedListings / totalListings`, rounded to four decimal places — a FRACTION, not a percentage: 0.4286 means 42.86%.
+             *
+             *     An empty window reports 0.0, never null and never NaN.
+             * @example 0.4286
+             */
+            restrictedShare: number;
+            /** @description One entry per PurchaseEligibilityType — always all four, in the enum's declared order, zero-filled. A rule nobody used is a row reading 0, never an absent entry. */
+            breakdown: components["schemas"]["AdminEligibilityBreakdownItem"][];
+        };
+        AdminEligibilityBreakdownItem: {
+            eligibilityType: components["schemas"]["PurchaseEligibilityType"];
+            /** @description Listings in the window under this rule. A listing whose stored `eligibility_type` is NULL (everything predating the feature) counts as UNRESTRICTED. */
+            listingCount: number;
+        };
     };
     responses: never;
-    parameters: never;
+    parameters: {
+        ScheduledTemplateId: string;
+        /** @description Merchant-local date of the scheduled day. */
+        ScheduledSaleDate: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;

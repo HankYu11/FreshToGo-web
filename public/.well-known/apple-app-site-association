@@ -4,7 +4,7 @@
     "details": [
       {
         "appID": "35LAWPGYB7.com.handy.freshtogo",
-        "paths": ["/line/*", "/box/*"]
+        "paths": ["/line/*", "/box/*", "/knock/*"]
       }
     ]
   }
