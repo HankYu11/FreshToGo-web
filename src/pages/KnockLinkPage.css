@@ -1,0 +1,51 @@
+.knock-store {
+  margin: 0.5rem 0 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(51, 101, 99, 0.1);
+}
+
+.knock-store-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-dark, #1a1a1a);
+  overflow-wrap: anywhere;
+}
+
+.knock-store-address {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  color: var(--text-medium, #666);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.knock-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.knock-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #eef6f5;
+  color: var(--primary, #336563);
+}
+
+.knock-status-onboarded {
+  background: var(--primary, #336563);
+  color: #fff;
+}
+
+.knock-count {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-dark, #1a1a1a);
+}

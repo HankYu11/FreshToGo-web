@@ -5,6 +5,7 @@ import PrivacyPage from './pages/PrivacyPage'
 import AccountDeletionPage from './pages/AccountDeletionPage'
 import MerchantApplicationPage from './pages/MerchantApplicationPage'
 import BoxLinkPage from './pages/BoxLinkPage'
+import KnockLinkPage from './pages/KnockLinkPage'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/account-deletion" element={<AccountDeletionPage />} />
       <Route path="/merchant-apply" element={<MerchantApplicationPage />} />
       <Route path="/box/:boxId" element={<BoxLinkPage />} />
+      <Route path="/knock/:knockId" element={<KnockLinkPage />} />
     </Routes>
   )
 }

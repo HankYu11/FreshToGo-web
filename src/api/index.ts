@@ -8,3 +8,8 @@ export {
   type PlaceDetails,
 } from './places'
 export { submitMerchantApplication, type MerchantApplication } from './merchants'
+export {
+  getRecommendation,
+  type RecommendationItem,
+  type RecommendationStatus,
+} from './recommendations'
