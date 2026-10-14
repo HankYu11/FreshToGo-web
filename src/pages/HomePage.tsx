@@ -9,6 +9,7 @@ import bentoFeed from '../assets/app-ui/bento.feed.webp'
 import deliFeed from '../assets/app-ui/deli.feed.webp'
 import dessertFeed from '../assets/app-ui/dessert.feed.webp'
 import dessertHunt from '../assets/app-ui/dessert.hunt.webp'
+import { DEMO_ENABLED } from '../demo/enabled'
 import '../App.css'
 
 export default function HomePage() {
@@ -305,6 +306,24 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {DEMO_ENABLED && (
+        <Link to="/demo" style={demoFabStyle}>Demo 測試功能</Link>
+      )}
     </>
   )
 }
+
+const demoFabStyle = {
+  position: 'fixed',
+  right: 16,
+  top: 76,
+  zIndex: 50,
+  padding: '8px 14px',
+  borderRadius: 999,
+  background: 'var(--accent)',
+  color: '#3b2a05',
+  fontWeight: 800,
+  fontSize: 13,
+  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.18)',
+} as const
