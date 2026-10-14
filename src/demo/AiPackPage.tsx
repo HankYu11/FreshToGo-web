@@ -1,15 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { analyse, loadKey, loadModel, saveKey, saveModel, toJpegBase64, type PackResult } from './aiPack'
+import { analyse, toJpegBase64, type PackResult } from './aiPack'
 import sampleBakery from './sample-bakery.jpg'
 import './demo.css'
 
 type Phase = 'idle' | 'loading' | 'done' | 'error'
 
 export default function AiPackPage() {
-  const [apiKey, setApiKey] = useState(loadKey)
-  const [model, setModel] = useState(loadModel)
-  const [showSettings, setShowSettings] = useState(() => !loadKey())
   const [photo, setPhoto] = useState<Blob | null>(null)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [note, setNote] = useState('')
@@ -34,10 +31,9 @@ export default function AiPackPage() {
 
   const run = async () => {
     if (!photo) return
-    if (!apiKey) { setShowSettings(true); return }
     setPhase('loading'); setError(''); setListed(false)
     try {
-      const r = await analyse(await toJpegBase64(photo), note, apiKey, model)
+      const r = await analyse(await toJpegBase64(photo), note)
       if (r.items.length === 0) throw new Error('照片中沒有辨識到可以打包的商品，換一張試試。')
       setResult(r); setChoice(r.recommended); setPhase('done')
     } catch (e) {
@@ -52,25 +48,8 @@ export default function AiPackPage() {
       <header className="demo-bar">
         <Link to="/demo" className="demo-back">‹ Demo</Link>
         <span className="demo-title">AI 打包師</span>
-        <button className="demo-gear" onClick={() => setShowSettings((s) => !s)} aria-label="設定">⚙︎</button>
+        <span />
       </header>
-
-      {showSettings && (
-        <section className="demo-card demo-settings">
-          <h3>設定</h3>
-          <label>Gemini API key
-            <input type="password" value={apiKey} placeholder="貼上 API key" autoComplete="off"
-              onChange={(e) => setApiKey(e.target.value)} />
-          </label>
-          <label>模型
-            <input value={model} onChange={(e) => setModel(e.target.value)} />
-          </label>
-          <p className="demo-muted">API key 只存在這個瀏覽器，直接送給 Google，不會經過鮮款款的伺服器。</p>
-          <button className="demo-btn" onClick={() => { saveKey(apiKey); saveModel(model); setShowSettings(false) }} disabled={!apiKey.trim()}>
-            儲存
-          </button>
-        </section>
-      )}
 
       <section className="demo-card">
         <h2>收店前，拍一張剩下的商品</h2>
@@ -85,7 +64,7 @@ export default function AiPackPage() {
           <button className="demo-btn ghost" onClick={useSample}>用範例圖片</button>
         </div>
         <input className="demo-note" value={note} onChange={(e) => setNote(e.target.value)}
-          placeholder="補充（選填）：例如「吐司一條原價 85」" />
+          placeholder="補充（選填）：例如「吐司一條原價 85」" maxLength={200} />
         <button className="demo-btn" onClick={run} disabled={!photo || phase === 'loading'}>
           {phase === 'loading' ? 'AI 正在看你的商品…' : '開始分析'}
         </button>

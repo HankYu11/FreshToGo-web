@@ -1,25 +1,10 @@
-// AI 打包師 demo: one Gemini call turns a photo of what's left on the counter into
-// packing options and a packing list. Dev-only — see ./enabled.ts.
+// AI 打包師 demo: one call turns a photo of what's left on the counter into packing options
+// and a packing list. Dev-only — see ./enabled.ts.
 //
-// The API key never ships in the bundle. The person running the demo pastes it into the page
-// once; it stays in that browser's localStorage and is sent only to Google.
+// The page sends only the photo and the note to the dev backend (POST /api/demo/ai-pack), which
+// calls Gemini with a key kept in Secret Manager. No key ever reaches the browser.
 
-const KEY_STORAGE = 'demo.geminiApiKey'
-const MODEL_STORAGE = 'demo.geminiModel'
-export const DEFAULT_MODEL = 'gemini-flash-latest'
-
-export function loadKey(): string {
-  try { return localStorage.getItem(KEY_STORAGE) ?? '' } catch { return '' }
-}
-export function saveKey(key: string) {
-  try { localStorage.setItem(KEY_STORAGE, key.trim()) } catch { /* private mode: key lives for this page only */ }
-}
-export function loadModel(): string {
-  try { return localStorage.getItem(MODEL_STORAGE) || DEFAULT_MODEL } catch { return DEFAULT_MODEL }
-}
-export function saveModel(model: string) {
-  try { localStorage.setItem(MODEL_STORAGE, model.trim() || DEFAULT_MODEL) } catch { /* ignore */ }
-}
+import { BASE_URL } from '../api/config'
 
 export interface Item { name: string; count: number; unitPrice: number }
 export interface BagLine { name: string; count: number }
@@ -42,69 +27,6 @@ export interface PackResult {
   repaired: boolean[]
 }
 
-const PROMPT = `你是「鮮款款」的 AI 打包師，協助台灣在地小店把收店前剩下的商品，打包成「鮮款包」上架。
-鮮款包是店家配好的一份組合，內容打開才知道，價格比平常買更划算。
-
-請看照片，完成：
-1. 辨識照片中的商品品項與數量，並依台灣一般小店售價估計每項原價（新台幣整數）。
-2. 提出兩種包法：
-   - 第一種「少量・單價高」：包數較少、每包內容較多。
-   - 第二種「多量・單價低」：包數較多、每包內容較少。
-   每包售價約為每包原價總值的 35%–45%，取整到個位數為 9 的價格（例如 79、89、129、149）。
-3. 選出建議的包法（recommended 為 0 或 1），並用一句話說明理由（依商品數量、價值與一般購買習慣判斷，不要宣稱看過任何成交紀錄）。
-4. 每一種包法都要給出打包單：
-   - 所有辨識到的商品都必須剛好分配完，數量不能多也不能少。
-   - 每包的原價總值盡量平均。
-   - 每包盡量搭配不同品項，不要整包都是同一種。
-5. 為這批鮮款包取一個標題（例如「麵包鮮款包」），以及一句給消費者看的提示：只描述食物的類型與大約數量（例如「今天現烤的麵包，老闆幫你挑 4–5 款，打開才知道是哪些」），不要列出確切內容。
-   標題與提示禁止使用這些字：驚喜包、福袋、盲盒、剩食、惜食包、即期、過期。
-
-如果照片裡看不到可以販售的食物，items 回傳空陣列。
-全部使用繁體中文（台灣用語）。`
-
-const SCHEMA = {
-  type: 'OBJECT',
-  properties: {
-    items: {
-      type: 'ARRAY',
-      items: {
-        type: 'OBJECT',
-        properties: { name: { type: 'STRING' }, count: { type: 'INTEGER' }, unitPrice: { type: 'INTEGER' } },
-        required: ['name', 'count', 'unitPrice'],
-      },
-    },
-    options: {
-      type: 'ARRAY',
-      items: {
-        type: 'OBJECT',
-        properties: {
-          label: { type: 'STRING' },
-          bags: { type: 'INTEGER' },
-          price: { type: 'INTEGER' },
-          reason: { type: 'STRING' },
-          packingList: {
-            type: 'ARRAY',
-            items: {
-              type: 'ARRAY',
-              items: {
-                type: 'OBJECT',
-                properties: { name: { type: 'STRING' }, count: { type: 'INTEGER' } },
-                required: ['name', 'count'],
-              },
-            },
-          },
-        },
-        required: ['label', 'bags', 'price', 'reason', 'packingList'],
-      },
-    },
-    recommended: { type: 'INTEGER' },
-    recommendationReason: { type: 'STRING' },
-    title: { type: 'STRING' },
-    hint: { type: 'STRING' },
-  },
-  required: ['items', 'options', 'recommended', 'recommendationReason', 'title', 'hint'],
-}
-
 /** Shrinks the photo before upload: phone photos are 4–12 MB and the model needs far less. */
 export async function toJpegBase64(file: Blob, maxSide = 1280): Promise<string> {
   const bitmap = await createImageBitmap(file)
@@ -117,32 +39,27 @@ export async function toJpegBase64(file: Blob, maxSide = 1280): Promise<string> 
   return dataUrl.slice(dataUrl.indexOf(',') + 1)
 }
 
-export async function analyse(imageBase64: string, note: string, apiKey: string, model: string): Promise<PackResult> {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify({
-      contents: [{
-        role: 'user',
-        parts: [
-          { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } },
-          { text: PROMPT + (note.trim() ? `\n\n店家補充：${note.trim()}` : '') },
-        ],
-      }],
-      generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0.4 },
-    }),
-  })
-  if (!res.ok) {
-    const body = await res.text()
-    if (res.status === 400 && body.includes('API key')) throw new Error('API key 無效，請到「設定」重新輸入。')
-    if (res.status === 404) throw new Error(`找不到模型「${model}」，請到「設定」換一個模型名稱。`)
-    if (res.status === 429) throw new Error('呼叫次數太頻繁或額度不足，請稍後再試。')
-    throw new Error(`Gemini 回應錯誤（${res.status}）`)
+export async function analyse(imageBase64: string, note: string): Promise<PackResult> {
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}/api/demo/ai-pack`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg', note: note.trim() || undefined }),
+    })
+  } catch {
+    throw new Error('連不上伺服器，請確認網路後再試一次。')
   }
-  const data = await res.json()
-  const text: string | undefined = data?.candidates?.[0]?.content?.parts?.find((p: { text?: string }) => p.text)?.text
-  if (!text) throw new Error('AI 沒有回傳結果，請換一張照片再試一次。')
-  return normalise(JSON.parse(text))
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('試太多次了，請等一分鐘再試。')
+    if (res.status === 413) throw new Error('照片太大了，請換一張再試。')
+    if (res.status === 400) throw new Error('補充說明請在 200 字以內，或換一張照片再試。')
+    if (res.status === 502) throw new Error('AI 服務暫時無法使用，請稍後再試。')
+    throw new Error(`伺服器回應錯誤（${res.status}）`)
+  }
+  const body = await res.json().catch(() => null)
+  if (!body?.data) throw new Error('AI 沒有回傳結果，請換一張照片再試一次。')
+  return normalise(body.data)
 }
 
 type Raw = {

@@ -21,7 +21,6 @@
 }
 .demo-back { font-size: 14px; }
 .demo-title { text-align: center; font-weight: 800; font-size: 16px; }
-.demo-gear { justify-self: end; background: none; color: var(--white); font-size: 20px; }
 
 .demo-card {
   display: block;
@@ -35,8 +34,6 @@
 .demo-card h3 { font-size: 15px; margin-bottom: 10px; }
 .demo-muted { color: var(--text-light); font-size: 13px; }
 
-.demo-settings label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 10px; }
-.demo-settings input,
 .demo-note {
   display: block;
   width: 100%;
