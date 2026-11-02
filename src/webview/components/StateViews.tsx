@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ApiError } from '../../api/client'
+import { ApiError } from '../../api'
 import { AlertIcon, BoxIcon, CloudOffIcon } from './icons'
 
 /**

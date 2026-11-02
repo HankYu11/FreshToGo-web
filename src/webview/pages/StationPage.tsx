@@ -1,9 +1,8 @@
 import { useNavigate } from 'react-router-dom'
-import { listBoxes } from '../../api/boxes'
+import { listBoxes } from '../../api'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
 import { ChevronRightIcon } from '../components/icons'
-import { ErrorState } from '../components/StateViews'
 import { countsByStation } from '../nearby'
 import { readStationPreference, writeStationPreference } from '../stationPreference'
 import { STATIONS } from '../stations'
@@ -29,9 +28,25 @@ export default function StationPage() {
 
   const counts = boxes ? countsByStation(boxes, STATIONS) : null
 
+  // The counts are a nicety; the station list is the screen. A failed count leaves the three
+  // stations tappable and says so quietly, rather than replacing the whole screen with an error.
+  const countsFailed = Boolean(error) && !counts
+
   function choose(stationId: string) {
     writeStationPreference(stationId)
     navigate(`/easywallet/station/${stationId}`)
+  }
+
+  function stationMeta(stationId: string) {
+    if (counts) {
+      return counts[stationId] > 0 ? `今天有 ${counts[stationId]} 款可預約` : '今天暫無可預約'
+    }
+    if (loading) {
+      return (
+        <span className="ew-skeleton" style={{ display: 'inline-block', width: 84, height: 13 }} />
+      )
+    }
+    return '今天數量待確認'
   }
 
   return (
@@ -47,48 +62,42 @@ export default function StationPage() {
       <h2 className="ew-h1">今天在哪一站下車？</h2>
       <p className="ew-sub">選一站，看看出站後步行可達的鮮款包。</p>
 
-      {error && !boxes ? (
-        <ErrorState error={error} onRetry={reload} />
-      ) : (
-        <ul className="ew-stationlist">
-          {STATIONS.map((station) => (
-            <li key={station.id}>
-              <button
-                type="button"
-                className={`ew-stationcard ${
-                  current === station.id ? 'ew-stationcard-current' : ''
-                }`}
-                onClick={() => choose(station.id)}
-              >
-                <span className="ew-stationcard-main">
-                  <span className="ew-stationcard-name">{station.name}站</span>
-                  <span className="ew-linepips" aria-hidden="true">
-                    {station.lines.map((line) => (
-                      <span
-                        key={line}
-                        className="ew-linepip"
-                        style={{ background: LINE_COLORS[line] ?? '#9aa7a6' }}
-                      />
-                    ))}
-                  </span>
-                  <span className="ew-stationcard-meta">
-                    {loading && !counts ? (
-                      <span
-                        className="ew-skeleton"
-                        style={{ display: 'inline-block', width: 84, height: 13 }}
-                      />
-                    ) : counts && counts[station.id] > 0 ? (
-                      `今天有 ${counts[station.id]} 款可預約`
-                    ) : (
-                      '今天暫無可預約'
-                    )}
-                  </span>
+      <ul className="ew-stationlist">
+        {STATIONS.map((station) => (
+          <li key={station.id}>
+            <button
+              type="button"
+              className={`ew-stationcard ${
+                current === station.id ? 'ew-stationcard-current' : ''
+              }`}
+              onClick={() => choose(station.id)}
+            >
+              <span className="ew-stationcard-main">
+                <span className="ew-stationcard-name">{station.fullName}</span>
+                <span className="ew-linepips" aria-hidden="true">
+                  {station.lines.map((line) => (
+                    <span
+                      key={line}
+                      className="ew-linepip"
+                      style={{ background: LINE_COLORS[line] ?? '#9aa7a6' }}
+                    />
+                  ))}
                 </span>
-                <ChevronRightIcon className="ew-chevron" />
-              </button>
-            </li>
-          ))}
-        </ul>
+                <span className="ew-stationcard-meta">{stationMeta(station.id)}</span>
+              </span>
+              <ChevronRightIcon className="ew-chevron" />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {countsFailed && (
+        <p className="ew-note" role="status">
+          目前讀不到今天的數量
+          <button type="button" className="ew-button-quiet" onClick={reload}>
+            重試
+          </button>
+        </p>
       )}
 
       <div className="ew-section">

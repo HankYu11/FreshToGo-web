@@ -1,4 +1,4 @@
-import { isReservable, type Box } from '../api/boxes'
+import { isReservable, type Box } from '../api'
 import {
   STATION_RADIUS_M,
   compassDirection,

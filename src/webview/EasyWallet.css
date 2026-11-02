@@ -19,14 +19,13 @@
   --ew-grain-soft: #fbefd3;
   --ew-danger: #b3261e;
 
+  min-height: 100vh;
   min-height: 100dvh;
   background: var(--ew-ground);
   color: var(--ew-ink);
   font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
-  /* A rubber-band at the end of our scroll must not chain into the host app's own scroller. */
-  overscroll-behavior-y: contain;
 }
 
 /* ── Screen scaffold ─────────────────────────────────────────────── */
@@ -34,6 +33,7 @@
 .ew-screen {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
   min-height: 100dvh;
 }
 
@@ -256,17 +256,20 @@
 }
 
 .ew-stationcard-main {
+  display: block;
   flex: 1;
   min-width: 0;
 }
 
 .ew-stationcard-name {
+  display: block;
   font-size: 19px;
   font-weight: 700;
   line-height: 1.3;
 }
 
 .ew-stationcard-meta {
+  display: block;
   margin-top: 4px;
   font-size: 13px;
   color: var(--ew-ink-soft);
@@ -319,6 +322,7 @@
 }
 
 .ew-card-media {
+  display: block;
   position: relative;
   aspect-ratio: 16 / 9;
   background: var(--ew-grain-soft);
@@ -381,6 +385,7 @@
 }
 
 .ew-card-body {
+  display: block;
   padding: 14px 16px 16px;
 }
 
@@ -412,6 +417,7 @@
 }
 
 .ew-card-name {
+  display: block;
   margin-top: 6px;
   font-size: 17px;
   font-weight: 700;
@@ -461,6 +467,7 @@
 }
 
 .ew-price {
+  display: inline-block;
   font-size: 22px;
   font-weight: 800;
   color: var(--ew-brand);
@@ -537,6 +544,8 @@
 }
 
 .ew-note {
+  /* Also used as a <span> inside an info row's value, where inline would swallow the margin. */
+  display: block;
   margin-top: 8px;
   font-size: 13px;
   color: var(--ew-ink-soft);
@@ -628,16 +637,19 @@
 }
 
 .ew-paymethod-main {
+  display: block;
   flex: 1;
   min-width: 0;
 }
 
 .ew-paymethod-name {
+  display: block;
   font-size: 15px;
   font-weight: 700;
 }
 
 .ew-paymethod-sub {
+  display: block;
   margin-top: 2px;
   font-size: 13px;
   color: var(--ew-ink-soft);

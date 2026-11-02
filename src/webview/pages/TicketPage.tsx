@@ -1,6 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { getReservation } from '../../api/reservations'
-import { withSession } from '../../api/session'
+import { getReservation, withSession } from '../../api'
 import QrCode from '../components/QrCode'
 import Screen from '../components/Screen'
 import { ErrorState, LoadingState } from '../components/StateViews'
@@ -117,7 +116,7 @@ export default function TicketPage() {
           <div className="ew-inforow">
             <span className="ew-inforow-label">出站後</span>
             <span className="ew-inforow-value">
-              {station.name}站往{walk.direction}約 {walk.meters} 公尺，步行約 {walk.minutes} 分
+              {station.fullName}往{walk.direction}約 {walk.meters} 公尺，步行約 {walk.minutes} 分
               <span className="ew-note" style={{ marginTop: 2 }}>
                 步行時間為直線距離估算，實際路線以地圖為準。
               </span>

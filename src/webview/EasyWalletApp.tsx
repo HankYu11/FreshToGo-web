@@ -16,10 +16,17 @@ import './EasyWallet.css'
  */
 export default function EasyWalletApp() {
   useEffect(() => {
-    const previous = document.title
+    const previousTitle = document.title
     document.title = '鮮款款｜下班順路帶一包'
+
+    // The page background is on .ew-root, but an iOS rubber-band scroll reveals the <body>
+    // behind it — which the marketing site leaves white. Match them while the flow is mounted.
+    const previousBackground = document.body.style.backgroundColor
+    document.body.style.backgroundColor = '#f6f8f7'
+
     return () => {
-      document.title = previous
+      document.title = previousTitle
+      document.body.style.backgroundColor = previousBackground
     }
   }, [])
 

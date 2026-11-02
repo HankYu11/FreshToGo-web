@@ -1,4 +1,4 @@
-import { isReservable, type Box } from '../../api/boxes'
+import { isReservable, type Box } from '../../api'
 import { categoryColors, categoryLabel } from '../categories'
 import { formatPickupWindow, formatPrice } from '../format'
 import type { NearbyBox } from '../nearby'
@@ -37,7 +37,8 @@ function statusPill(box: Box) {
  * One pack in the station list.
  *
  * A button rather than a link: the whole flow is driven by taps, never by a swipe, so it
- * cannot fight the system back gesture on either platform.
+ * cannot fight the system back gesture on either platform. Everything inside is a <span> —
+ * a button may only contain phrasing content, so the usual <div>/<p> would be invalid markup.
  */
 export default function BoxCard({
   nearby,
@@ -58,13 +59,13 @@ export default function BoxCard({
       className={`ew-card ${available ? '' : 'ew-card-unavailable'}`}
       onClick={onSelect}
     >
-      <div className="ew-card-media">
+      <span className="ew-card-media">
         {box.imageUrl ? (
           <img src={box.imageUrl} alt="" loading="lazy" />
         ) : (
-          <div className="ew-card-media-fallback" aria-hidden="true">
+          <span className="ew-card-media-fallback" aria-hidden="true">
             {box.storeName.slice(0, 1)}
-          </div>
+          </span>
         )}
         {pill && <span className={`ew-pill ${pill.warn ? 'ew-pill-warn' : ''}`}>{pill.label}</span>}
         {box.discountPercent > 0 && (
@@ -74,41 +75,41 @@ export default function BoxCard({
             <span className="ew-medallion-unit">%</span>
           </span>
         )}
-      </div>
+      </span>
 
-      <div className="ew-card-body">
-        <div className="ew-card-store">
+      <span className="ew-card-body">
+        <span className="ew-card-store">
           <StoreMark box={box} />
           <span>{box.storeName}</span>
-        </div>
+        </span>
 
-        <p className="ew-card-name">{box.name}</p>
+        <span className="ew-card-name">{box.name}</span>
 
-        <div className="ew-chiprow">
+        <span className="ew-chiprow">
           <span className="ew-chip" style={{ background: colors.bg, color: colors.fg }}>
             {categoryLabel(box.category)}
           </span>
-        </div>
+        </span>
 
         {pickup && (
-          <p className="ew-metarow">
+          <span className="ew-metarow">
             <ClockIcon />
             取貨 {pickup}
-          </p>
+          </span>
         )}
 
-        <p className="ew-metarow">
+        <span className="ew-metarow">
           <WalkIcon />
           出站往{direction}步行約 {walkMinutes} 分
-        </p>
+        </span>
 
-        <p className="ew-pricerow">
+        <span className="ew-pricerow">
           <span className="ew-price">{formatPrice(box.discountedPrice)}</span>
           {box.originalPrice > box.discountedPrice && (
             <span className="ew-price-original">{formatPrice(box.originalPrice)}</span>
           )}
-        </p>
-      </div>
+        </span>
+      </span>
     </button>
   )
 }

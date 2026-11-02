@@ -7,7 +7,10 @@
  */
 export interface Station {
   id: string
+  /** Short name, for a sentence: 「龍山寺往東步行 4 分」. */
   name: string
+  /** What a commuter calls the station. 台北車站 already ends in 站; 龍山寺 does not. */
+  fullName: string
   /** MRT line colours, for the line pip next to the name. */
   lines: string[]
   latitude: number
@@ -15,9 +18,30 @@ export interface Station {
 }
 
 export const STATIONS: Station[] = [
-  { id: 'longshan', name: '龍山寺', lines: ['BL'], latitude: 25.0353, longitude: 121.4999 },
-  { id: 'ximen', name: '西門', lines: ['BL', 'G'], latitude: 25.0421, longitude: 121.508 },
-  { id: 'taipei-main', name: '台北車站', lines: ['BL', 'R'], latitude: 25.0462, longitude: 121.517 },
+  {
+    id: 'longshan',
+    name: '龍山寺',
+    fullName: '龍山寺站',
+    lines: ['BL'],
+    latitude: 25.0353,
+    longitude: 121.4999,
+  },
+  {
+    id: 'ximen',
+    name: '西門',
+    fullName: '西門站',
+    lines: ['BL', 'G'],
+    latitude: 25.0421,
+    longitude: 121.508,
+  },
+  {
+    id: 'taipei-main',
+    name: '台北車站',
+    fullName: '台北車站',
+    lines: ['BL', 'R'],
+    latitude: 25.0462,
+    longitude: 121.517,
+  },
 ]
 
 export function findStation(id: string | null | undefined): Station | undefined {

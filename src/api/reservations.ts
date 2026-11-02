@@ -68,8 +68,3 @@ export async function getReservation(id: string, signal?: AbortSignal): Promise<
     isCancelled: data.isCancelled ?? false,
   }
 }
-
-/** Cancel an active reservation. Needs a user session. */
-export async function cancelReservation(id: string): Promise<void> {
-  await api.delete(`/api/reservations/${encodeURIComponent(id)}`, { auth: true })
-}

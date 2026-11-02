@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { isReservable, listBoxes } from '../../api/boxes'
+import { isReservable, listBoxes } from '../../api'
 import BoxCard from '../components/BoxCard'
 import Screen from '../components/Screen'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
@@ -57,7 +57,7 @@ export default function BoxListPage() {
 
   return (
     <Screen
-      title={`${station.name}站附近`}
+      title={`${station.fullName}附近`}
       onBack={changeStation}
       action={
         <button type="button" className="ew-button-quiet" onClick={changeStation}>
@@ -71,7 +71,7 @@ export default function BoxListPage() {
         <ErrorState error={error} onRetry={reload} />
       ) : nearby.length === 0 ? (
         <EmptyState
-          title={`${station.name}站今天還沒有鮮款包`}
+          title={`${station.fullName}今天還沒有鮮款包`}
           body={`店家多在下班前上架，稍後再回來看看。${
             elsewhere.length > 0 ? '其他站今天還有：' : ''
           }`}
@@ -83,7 +83,7 @@ export default function BoxListPage() {
               className="ew-button ew-button-secondary"
               onClick={() => openStation(other.id)}
             >
-              {other.name}站・{counts?.[other.id]} 款
+              {other.fullName}・{counts?.[other.id]} 款
             </button>
           ))}
           <button type="button" className="ew-button ew-button-secondary" onClick={reload}>
@@ -93,8 +93,7 @@ export default function BoxListPage() {
       ) : (
         <>
           <p className="ew-sub" style={{ marginTop: 0, marginBottom: 14 }}>
-            出站步行 {Math.round(STATION_RADIUS_M / 100) * 100} 公尺內・今天有{' '}
-            <strong>{reservable}</strong> 款可預約
+            出站步行 {formatRadius(STATION_RADIUS_M)}內・今天有 <strong>{reservable}</strong> 款可預約
           </p>
           <div className="ew-cardlist">
             {nearby.map((item) => (
@@ -109,4 +108,9 @@ export default function BoxListPage() {
       )}
     </Screen>
   )
+}
+
+/** 1000 m reads better as 1 公里 than as 1000 公尺. */
+function formatRadius(meters: number) {
+  return meters >= 1000 ? `${meters / 1000} 公里` : `${meters} 公尺`
 }
