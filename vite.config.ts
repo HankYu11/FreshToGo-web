@@ -14,6 +14,14 @@ const buildHash = Date.now().toString(36)
 // Override with VITE_API_PROXY_TARGET to point the dev server at a backend running locally.
 const DEV_API_TARGET = process.env.VITE_API_PROXY_TARGET || 'https://dev-api.handyla.co'
 
+function entryPoints(mode: string): Record<string, string> {
+  const entries: Record<string, string> = { main: resolve(__dirname, 'index.html') }
+  if (mode === 'development') {
+    entries.easywallet = resolve(__dirname, 'easywallet.html')
+  }
+  return entries
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode, command }) => ({
   plugins: [
@@ -73,10 +81,8 @@ export default defineConfig(({ mode, command }) => ({
   build: {
     outDir: mode === 'development' ? 'dist/dev' : 'dist/prod',
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        easywallet: resolve(__dirname, 'easywallet.html'),
-      },
+      // The webview demo ships only in the dev build, so its document is only an entry there.
+      input: entryPoints(mode),
     },
   },
 }))
