@@ -19,13 +19,23 @@ export default function QrCode({ value, size = 200 }: { value: string; size?: nu
     if (!canvas || !value) return
 
     let cancelled = false
+    // node-qrcode sizes the canvas bitmap in CSS pixels, so a 200px bitmap shown at 200px CSS
+    // is upscaled by the device and the module edges blur. Draw at the device's pixel density
+    // and let the stylesheet size it back down — the merchant has to scan this.
+    const ratio = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3)
     QRCode.toCanvas(canvas, value, {
-      width: size,
+      width: Math.round(size * ratio),
       margin: 1,
       color: { dark: '#1d2a29', light: '#ffffff' },
     })
       .then(() => {
-        if (!cancelled) setFailed(false)
+        if (cancelled) return
+        // toCanvas also writes that width to canvas.style, which would lay the QR out at the
+        // bitmap's size and overflow the ticket. Put the CSS size back; the bitmap keeps its
+        // extra pixels, which is the whole point.
+        canvas.style.width = `${size}px`
+        canvas.style.height = `${size}px`
+        setFailed(false)
       })
       .catch(() => {
         if (!cancelled) setFailed(true)

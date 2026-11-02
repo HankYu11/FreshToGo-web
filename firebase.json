@@ -42,6 +42,14 @@
       ],
       "rewrites": [
         {
+          "source": "/easywallet",
+          "destination": "/easywallet.html"
+        },
+        {
+          "source": "/easywallet/**",
+          "destination": "/easywallet.html"
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -88,6 +96,14 @@
         }
       ],
       "rewrites": [
+        {
+          "source": "/easywallet",
+          "destination": "/easywallet.html"
+        },
+        {
+          "source": "/easywallet/**",
+          "destination": "/easywallet.html"
+        },
         {
           "source": "**",
           "destination": "/index.html"

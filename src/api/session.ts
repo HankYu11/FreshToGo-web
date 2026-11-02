@@ -33,6 +33,15 @@ export interface Session {
  */
 let current: Session | null = null
 
+/**
+ * The login in flight, if any.
+ *
+ * Without this, StrictMode's double-mount — or two screens loading at once — each see a null
+ * session and fire their own POST to verify-token. Two auth handshakes side by side in the
+ * network panel is the first thing a reviewer notices.
+ */
+let pendingLogin: Promise<Session> | null = null
+
 function readStored(): Session | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY)
@@ -57,21 +66,27 @@ function store(session: Session | null) {
   }
 }
 
-async function login(): Promise<Session> {
-  const res = await api.post<ApiResponse<SessionInfo>>('/api/user/line/verify-token', {
-    lineAccessToken: DEMO_ACCESS_TOKEN,
-  })
-  const accessToken = res.data?.accessToken
-  if (!accessToken) throw new ApiError(502, 'Session response carried no access token')
+function login(): Promise<Session> {
+  pendingLogin ??= (async () => {
+    const res = await api.post<ApiResponse<SessionInfo>>('/api/user/line/verify-token', {
+      lineAccessToken: DEMO_ACCESS_TOKEN,
+    })
+    const accessToken = res.data?.accessToken
+    if (!accessToken) throw new ApiError(502, 'Session response carried no access token')
 
-  const session: Session = {
-    accessToken,
-    displayName: res.data?.user?.displayName ?? '',
-  }
-  current = session
-  setAuthToken(accessToken)
-  store(session)
-  return session
+    const session: Session = {
+      accessToken,
+      displayName: res.data?.user?.displayName ?? '',
+    }
+    current = session
+    setAuthToken(accessToken)
+    store(session)
+    return session
+  })().finally(() => {
+    pendingLogin = null
+  })
+
+  return pendingLogin
 }
 
 /** Restore a session from this tab's storage, or open a new one. */
@@ -86,6 +101,23 @@ export async function ensureSession(): Promise<Session> {
   }
 
   return login()
+}
+
+/**
+ * Open a session if one can be opened, and say whether there is one.
+ *
+ * For the eligibility-aware public endpoints: `GET /api/boxes` and `GET /api/boxes/{id}` take a
+ * consumer token when there is one and filter the listings to what that consumer may buy, but
+ * never 401. Browsing must not break just because the session could not be opened, so a failure
+ * here is swallowed and the request goes out anonymous.
+ */
+export async function ensureSessionQuietly(): Promise<boolean> {
+  try {
+    await ensureSession()
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**

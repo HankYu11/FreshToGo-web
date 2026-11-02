@@ -1,5 +1,9 @@
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const buildHash = Date.now().toString(36)
 
@@ -18,6 +22,21 @@ export default defineConfig(({ mode, command }) => ({
       name: 'favicon-cache-bust',
       transformIndexHtml(html) {
         return html.replaceAll('__BUILD_HASH__', buildHash)
+      },
+    },
+    {
+      // The webview is served from its own HTML entry (see easywallet.html). Vite's dev server
+      // only knows the file by its real name, so map the routes onto it the way Firebase
+      // Hosting's rewrite does in a deploy.
+      name: 'easywallet-dev-entry',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          const path = req.url?.split('?')[0]
+          if (path === '/easywallet' || path?.startsWith('/easywallet/')) {
+            req.url = '/easywallet.html'
+          }
+          next()
+        })
       },
     },
     {
@@ -53,5 +72,11 @@ export default defineConfig(({ mode, command }) => ({
   },
   build: {
     outDir: mode === 'development' ? 'dist/dev' : 'dist/prod',
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        easywallet: resolve(__dirname, 'easywallet.html'),
+      },
+    },
   },
 }))

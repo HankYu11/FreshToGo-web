@@ -26,5 +26,6 @@ export {
   getReservation,
   type CreatedReservation,
   type Reservation,
+  type ReservationStatus,
 } from './reservations'
-export { ensureSession, withSession, type Session } from './session'
+export { ensureSession, ensureSessionQuietly, withSession, type Session } from './session'

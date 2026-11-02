@@ -1,12 +1,52 @@
-import { useNavigate, useParams } from 'react-router-dom'
-import { getReservation, withSession } from '../../api'
+import { useParams } from 'react-router-dom'
+import { getReservation, withSession, type Reservation } from '../../api'
 import QrCode from '../components/QrCode'
 import Screen from '../components/Screen'
-import { ErrorState, LoadingState } from '../components/StateViews'
+import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
+import { isMissing } from '../errors'
 import { formatPickupDate, formatPickupWindow, formatPickupWindowUtc, formatPrice } from '../format'
+import { describeWalk } from '../nearby'
 import { readStationPreference } from '../stationPreference'
-import { compassDirection, distanceMeters, findStation, walkingMinutes } from '../stations'
+import { findStation } from '../stations'
 import { useAsync } from '../useAsync'
+import { useWebviewNavigation } from '../useWebviewNavigation'
+
+/**
+ * How the ticket presents itself, by the reservation's server-side state.
+ *
+ * A collected or cancelled order must not keep showing 「預約成功」 over a live QR code: the
+ * merchant app can redeem or cancel it while this screen is open, and a reviewer who does
+ * exactly that and reloads is checking whether the client trusts the server.
+ */
+function presentation(reservation: Reservation) {
+  if (reservation.isCancelled) {
+    const byMerchant = reservation.cancelledBy === 'merchant'
+    return {
+      kicker: '這筆預約已取消',
+      live: false,
+      note:
+        byMerchant && reservation.cancellationReason
+          ? `店家取消了這筆預約：${reservation.cancellationReason}`
+          : byMerchant
+            ? '店家取消了這筆預約。'
+            : '這筆預約已經取消，取貨碼不再有效。',
+    }
+  }
+  if (reservation.isPickedUp || reservation.status === 'PICKED_UP') {
+    return { kicker: '已完成取貨', live: false, note: '這一包已經取走了，感謝你少浪費一份食物。' }
+  }
+  if (reservation.status === 'NO_SHOW') {
+    return { kicker: '未在時段內取貨', live: false, note: '取貨時段已過，這筆預約記為未到店。' }
+  }
+  if (reservation.status === 'EXPIRED') {
+    return { kicker: '這筆預約已過期', live: false, note: '取貨時段已經結束。' }
+  }
+  return {
+    kicker: '預約成功・取貨碼',
+    live: true,
+    note: '取貨時出示這個畫面，由店員掃描或輸入取貨碼。',
+  }
+}
 
 /**
  * Step five: the thing the commuter shows at the counter.
@@ -15,8 +55,8 @@ import { useAsync } from '../useAsync'
  * host app restoring the webview — still shows a usable ticket.
  */
 export default function TicketPage() {
-  const navigate = useNavigate()
   const { reservationId = '' } = useParams()
+  const { replaceTo } = useWebviewNavigation()
   const station = findStation(readStationPreference())
 
   const {
@@ -26,10 +66,7 @@ export default function TicketPage() {
     reload,
   } = useAsync((signal) => withSession(() => getReservation(reservationId, signal)), [reservationId])
 
-  function done() {
-    if (station) navigate(`/easywallet/station/${station.id}`)
-    else navigate('/easywallet')
-  }
+  const done = () => replaceTo(station ? `/easywallet/station/${station.id}` : '/easywallet')
 
   if (loading && !reservation) {
     return (
@@ -39,23 +76,27 @@ export default function TicketPage() {
     )
   }
 
-  if (error && !reservation) {
-    return (
-      <Screen title="取貨券" onBack={done}>
-        <ErrorState error={error} onRetry={reload} />
-      </Screen>
-    )
-  }
-
   if (!reservation) {
+    if (error && !isMissing(error)) {
+      return (
+        <Screen title="取貨券" onBack={done}>
+          <ErrorState error={error} onRetry={reload} />
+        </Screen>
+      )
+    }
     return (
       <Screen title="取貨券" onBack={done}>
-        <ErrorState error={null} onRetry={reload} />
+        <EmptyState title="找不到這張取貨券" body="這筆預約可能已經不存在了。">
+          <button type="button" className="ew-button" onClick={done}>
+            回到列表
+          </button>
+        </EmptyState>
       </Screen>
     )
   }
 
   const { box } = reservation
+  const view = presentation(reservation)
   const timeZone = reservation.merchantTimezone
   const window =
     formatPickupWindowUtc(
@@ -64,11 +105,7 @@ export default function TicketPage() {
       timeZone,
     ) || (box ? formatPickupWindow(box.pickupTimeStart, box.pickupTimeEnd) : '')
   const date = formatPickupDate(reservation.pickupWindowStartUtc, timeZone)
-
-  const walk =
-    station && box && box.storeLatitude !== null && box.storeLongitude !== null
-      ? describeWalk(station, box.storeLatitude, box.storeLongitude)
-      : null
+  const walk = box ? describeWalk(station, box.storeLatitude, box.storeLongitude) : null
 
   return (
     <Screen
@@ -80,11 +117,11 @@ export default function TicketPage() {
         </button>
       }
     >
-      <div className="ew-ticket">
-        <p className="ew-ticket-kicker">預約成功・取貨碼</p>
+      <div className={`ew-ticket ${view.live ? '' : 'ew-ticket-spent'}`}>
+        <p className="ew-ticket-kicker">{view.kicker}</p>
         <p className="ew-ticket-code">{reservation.redemptionCode || '—'}</p>
-        {reservation.redemptionCode && <QrCode value={reservation.redemptionCode} />}
-        <p className="ew-ticket-hint">取貨時出示這個畫面，由店員掃描或輸入取貨碼。</p>
+        {view.live && reservation.redemptionCode && <QrCode value={reservation.redemptionCode} />}
+        <p className="ew-ticket-hint">{view.note}</p>
         {reservation.orderId && <p className="ew-ticket-order">訂單編號 {reservation.orderId}</p>}
       </div>
 
@@ -125,24 +162,18 @@ export default function TicketPage() {
         )}
         <div className="ew-inforow">
           <span className="ew-inforow-label">金額</span>
-          <span className="ew-inforow-value">{formatPrice(reservation.price)}・到店出示取貨碼</span>
+          <span className="ew-inforow-value">
+            {formatPrice(reservation.price)}
+            {view.live && (
+              <span className="ew-note" style={{ marginTop: 2 }}>
+                已由悠遊付付款（模擬）：取貨時只需出示取貨碼，不需再付款。
+              </span>
+            )}
+          </span>
         </div>
       </section>
 
-      <p className="ew-note">請在取貨時段內到店，逾時未取將計為未到店。</p>
+      {view.live && <p className="ew-note">請在取貨時段內到店，逾時未取將計為未到店。</p>}
     </Screen>
   )
-}
-
-function describeWalk(
-  station: NonNullable<ReturnType<typeof findStation>>,
-  latitude: number,
-  longitude: number,
-) {
-  const meters = distanceMeters(station, { latitude, longitude })
-  return {
-    minutes: walkingMinutes(meters),
-    direction: compassDirection(station, { latitude, longitude }),
-    meters: Math.round(meters / 10) * 10,
-  }
 }

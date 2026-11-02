@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { getBox, isReservable } from '../../api'
 import { StoreMark } from '../components/BoxCard'
 import Screen from '../components/Screen'
@@ -6,8 +6,11 @@ import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { categoryColors, categoryLabel } from '../categories'
 import { formatPickupWindow, formatPrice } from '../format'
 import { readStationPreference } from '../stationPreference'
-import { compassDirection, distanceMeters, findStation, walkingMinutes } from '../stations'
+import { findStation } from '../stations'
+import { describeWalk } from '../nearby'
+import { errorCode, isMissing } from '../errors'
 import { useAsync } from '../useAsync'
+import { useWebviewNavigation } from '../useWebviewNavigation'
 
 /** Labels for the states that stop a pack being reservable. */
 const UNAVAILABLE_LABEL: Record<string, string> = {
@@ -21,8 +24,8 @@ const UNAVAILABLE_LABEL: Record<string, string> = {
  * collect it, and how far that is from the station they are standing in.
  */
 export default function BoxDetailPage() {
-  const navigate = useNavigate()
   const { boxId = '' } = useParams()
+  const { goBack, goTo } = useWebviewNavigation()
   const station = findStation(readStationPreference())
 
   const {
@@ -32,32 +35,39 @@ export default function BoxDetailPage() {
     reload,
   } = useAsync((signal) => getBox(boxId, signal), [boxId])
 
-  function goBack() {
-    if (station) navigate(`/easywallet/station/${station.id}`)
-    else navigate('/easywallet')
-  }
+  const backToList = () =>
+    goBack(station ? `/easywallet/station/${station.id}` : '/easywallet')
 
   if (loading && !box) {
     return (
-      <Screen title="鮮款包" onBack={goBack}>
+      <Screen title="鮮款包" onBack={backToList}>
         <LoadingState />
       </Screen>
     )
   }
 
-  if (error && !box) {
-    return (
-      <Screen title="鮮款包" onBack={goBack}>
-        <ErrorState error={error} onRetry={reload} />
-      </Screen>
-    )
-  }
-
   if (!box) {
+    // A 404/400/403 is a dead link or a listing this account may not buy — neither improves by
+    // retrying, so they get the "not here" screen rather than the "server is unwell" one.
+    if (error && !isMissing(error)) {
+      return (
+        <Screen title="鮮款包" onBack={backToList}>
+          <ErrorState error={error} onRetry={reload} />
+        </Screen>
+      )
+    }
+    const notEligible = errorCode(error) === 'BOX_NOT_ELIGIBLE'
     return (
-      <Screen title="鮮款包" onBack={goBack}>
-        <EmptyState title="找不到這個鮮款包" body="它可能已經下架了，回上一頁看看其他款。">
-          <button type="button" className="ew-button" onClick={goBack}>
+      <Screen title="鮮款包" onBack={backToList}>
+        <EmptyState
+          title={notEligible ? '這一包無法預約' : '找不到這個鮮款包'}
+          body={
+            notEligible
+              ? '這一包只開放給特定顧客，這個帳號不符合資格。'
+              : '它可能已經下架了，回上一頁看看其他款。'
+          }
+        >
+          <button type="button" className="ew-button" onClick={backToList}>
             回到列表
           </button>
         </EmptyState>
@@ -74,7 +84,7 @@ export default function BoxDetailPage() {
   return (
     <Screen
       title={box.storeName}
-      onBack={goBack}
+      onBack={backToList}
       flush
       footer={
         <>
@@ -91,7 +101,7 @@ export default function BoxDetailPage() {
             type="button"
             className="ew-button"
             disabled={!available}
-            onClick={() => navigate(`/easywallet/checkout/${box.id}`)}
+            onClick={() => goTo(`/easywallet/checkout/${box.id}`)}
           >
             {available ? '預約這一包' : (UNAVAILABLE_LABEL[box.status] ?? '目前無法預約')}
           </button>
@@ -174,19 +184,4 @@ export default function BoxDetailPage() {
       </div>
     </Screen>
   )
-}
-
-/** How far the store is from the chosen station, or null when either end has no coordinates. */
-function describeWalk(
-  station: ReturnType<typeof findStation>,
-  latitude: number | null,
-  longitude: number | null,
-) {
-  if (!station || latitude === null || longitude === null) return null
-  const meters = distanceMeters(station, { latitude, longitude })
-  return {
-    minutes: walkingMinutes(meters),
-    direction: compassDirection(station, { latitude, longitude }),
-    meters: Math.round(meters / 10) * 10,
-  }
 }

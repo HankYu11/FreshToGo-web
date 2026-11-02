@@ -1,30 +1,14 @@
-import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ApiError, apiErrorMessage, createReservation, getBox, isReservable, withSession } from '../../api'
+import { useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { createReservation, getBox, isReservable, withSession } from '../../api'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { WalletIcon } from '../components/icons'
+import { errorCode, isMissing, isTerminalReserveError, reserveErrorMessage } from '../errors'
 import { formatPickupWindow, formatPrice } from '../format'
 import { useAsync } from '../useAsync'
-
-/** What the backend refuses a reservation for, said in the customer's terms. */
-const RESERVE_ERRORS: Record<string, string> = {
-  BOX_SOLD_OUT: '這一包剛剛被預約完了，回上一頁看看其他款。',
-  BOX_NOT_AVAILABLE: '這一包目前不開放預約，回上一頁看看其他款。',
-  OUTSIDE_SALE_WINDOW: '這一包還不在開賣時段內，請稍後再試。',
-  USER_BLOCKED: '這個帳號目前被暫停預約（未到店取貨次數過多）。',
-  ALREADY_RESERVED: '這一包你已經預約過了。',
-}
-
-function reserveErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.isOffline) {
-    return '沒有網路連線，預約沒有送出。請確認網路後再試一次。'
-  }
-  const code = error instanceof ApiError ? error.code : undefined
-  if (code && RESERVE_ERRORS[code]) return RESERVE_ERRORS[code]
-  return apiErrorMessage(error) ?? '預約沒有成功，請稍後再試一次。'
-}
+import { useWebviewNavigation } from '../useWebviewNavigation'
 
 /**
  * Step four: confirm and pay.
@@ -34,53 +18,62 @@ function reserveErrorMessage(error: unknown): string {
  * this demo is asking to talk about rather than claiming to have finished.
  */
 export default function CheckoutPage() {
-  const navigate = useNavigate()
   const { boxId = '' } = useParams()
+  const { goBack, replaceTo } = useWebviewNavigation()
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<unknown>(null)
+  // State alone cannot stop two taps landing in the same frame; a ref closes that window,
+  // which matters more here than anywhere else in the flow.
+  const inFlight = useRef(false)
 
   const { data: box, error, loading, reload } = useAsync((signal) => getBox(boxId, signal), [boxId])
 
-  function goBack() {
-    navigate(`/easywallet/box/${boxId}`)
-  }
-
   async function confirm() {
-    if (submitting) return
+    if (inFlight.current) return
+    inFlight.current = true
     setSubmitting(true)
     setSubmitError(null)
     try {
       const reservation = await withSession(() => createReservation(boxId))
-      // replace: the ticket is the end of the flow, so Back from it returns to the listing
-      // rather than re-entering checkout and risking a second reservation.
-      navigate(`/easywallet/ticket/${reservation.id}`, { replace: true })
+      // replace: the ticket ends the flow, so Back from it returns to the listing instead of
+      // re-entering checkout and risking a second reservation.
+      replaceTo(`/easywallet/ticket/${reservation.id}`)
     } catch (reserveError) {
       setSubmitError(reserveError)
       setSubmitting(false)
+      inFlight.current = false
     }
   }
 
+  const backToDetail = () => goBack(`/easywallet/box/${boxId}`)
+
   if (loading && !box) {
     return (
-      <Screen title="確認預約" onBack={goBack}>
+      <Screen title="確認預約" onBack={backToDetail}>
         <LoadingState />
       </Screen>
     )
   }
 
-  if (error && !box) {
-    return (
-      <Screen title="確認預約" onBack={goBack}>
-        <ErrorState error={error} onRetry={reload} />
-      </Screen>
-    )
-  }
-
   if (!box) {
+    if (error && !isMissing(error)) {
+      return (
+        <Screen title="確認預約" onBack={backToDetail}>
+          <ErrorState error={error} onRetry={reload} />
+        </Screen>
+      )
+    }
     return (
-      <Screen title="確認預約" onBack={goBack}>
-        <EmptyState title="找不到這個鮮款包">
-          <button type="button" className="ew-button" onClick={goBack}>
+      <Screen title="確認預約" onBack={backToDetail}>
+        <EmptyState
+          title={errorCode(error) === 'BOX_NOT_ELIGIBLE' ? '這一包無法預約' : '找不到這個鮮款包'}
+          body={
+            errorCode(error) === 'BOX_NOT_ELIGIBLE'
+              ? '這一包只開放給特定顧客，這個帳號不符合資格。'
+              : '它可能已經下架了，回上一頁看看其他款。'
+          }
+        >
+          <button type="button" className="ew-button" onClick={backToDetail}>
             回上一頁
           </button>
         </EmptyState>
@@ -88,19 +81,18 @@ export default function CheckoutPage() {
     )
   }
 
-  const available = isReservable(box.status)
-  const pickup = formatPickupWindow(box.pickupTimeStart, box.pickupTimeEnd)
+  const blocked = !isReservable(box.status) || isTerminalReserveError(submitError)
 
   return (
     <Screen
       title="確認預約"
-      onBack={goBack}
+      onBack={backToDetail}
       footer={
         <button
           type="button"
           className="ew-button"
           onClick={confirm}
-          disabled={submitting || !available}
+          disabled={submitting || blocked}
         >
           {submitting ? '預約中…' : `確認預約・${formatPrice(box.discountedPrice)}`}
         </button>
@@ -121,7 +113,7 @@ export default function CheckoutPage() {
           <span className="ew-inforow-label" style={{ flex: 'none' }}>
             取貨時段
           </span>
-          <span>今天 {pickup || '請洽店家'}</span>
+          <span>今天 {formatPickupWindow(box.pickupTimeStart, box.pickupTimeEnd) || '請洽店家'}</span>
         </div>
         <div className="ew-summaryrow ew-summaryrow-total">
           <span>應付金額</span>
@@ -149,7 +141,7 @@ export default function CheckoutPage() {
         </div>
       </section>
 
-      {!available && (
+      {!isReservable(box.status) && (
         <p className="ew-note" style={{ color: 'var(--ew-danger)' }}>
           這一包目前無法預約，請回上一頁看看其他款。
         </p>

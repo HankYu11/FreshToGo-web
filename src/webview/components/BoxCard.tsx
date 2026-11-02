@@ -53,11 +53,26 @@ export default function BoxCard({
   const available = isReservable(box.status)
   const pickup = formatPickupWindow(box.pickupTimeStart, box.pickupTimeEnd)
 
+  // The card's text nodes concatenate into one run-on string for a screen reader
+  // ("剩 4 份省66%…"), so the button states its own name in the order it would be read.
+  const label = [
+    box.storeName,
+    box.name,
+    categoryLabel(box.category),
+    formatPrice(box.discountedPrice),
+    pickup && `取貨 ${pickup}`,
+    `出站往${direction}步行約 ${walkMinutes} 分`,
+    pill?.label,
+  ]
+    .filter(Boolean)
+    .join('，')
+
   return (
     <button
       type="button"
       className={`ew-card ${available ? '' : 'ew-card-unavailable'}`}
       onClick={onSelect}
+      aria-label={label}
     >
       <span className="ew-card-media">
         {box.imageUrl ? (

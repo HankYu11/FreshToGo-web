@@ -41,11 +41,14 @@ export function formatPickupWindowUtc(
       timeZone,
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false,
+      // hourCycle, not hour12: false — some ICU builds read that as h24 and print midnight
+      // as "24:00". h23 names the cycle we actually want.
+      hourCycle: 'h23',
     })
     return `${time.format(start)} – ${time.format(end)}`
   } catch {
-    // An unknown IANA zone throws; fall back to the device's own.
+    // An unknown IANA zone throws. The caller falls back to the box's own "HH:mm" strings,
+    // which are already merchant-local, so returning nothing here is the right answer.
     return ''
   }
 }
@@ -54,15 +57,17 @@ export function formatPickupWindowUtc(
 export function formatPickupDate(startUtc: string | null, timeZone: string): string {
   const start = parseUtc(startUtc)
   if (!start) return ''
+  const options: Intl.DateTimeFormatOptions = {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  }
   try {
-    return new Intl.DateTimeFormat('zh-TW', {
-      timeZone,
-      month: 'long',
-      day: 'numeric',
-      weekday: 'short',
-    }).format(start)
+    return new Intl.DateTimeFormat('zh-TW', { ...options, timeZone }).format(start)
   } catch {
-    return ''
+    // An unrecognised IANA zone throws. The date is still worth showing, so fall back to the
+    // device's own zone rather than dropping it — the hours beside it come from the box.
+    return new Intl.DateTimeFormat('zh-TW', options).format(start)
   }
 }
 

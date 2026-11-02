@@ -60,3 +60,26 @@ export function countsByStation(boxes: Box[], stations: Station[]): Record<strin
   }
   return counts
 }
+
+/**
+ * How far the store is from the chosen station.
+ *
+ * Null when either end has no coordinates, and null again when the store is outside the
+ * station's radius — reached by opening a listing from one station while another is the saved
+ * one. "出站步行 31 分" is not a walk anybody is making, and printing it invites the question.
+ */
+export function describeWalk(
+  station: Station | undefined,
+  latitude: number | null,
+  longitude: number | null,
+) {
+  if (!station || latitude === null || longitude === null) return null
+  const meters = distanceMeters(station, { latitude, longitude })
+  if (meters > STATION_RADIUS_M) return null
+  return {
+    minutes: walkingMinutes(meters),
+    direction: compassDirection(station, { latitude, longitude }),
+    // Rounding to 10 m would print "約 0 公尺" for a store on top of the station.
+    meters: Math.max(10, Math.round(meters / 10) * 10),
+  }
+}

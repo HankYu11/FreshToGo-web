@@ -26,6 +26,31 @@
   font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+  /* A slow tap on a card otherwise raises the native selection loupe and callout bar. Text
+     worth copying — the pickup code, the store address — opts back in below. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ew-ticket-code,
+.ew-ticket-order,
+.ew-inforow-value {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Long-pressing an image in a webview otherwise offers to save or share it. */
+.ew-root img {
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
+/* index.css clears the outline on every button for the marketing pages; inside the flow a
+   keyboard or switch user still needs to see where they are. */
+.ew-root :focus-visible {
+  outline: 2px solid var(--ew-brand);
+  outline-offset: 2px;
+  border-radius: 10px;
 }
 
 /* ── Screen scaffold ─────────────────────────────────────────────── */
@@ -161,7 +186,7 @@
   background: none;
   color: var(--ew-brand);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   width: auto;
 }
 
@@ -186,7 +211,7 @@
 
 .ew-brandchip-name {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.02em;
 }
 
@@ -200,7 +225,7 @@
 
 .ew-h1 {
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1.35;
   letter-spacing: -0.01em;
 }
@@ -341,7 +366,7 @@
   width: 100%;
   height: 100%;
   font-size: 34px;
-  font-weight: 800;
+  font-weight: 900;
   color: #c9a05a;
 }
 
@@ -372,7 +397,7 @@
   border-radius: 999px;
   background: var(--ew-grain);
   color: #4a3208;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .ew-medallion-num {
@@ -394,7 +419,7 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--ew-ink-soft);
 }
 
@@ -413,7 +438,7 @@
   justify-content: center;
   color: var(--ew-brand);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .ew-card-name {
@@ -469,7 +494,7 @@
 .ew-price {
   display: inline-block;
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 900;
   color: var(--ew-brand);
   letter-spacing: -0.01em;
 }
@@ -587,7 +612,7 @@
   background: var(--ew-grain);
   color: #4a3208;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.04em;
 }
 
@@ -607,7 +632,7 @@
   margin-top: 4px;
   border-top: 1px solid var(--ew-line);
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .ew-summaryrow-total .ew-price {
@@ -666,6 +691,20 @@
   text-align: center;
 }
 
+/* A collected, cancelled or expired ticket: still readable, visibly not a live voucher. */
+.ew-ticket-spent {
+  background: var(--ew-ground);
+}
+
+.ew-ticket-spent .ew-ticket-kicker {
+  color: var(--ew-ink-faint);
+}
+
+.ew-ticket-spent .ew-ticket-code {
+  color: var(--ew-ink-faint);
+  text-decoration: line-through;
+}
+
 .ew-ticket-kicker {
   font-size: 13px;
   font-weight: 700;
@@ -676,7 +715,7 @@
 .ew-ticket-code {
   margin-top: 10px;
   font-size: 38px;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.16em;
   /* The code is read aloud and typed in by hand; tabular digits keep it from wobbling. */
   font-variant-numeric: tabular-nums;
@@ -689,9 +728,8 @@
   margin-top: 18px;
 }
 
+/* The component sets the canvas's CSS size inline (it draws at device pixel density). */
 .ew-ticket-qr canvas {
-  width: 200px;
-  height: 200px;
   border-radius: 10px;
 }
 
@@ -706,6 +744,16 @@
   margin-top: 6px;
   font-size: 12px;
   color: var(--ew-ink-faint);
+}
+
+.ew-inlineretry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
 }
 
 /* ── States: loading, empty, error ───────────────────────────────── */

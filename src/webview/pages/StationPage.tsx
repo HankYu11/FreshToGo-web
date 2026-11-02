@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom'
 import { listBoxes } from '../../api'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
@@ -7,6 +6,7 @@ import { countsByStation } from '../nearby'
 import { readStationPreference, writeStationPreference } from '../stationPreference'
 import { STATIONS } from '../stations'
 import { useAsync } from '../useAsync'
+import { useWebviewNavigation } from '../useWebviewNavigation'
 
 /** MRT line colours, for the pips under a station name. */
 const LINE_COLORS: Record<string, string> = {
@@ -22,7 +22,7 @@ const LINE_COLORS: Record<string, string> = {
  * is anything to collect — the question a commuter actually has before they tap anything.
  */
 export default function StationPage() {
-  const navigate = useNavigate()
+  const { goTo } = useWebviewNavigation()
   const current = readStationPreference()
   const { data: boxes, error, loading, reload } = useAsync((signal) => listBoxes(signal), [])
 
@@ -34,7 +34,7 @@ export default function StationPage() {
 
   function choose(stationId: string) {
     writeStationPreference(stationId)
-    navigate(`/easywallet/station/${stationId}`)
+    goTo(`/easywallet/station/${stationId}`)
   }
 
   function stationMeta(stationId: string) {
@@ -92,12 +92,12 @@ export default function StationPage() {
       </ul>
 
       {countsFailed && (
-        <p className="ew-note" role="status">
-          目前讀不到今天的數量
+        <div className="ew-inlineretry" role="status">
+          <span>目前讀不到今天的數量</span>
           <button type="button" className="ew-button-quiet" onClick={reload}>
             重試
           </button>
-        </p>
+        </div>
       )}
 
       <div className="ew-section">

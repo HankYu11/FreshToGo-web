@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { isReservable, listBoxes } from '../../api'
 import BoxCard from '../components/BoxCard'
 import Screen from '../components/Screen'
@@ -7,6 +7,7 @@ import { boxesNearStation, countsByStation } from '../nearby'
 import { writeStationPreference } from '../stationPreference'
 import { STATIONS, STATION_RADIUS_M, findStation } from '../stations'
 import { useAsync } from '../useAsync'
+import { useWebviewNavigation } from '../useWebviewNavigation'
 
 /**
  * Step two: what can be collected around this station tonight.
@@ -17,21 +18,17 @@ import { useAsync } from '../useAsync'
  * station and a station whose packs have gone are different things to a commuter.
  */
 export default function BoxListPage() {
-  const navigate = useNavigate()
   const { stationId = '' } = useParams()
+  const { goBack, goTo, replaceTo } = useWebviewNavigation()
   const station = findStation(stationId)
 
   const { data: boxes, error, loading, reload } = useAsync((signal) => listBoxes(signal), [])
 
   if (!station) {
     return (
-      <Screen title="鮮款款" onBack={() => navigate('/easywallet', { replace: true })}>
+      <Screen title="鮮款款" onBack={() => replaceTo('/easywallet')}>
         <EmptyState title="找不到這一站" body="請回到上一頁重新選擇下車站。">
-          <button
-            type="button"
-            className="ew-button"
-            onClick={() => navigate('/easywallet', { replace: true })}
-          >
+          <button type="button" className="ew-button" onClick={() => replaceTo('/easywallet')}>
             重新選擇
           </button>
         </EmptyState>
@@ -46,19 +43,20 @@ export default function BoxListPage() {
     ? STATIONS.filter((other) => other.id !== station.id && counts[other.id] > 0)
     : []
 
+  /** A deliberate move to the picker — pushes, so Back returns to this list. */
   function changeStation() {
-    navigate('/easywallet')
+    goTo('/easywallet')
   }
 
   function openStation(id: string) {
     writeStationPreference(id)
-    navigate(`/easywallet/station/${id}`, { replace: true })
+    replaceTo(`/easywallet/station/${id}`)
   }
 
   return (
     <Screen
       title={`${station.fullName}附近`}
-      onBack={changeStation}
+      onBack={() => goBack('/easywallet')}
       action={
         <button type="button" className="ew-button-quiet" onClick={changeStation}>
           換站
@@ -100,7 +98,7 @@ export default function BoxListPage() {
               <BoxCard
                 key={item.box.id}
                 nearby={item}
-                onSelect={() => navigate(`/easywallet/box/${item.box.id}`)}
+                onSelect={() => goTo(`/easywallet/box/${item.box.id}`)}
               />
             ))}
           </div>

@@ -1,5 +1,6 @@
 import { api } from './client'
 import { BASE_URL } from './config'
+import { ensureSessionQuietly } from './session'
 import type { components } from '../types/api-schema'
 
 type BoxResponse = components['schemas']['MysteryBoxResponse']
@@ -84,17 +85,28 @@ export function toBox(raw: BoxResponse): Box | null {
   }
 }
 
-/** Every listing on sale today, across all stores. Public — no session needed. */
+/**
+ * Every listing on sale today, across all stores.
+ *
+ * Unauthenticated, but eligibility-aware: with a consumer token the server returns the listings
+ * that consumer may actually buy, and without one only the unrestricted ones. It never answers
+ * 401, so a session that cannot be opened just means an anonymous — and possibly shorter — list.
+ */
 export async function listBoxes(signal?: AbortSignal): Promise<Box[]> {
-  const res = await api.get<ApiResponse<BoxResponse[]>>('/api/boxes', { signal })
+  await ensureSessionQuietly()
+  const res = await api.get<ApiResponse<BoxResponse[]>>('/api/boxes', { auth: true, signal })
   return (res.data ?? []).map(toBox).filter((box): box is Box => box !== null)
 }
 
-/** One listing by id. Public — no session needed. */
+/**
+ * One listing by id. Eligibility-aware in the same way as [listBoxes], except that a listing
+ * the caller may not buy answers 403 BOX_NOT_ELIGIBLE rather than going missing.
+ */
 export async function getBox(id: string, signal?: AbortSignal): Promise<Box | null> {
+  await ensureSessionQuietly()
   const res = await api.get<ApiResponse<BoxResponse>>(
     `/api/boxes/${encodeURIComponent(id)}`,
-    { signal },
+    { auth: true, signal },
   )
   return res.data ? toBox(res.data) : null
 }

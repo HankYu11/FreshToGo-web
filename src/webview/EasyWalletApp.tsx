@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import ScrollToTop from './components/ScrollToTop'
 import BoxDetailPage from './pages/BoxDetailPage'
 import BoxListPage from './pages/BoxListPage'
 import CheckoutPage from './pages/CheckoutPage'
@@ -24,14 +25,22 @@ export default function EasyWalletApp() {
     const previousBackground = document.body.style.backgroundColor
     document.body.style.backgroundColor = '#f6f8f7'
 
+    // index.css sets `html { scroll-behavior: smooth }` for the marketing page's anchor links.
+    // Inside the flow that animates every screen transition, which reads as a web page.
+    const root = document.documentElement
+    const previousScrollBehavior = root.style.scrollBehavior
+    root.style.scrollBehavior = 'auto'
+
     return () => {
       document.title = previousTitle
       document.body.style.backgroundColor = previousBackground
+      root.style.scrollBehavior = previousScrollBehavior
     }
   }, [])
 
   return (
     <div className="ew-root">
+      <ScrollToTop />
       <Routes>
         <Route index element={<StationPage />} />
         <Route path="station/:stationId" element={<BoxListPage />} />
