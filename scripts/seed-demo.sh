@@ -19,6 +19,8 @@
 #   ADMIN_PASSWORD=...
 #   MERCHANT_PASSWORD=...  # the password given to every demo store this script creates
 #
+# It only ever creates stores and today's packs. It does not touch any consumer account.
+#
 # It refuses to run against anything but the dev API. Never point BASE_URL at production.
 set -euo pipefail
 
@@ -102,8 +104,6 @@ ROWS
 # every listing and leave the demo empty. Opening at 00:00 means a pack is never BEFORE_SALE,
 # and the pickup windows above run to 21:30-22:30 so an evening rehearsal still has something
 # to reserve.
-DEMO_ACCESS_TOKEN="DEMO_ACCESS_TOKEN"
-
 SALE_START="00:00"
 TODAY="$(TZ=Asia/Taipei date +%Y-%m-%d)"
 
@@ -176,43 +176,10 @@ while IFS='|' read -r email name address lat lng category pack original discount
   esac
 done <<<"$STORES"
 
-# ── Clear the demo consumer ────────────────────────────────────────────────
-# Everyone who opens /easywallet is the SAME consumer, and the backend allows one active
-# reservation per pack per consumer. So a dry run in the morning makes that pack answer 409
-# RESERVATION_ALREADY_EXISTS when it is tapped in the meeting — and the webview has no orders
-# screen to reach the earlier ticket from. Cancelling here also returns the stock, which a
-# re-run of this script would otherwise leave sold out.
-section "Releasing the demo consumer's open orders"
-res=$(api POST /api/user/line/verify-token "" "$(jq -nc --arg t "$DEMO_ACCESS_TOKEN" '{lineAccessToken:$t}')")
-if [ "$(code "$res")" != "200" ]; then
-  fail "FAILED   demo login: $(body "$res")"
-else
-  demo_token=$(body "$res" | jq -r '.data.accessToken')
-  res=$(api GET "/api/reservations?active=true" "$demo_token")
-  if [ "$(code "$res")" != "200" ]; then
-    fail "FAILED   listing demo orders: $(body "$res")"
-  else
-    open_ids=$(body "$res" | jq -r '.data[]?.id')
-    if [ -z "$open_ids" ]; then
-      log "none open"
-    else
-      while read -r rid; do
-        [ -z "$rid" ] && continue
-        res=$(api DELETE "/api/reservations/$rid" "$demo_token")
-        case "$(code "$res")" in
-          200|204) log "cancelled $rid" ;;
-          *)       fail "FAILED   cancelling $rid — $(body "$res")" ;;
-        esac
-      done <<<"$open_ids"
-    fi
-  fi
-fi
-
-# Three un-collected reservations block the account from reserving at all. The cancellations
-# above stop new ones accruing; this clears whatever earlier runs already left behind.
-section "Clearing the demo consumer's no-show state"
-res=$(api POST /api/test/users/demo/reset-no-shows "" "")
-[ "$(code "$res")" = "200" ] && log "ok" || log "skipped — $(body "$res")"
+# The webview mints a fresh consumer per session (see src/api/session.ts), so there is nothing
+# to clean up here: no order history to clear, no 409 from a rehearsal, no no-show block. The
+# shared demo consumer belongs to the Android E2E suite now, and this script deliberately does
+# not touch it.
 
 section "What the demo will show"
 list_today

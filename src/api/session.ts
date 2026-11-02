@@ -9,11 +9,31 @@ interface ApiResponse<T> {
 }
 
 /**
- * The dev backend's demo-login escape hatch. `AuthService` short-circuits this exact string
- * to a shared demo consumer instead of calling LINE, and only when `KTOR_DEVELOPMENT=true`
- * — production never mounts it, so this cannot authenticate anything real.
+ * The dev backend's demo-login escape hatch. `AuthService` short-circuits these exact strings
+ * instead of calling LINE, and only when `KTOR_DEVELOPMENT=true` — production never mounts the
+ * branch, so neither can authenticate anything real.
+ *
+ * We mint a FRESH member rather than reusing the shared demo consumer. That consumer is also
+ * the Android E2E suite's, so its order history is full of fixtures — `E2E-CancelTarget`,
+ * `E2E eligibility history` — and the orders screen would show them to whoever is being shown
+ * this. A new member is both cleaner and a truer picture of the thing being proposed: someone
+ * opening this from their wallet for the first time, with nothing to set up.
+ *
+ * It also sidesteps two traps the shared account carries: one active reservation per pack per
+ * consumer (so a rehearsal makes the real run fail with 409), and a three-strike no-show block.
+ *
+ * Swap to SHARED_CONSUMER to demo against that account's accumulated history instead.
  */
-const DEMO_ACCESS_TOKEN = 'DEMO_ACCESS_TOKEN'
+const FRESH_CONSUMER = 'DEMO_NEW_USER_ACCESS_TOKEN'
+const SHARED_CONSUMER = 'DEMO_ACCESS_TOKEN'
+void SHARED_CONSUMER
+
+/**
+ * Display names the dev backend gives its stand-in accounts. The host app would supply the
+ * member's real name; showing the backend's test placeholder instead just looks like leaked
+ * test data, so the UI falls back to its own label.
+ */
+const PLACEHOLDER_NAMES = new Set(['E2E User', 'E2E Tester', 'Demo User'])
 
 const STORAGE_KEY = 'freshtogo.ew.session'
 
@@ -69,14 +89,15 @@ function store(session: Session | null) {
 function login(): Promise<Session> {
   pendingLogin ??= (async () => {
     const res = await api.post<ApiResponse<SessionInfo>>('/api/user/line/verify-token', {
-      lineAccessToken: DEMO_ACCESS_TOKEN,
+      lineAccessToken: FRESH_CONSUMER,
     })
     const accessToken = res.data?.accessToken
     if (!accessToken) throw new ApiError(502, 'Session response carried no access token')
 
+    const name = res.data?.user?.displayName ?? ''
     const session: Session = {
       accessToken,
-      displayName: res.data?.user?.displayName ?? '',
+      displayName: PLACEHOLDER_NAMES.has(name) ? '' : name,
     }
     current = session
     setAuthToken(accessToken)
