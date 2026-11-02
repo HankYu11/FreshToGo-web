@@ -58,6 +58,9 @@ code() { tail -n1 <<<"$1"; }
 body() { sed '$d' <<<"$1"; }
 
 # ── The demo's stores ──────────────────────────────────────────────────────
+# THE STORE NAMES AND ADDRESSES BELOW ARE INVENTED. They exist to give the demo something
+# plausible near each station; none of them is a real pilot merchant. Swap in real stores
+# before this is shown as anything but an illustration.
 # Coordinates are within ~400 m of each station, so the walking estimate the UI shows
 # (straight line × 1.3 ÷ 80 m per minute) lands in the 2–7 minute range the pitch describes.
 # email|store name|address|lat|lng|category|pack name|originalPrice|discountedPrice|quantity
@@ -80,6 +83,18 @@ PICKUP_START="17:30"
 PICKUP_END="21:00"
 TODAY="$(date +%Y-%m-%d)"
 
+# ── Check: a public endpoint, so this runs before any credential is needed ──
+if [ "$MODE" = "check" ]; then
+  section "Today's listings on $BASE_URL"
+  res=$(api GET /api/boxes "" )
+  body "$res" | jq -r '
+    .data
+    | if length == 0 then "  (none — run scripts/seed-demo.sh)"
+      else .[] | "  \(.storeName) — \(.name) — \(.status) — 剩 \(.remainingCount) — 取貨 \(.pickupTimeStart)-\(.pickupTimeEnd)"
+      end'
+  exit 0
+fi
+
 # ── Admin session ──────────────────────────────────────────────────────────
 : "${ADMIN_EMAIL:?set ADMIN_EMAIL in scripts/.demo-seed.env}"
 : "${ADMIN_PASSWORD:?set ADMIN_PASSWORD in scripts/.demo-seed.env}"
@@ -90,16 +105,6 @@ res=$(api POST /api/admin/login "" "$(jq -nc --arg e "$ADMIN_EMAIL" --arg p "$AD
 [ "$(code "$res")" = "200" ] || { echo "Admin login failed: $(body "$res")" >&2; exit 1; }
 ADMIN_TOKEN=$(body "$res" | jq -r '.data.accessToken')
 log "ok"
-
-if [ "$MODE" = "check" ]; then
-  section "Today's listings on $BASE_URL"
-  api GET /api/boxes "" | body | jq -r '
-    .data
-    | if length == 0 then "  (none — run scripts/seed-demo.sh)"
-      else .[] | "  \(.storeName) — \(.name) — \(.status) — 剩 \(.remainingCount) — 取貨 \(.pickupTimeStart)-\(.pickupTimeEnd)"
-      end'
-  exit 0
-fi
 
 # ── Stores ─────────────────────────────────────────────────────────────────
 section "Stores"
@@ -131,7 +136,8 @@ while IFS='|' read -r email name address lat lng category pack original discount
   token=$(body "$res" | jq -r '.data.accessToken')
 
   # Already listed today? Leave it — re-running must not double the stock.
-  existing=$(api GET /api/merchant/boxes "$token" | body | jq -r --arg p "$pack" --arg d "$TODAY" \
+  res=$(api GET /api/merchant/boxes "$token")
+  existing=$(body "$res" | jq -r --arg p "$pack" --arg d "$TODAY" \
     '[.data[]? | select(.name == $p and .saleDate == $d)] | length')
   if [ "${existing:-0}" != "0" ]; then
     log "exists   $name — $pack"
