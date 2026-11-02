@@ -30,7 +30,10 @@ export function useWebviewNavigation() {
   const goTo = useCallback((to: string) => navigate(to), [navigate])
 
   /** Swap the current screen out, so Back skips over it. */
-  const replaceTo = useCallback((to: string) => navigate(to, { replace: true }), [navigate])
+  const replaceTo = useCallback(
+    (to: string, state?: unknown) => navigate(to, { replace: true, state }),
+    [navigate],
+  )
 
   /**
    * Pop several entries at once, for a screen that ends a flow.

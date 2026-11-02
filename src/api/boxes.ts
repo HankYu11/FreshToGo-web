@@ -48,8 +48,8 @@ export function isReservable(status: BoxStatus) {
   return status === 'AVAILABLE' || status === 'ALMOST_SOLD_OUT'
 }
 
-/** `resolvedImageUrl` can be a server-relative path (`/uploads/...`); make it absolute. */
-function absoluteImageUrl(url: string | null | undefined): string | null {
+/** An image URL from the API can be a server-relative path (`/uploads/...`); make it absolute. */
+export function absoluteImageUrl(url: string | null | undefined): string | null {
   if (!url) return null
   if (/^https?:\/\//i.test(url)) return url
   return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`

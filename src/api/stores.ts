@@ -1,5 +1,5 @@
 import { api } from './client'
-import { toBox, type Box } from './boxes'
+import { absoluteImageUrl, toBox, type Box } from './boxes'
 import { ensureSessionQuietly } from './session'
 import type { components } from '../types/api-schema'
 
@@ -48,7 +48,7 @@ export async function getStoreProfile(
     storeAddress: data.storeAddress ?? '',
     storeLatitude: data.storeLatitude ?? null,
     storeLongitude: data.storeLongitude ?? null,
-    logoUrl: data.logoUrl ?? null,
+    logoUrl: absoluteImageUrl(data.logoUrl),
     bio: data.bio ?? null,
     story: data.story ?? null,
     businessHours: data.businessHours ?? null,

@@ -23,6 +23,11 @@ export default function TabBar() {
           key={to}
           to={to}
           end={end}
+          // replace, not push: the three sections sit side by side, so switching between them
+          // must not build a trail for the phone's back gesture to walk back through. Someone
+          // who taps around the tabs and then uses the host's back expects to leave 鮮款款,
+          // not to retrace six tab switches.
+          replace
           className={({ isActive }) => `ew-tab ${isActive ? 'ew-tab-active' : ''}`}
         >
           {({ isActive }) => (

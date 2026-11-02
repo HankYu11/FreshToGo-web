@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { getReservation, withSession, type Reservation } from '../../api'
 import QrCode from '../components/QrCode'
 import Screen from '../components/Screen'
@@ -56,6 +56,7 @@ function presentation(reservation: Reservation) {
 export default function TicketPage() {
   const { reservationId = '' } = useParams()
   const { goBackBy } = useWebviewNavigation()
+  const { state } = useLocation()
   const station = currentStation()
 
   const {
@@ -65,10 +66,16 @@ export default function TicketPage() {
     reload,
   } = useAsync((signal) => withSession(() => getReservation(reservationId, signal)), [reservationId])
 
-  // Two entries back is the station list: checkout was replaced by this ticket, and the pack's
-  // detail screen sits under it. A ticket opened by a deep link has nothing to pop, so it
-  // falls back to the list by name.
-  const done = () => goBackBy(2, '/easywallet')
+  /**
+   * How far back the way out is depends on how the ticket was reached.
+   *
+   * From checkout it is two: checkout was replaced by this ticket, and the pack's detail screen
+   * sits under that. From the orders list it is one, and popping two would overshoot the list
+   * entirely — out of the flow, and out of the webview when the list was the first screen.
+   * A ticket opened by a deep link has nothing to pop and falls back to the home feed.
+   */
+  const cameFromCheckout = (state as { from?: string } | null)?.from === 'checkout'
+  const done = () => goBackBy(cameFromCheckout ? 2 : 1, '/easywallet')
 
   if (loading && !reservation) {
     return (

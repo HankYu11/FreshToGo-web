@@ -19,7 +19,13 @@ export interface NearbyBox {
   direction: string
 }
 
-/** Place one listing relative to a station, however far away it turns out to be. */
+/**
+ * Place one listing relative to a station, however far away it turns out to be.
+ *
+ * Beyond [STATION_RADIUS_M] the direction is cleared and the card drops the walk line, on the
+ * same reasoning as [describeWalk]: a store reached from a different station is not one anybody
+ * is walking to from this one, and "出站往東北步行約 38 分" only invites the question.
+ */
 export function toNearby(box: Box, station: Station): NearbyBox {
   const { storeLatitude: latitude, storeLongitude: longitude } = box
   if (latitude === null || longitude === null) {
@@ -27,6 +33,9 @@ export function toNearby(box: Box, station: Station): NearbyBox {
   }
   const to = { latitude, longitude }
   const meters = distanceMeters(station, to)
+  if (meters > STATION_RADIUS_M) {
+    return { box, meters, walkMinutes: 0, direction: '' }
+  }
   return {
     box,
     meters,

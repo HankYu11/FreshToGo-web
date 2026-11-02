@@ -20,9 +20,10 @@ interface ScreenProps {
 /**
  * The frame every screen in the flow sits in.
  *
- * Deliberately minimal chrome: one 48×48 back control and a title. There is no bottom tab bar
- * and no brand header, because in the real integration the wallet app's own chrome is directly
- * above this and a second navigation layer would read as a separate app bolted on.
+ * Deliberately minimal chrome at the top: one 48×48 back control and a title, and no brand
+ * header — in the real integration the wallet app's own chrome sits directly above this, and a
+ * second header would read as a separate app bolted on. The bottom navigation is a different
+ * matter: it is this product's own, carried by the three top-level sections via `tab`.
  */
 export default function Screen({
   title,

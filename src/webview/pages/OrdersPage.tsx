@@ -60,7 +60,7 @@ function OrderRow({ reservation, onOpen }: { reservation: Reservation; onOpen: (
  * rehearsal left the pitch with a 409 and nowhere to show the code it already had.
  */
 export default function OrdersPage() {
-  const { goTo } = useWebviewNavigation()
+  const { goTo, replaceTo } = useWebviewNavigation()
   const {
     data: orders,
     error,
@@ -79,7 +79,8 @@ export default function OrdersPage() {
         <ErrorState error={error} onRetry={reload} />
       ) : (orders ?? []).length === 0 ? (
         <EmptyState title="還沒有訂單" body="在「今日」挑一包，預約後取貨碼就會出現在這裡。">
-          <button type="button" className="ew-button" onClick={() => goTo('/easywallet')}>
+          {/* Going to the 今日 tab, so it replaces rather than stacking a tab on a tab. */}
+          <button type="button" className="ew-button" onClick={() => replaceTo('/easywallet')}>
             去看今天有什麼
           </button>
         </EmptyState>

@@ -1,7 +1,7 @@
-import { ensureSession, getImpactStats, getReservationStats, withSession } from '../../api'
+import { ensureSession, getReservationStats, withSession } from '../../api'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
-import { LeafIcon, PersonIcon } from '../components/icons'
+import { PersonIcon } from '../components/icons'
 import { ErrorState, LoadingState } from '../components/StateViews'
 import { currentStation } from '../stationPreference'
 import { useAsync } from '../useAsync'
@@ -12,7 +12,6 @@ interface ProfileData {
   boxesPurchased: number
   storesVisited: number
   completedPickups: number
-  platformBoxesSaved: number
 }
 
 /**
@@ -28,17 +27,12 @@ export default function ProfilePage() {
 
   const { data, error, loading, reload } = useAsync<ProfileData>(async (signal) => {
     const session = await ensureSession()
-    const [stats, impact] = await Promise.all([
-      withSession(() => getReservationStats(signal)),
-      // Public, and not worth failing the screen over.
-      getImpactStats().catch(() => null),
-    ])
+    const stats = await withSession(() => getReservationStats(signal))
     return {
       displayName: session.displayName || '悠遊付會員',
       boxesPurchased: stats.boxesPurchased,
       storesVisited: stats.storesVisited,
       completedPickups: stats.completedPickups,
-      platformBoxesSaved: impact?.boxesSaved ?? 0,
     }
   }, [])
 
@@ -75,20 +69,12 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {data.platformBoxesSaved > 0 && (
-            <section className="ew-panel">
-              {/* One span, or flex makes each text node and the <strong> its own item and the
-                  sentence wraps in the wrong places. */}
-              <p className="ew-impact">
-                <LeafIcon size={18} />
-                <span>
-                  鮮款款上已經有 <strong>{data.platformBoxesSaved.toLocaleString('zh-TW')}</strong>{' '}
-                  份食物被帶走，而不是被丟掉。
-                </span>
-              </p>
-            </section>
-          )}
-
+          {/*
+            GET /api/stats/impact is deliberately not shown here. It counts the DEV database —
+            E2E runs and manual testing — and 「鮮款款上已經有 32 份食物被帶走」 under a member's
+            own numbers reads as production traction. A real figure belongs in the pitch, from
+            production, said by a person; a dev counter dressed as one is a claim nobody made.
+          */}
           <section className="ew-panel">
             <p className="ew-panel-title">設定</p>
             <button
@@ -103,7 +89,7 @@ export default function ProfilePage() {
 
           <div className="ew-section">
             <SimulationNote>
-              會員身分在正式版由悠遊付帶入。此處以開發環境的測試帳號模擬，因此這些數字來自該測試帳號。
+              會員身分在正式版由悠遊付帶入，不需要註冊。此處每次開啟會建立一個獨立的測試會員，所以上面的數字從零開始，是這次操作累積的。
             </SimulationNote>
           </div>
         </>

@@ -36,8 +36,9 @@ export default function CheckoutPage() {
     try {
       const reservation = await withSession(() => createReservation(boxId))
       // replace: the ticket ends the flow, so Back from it returns to the listing instead of
-      // re-entering checkout and risking a second reservation.
-      replaceTo(`/easywallet/ticket/${reservation.id}`)
+      // re-entering checkout and risking a second reservation. The ticket is told it came from
+      // here, because that decides how far back "回到列表" has to go.
+      replaceTo(`/easywallet/ticket/${reservation.id}`, { from: 'checkout' })
     } catch (reserveError) {
       setSubmitError(reserveError)
       setSubmitting(false)

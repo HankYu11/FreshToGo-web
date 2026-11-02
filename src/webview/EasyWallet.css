@@ -30,6 +30,9 @@
      worth copying — the pickup code, the store address — opts back in below. */
   -webkit-user-select: none;
   user-select: none;
+  /* The tabs are <a> elements; a long press on one otherwise raises iOS's link-preview sheet,
+     complete with the URL — the clearest possible tell that this is a web page. */
+  -webkit-touch-callout: none;
 }
 
 .ew-ticket-code,
