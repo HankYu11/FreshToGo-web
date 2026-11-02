@@ -16,11 +16,8 @@ interface ApiResponse<T> {
  * We mint a FRESH member rather than reusing the shared demo consumer. That consumer is also
  * the Android E2E suite's, so its order history is full of fixtures — `E2E-CancelTarget`,
  * `E2E eligibility history` — and the orders screen would show them to whoever is being shown
- * this. A new member is both cleaner and a truer picture of the thing being proposed: someone
- * opening this from their wallet for the first time, with nothing to set up.
- *
- * It also sidesteps two traps the shared account carries: one active reservation per pack per
- * consumer (so a rehearsal makes the real run fail with 409), and a three-strike no-show block.
+ * this. It also sidesteps two traps that account carries: one active reservation per pack per
+ * consumer, and a three-strike no-show block.
  *
  * Swap to SHARED_CONSUMER to demo against that account's accumulated history instead.
  */
@@ -35,22 +32,25 @@ void SHARED_CONSUMER
  */
 const PLACEHOLDER_NAMES = new Set(['E2E User', 'E2E Tester', 'Demo User'])
 
+/**
+ * localStorage, not sessionStorage.
+ *
+ * A wallet host can tear its webview down and rebuild it whenever it likes — switching apps,
+ * memory pressure, the user going back and returning. With a per-tab session that recreates the
+ * member, and the order placed a minute ago vanishes from 訂單 along with it. In front of
+ * somebody deciding whether this team can ship, that is the worst thirty seconds available.
+ *
+ * A real member persists, so this one does too: the refresh token is kept and spent on expiry,
+ * and a new member is minted only when there is genuinely nothing left to restore.
+ */
 const STORAGE_KEY = 'freshtogo.ew.session'
 
 export interface Session {
   accessToken: string
+  refreshToken: string
   displayName: string
 }
 
-/**
- * SIMULATED host-app identity.
- *
- * In the real integration the wallet host hands the webview a signed identity and no
- * sign-in screen is ever shown. There is no such handshake yet, so the demo stands in for it
- * with the dev backend's demo consumer: same shape (a session already exists when the page
- * opens, the user never authenticates), real reservations against the dev database. The UI
- * says so on screen — see `HostIdentityNote`.
- */
 let current: Session | null = null
 
 /**
@@ -64,13 +64,17 @@ let pendingLogin: Promise<Session> | null = null
 
 function readStored(): Session | null {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) return null
-    const { accessToken, displayName } = parsed as Partial<Session>
+    const { accessToken, refreshToken, displayName } = parsed as Partial<Session>
     if (typeof accessToken !== 'string' || !accessToken) return null
-    return { accessToken, displayName: typeof displayName === 'string' ? displayName : '' }
+    return {
+      accessToken,
+      refreshToken: typeof refreshToken === 'string' ? refreshToken : '',
+      displayName: typeof displayName === 'string' ? displayName : '',
+    }
   } catch {
     // Private mode, or a webview with storage disabled — fall back to logging in again.
     return null
@@ -79,11 +83,18 @@ function readStored(): Session | null {
 
 function store(session: Session | null) {
   try {
-    if (session) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session))
-    else sessionStorage.removeItem(STORAGE_KEY)
+    if (session) localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+    else localStorage.removeItem(STORAGE_KEY)
   } catch {
     // Storage is a convenience here; the in-memory session still works for this page view.
   }
+}
+
+function adopt(session: Session) {
+  current = session
+  setAuthToken(session.accessToken)
+  store(session)
+  return session
 }
 
 function login(): Promise<Session> {
@@ -95,14 +106,11 @@ function login(): Promise<Session> {
     if (!accessToken) throw new ApiError(502, 'Session response carried no access token')
 
     const name = res.data?.user?.displayName ?? ''
-    const session: Session = {
+    return adopt({
       accessToken,
+      refreshToken: res.data?.refreshToken ?? '',
       displayName: PLACEHOLDER_NAMES.has(name) ? '' : name,
-    }
-    current = session
-    setAuthToken(accessToken)
-    store(session)
-    return session
+    })
   })().finally(() => {
     pendingLogin = null
   })
@@ -110,7 +118,33 @@ function login(): Promise<Session> {
   return pendingLogin
 }
 
-/** Restore a session from this tab's storage, or open a new one. */
+/**
+ * Spend the refresh token for a new access token, keeping the same member.
+ *
+ * Returns null when there is nothing to spend or the backend refuses it, which is the caller's
+ * signal to start a new member rather than leave the screen stuck.
+ */
+async function refresh(): Promise<Session | null> {
+  const token = current?.refreshToken || readStored()?.refreshToken
+  if (!token) return null
+
+  try {
+    const res = await api.post<ApiResponse<{ accessToken?: string }>>('/api/user/refresh', {
+      refreshToken: token,
+    })
+    const accessToken = res.data?.accessToken
+    if (!accessToken) return null
+    return adopt({
+      accessToken,
+      refreshToken: token,
+      displayName: current?.displayName ?? readStored()?.displayName ?? '',
+    })
+  } catch {
+    return null
+  }
+}
+
+/** Restore a session from storage, or open a new one. */
 export async function ensureSession(): Promise<Session> {
   if (current) return current
 
@@ -142,24 +176,25 @@ export async function ensureSessionQuietly(): Promise<boolean> {
 }
 
 /**
- * Run an authenticated call, re-opening the session once if the token has expired.
+ * Run an authenticated call, restoring the session once if the token has expired.
  *
- * The access token lives an hour and there is no refresh flow here on purpose: the host app
- * will own token lifetime in the real integration, and a demo that silently re-opens a
- * session is the closest honest stand-in.
+ * The access token lives an hour. Refresh first, because that keeps the member — and with them
+ * their orders. Only when there is no refresh token, or the backend will not honour it, does
+ * this fall back to a new member, which is a worse outcome and never the first move.
  */
 export async function withSession<T>(call: () => Promise<T>): Promise<T> {
   await ensureSession()
   try {
     return await call()
   } catch (error) {
-    if (error instanceof ApiError && error.status === 401) {
-      current = null
-      store(null)
-      setAuthToken(null)
-      await login()
-      return call()
-    }
-    throw error
+    if (!(error instanceof ApiError) || error.status !== 401) throw error
+
+    if (await refresh()) return call()
+
+    current = null
+    store(null)
+    setAuthToken(null)
+    await login()
+    return call()
   }
 }

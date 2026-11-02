@@ -197,6 +197,9 @@ export function demoStore(merchantId: string) {
 // These ids do not exist on the backend, so the order lives in this tab only. Everything the
 // ticket needs is stored, and the pickup window is rebuilt in the merchant's own timezone.
 
+// localStorage for the same reason the session uses it: a wallet host can rebuild its webview
+// whenever it likes, and an order that disappears when it does is the worst thing this screen
+// can do in front of somebody.
 const ORDERS_KEY = 'freshtogo.ew.demoOrders'
 
 interface StoredOrder {
@@ -209,7 +212,7 @@ interface StoredOrder {
 
 function readOrders(): StoredOrder[] {
   try {
-    const raw = sessionStorage.getItem(ORDERS_KEY)
+    const raw = localStorage.getItem(ORDERS_KEY)
     const parsed: unknown = raw ? JSON.parse(raw) : []
     return Array.isArray(parsed) ? (parsed as StoredOrder[]) : []
   } catch {
@@ -219,7 +222,7 @@ function readOrders(): StoredOrder[] {
 
 function writeOrders(orders: StoredOrder[]) {
   try {
-    sessionStorage.setItem(ORDERS_KEY, JSON.stringify(orders))
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders))
   } catch {
     // Storage off in this webview: the order still works for this page view.
   }

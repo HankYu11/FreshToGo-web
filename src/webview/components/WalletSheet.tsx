@@ -20,7 +20,7 @@ const AUTHORISED_KEY = 'freshtogo.ew.walletAuthorised'
 
 function readAuthorised() {
   try {
-    return sessionStorage.getItem(AUTHORISED_KEY) === '1'
+    return localStorage.getItem(AUTHORISED_KEY) === '1'
   } catch {
     return false
   }
@@ -28,7 +28,7 @@ function readAuthorised() {
 
 function writeAuthorised() {
   try {
-    sessionStorage.setItem(AUTHORISED_KEY, '1')
+    localStorage.setItem(AUTHORISED_KEY, '1')
   } catch {
     // Nothing to do; the member is simply asked again.
   }

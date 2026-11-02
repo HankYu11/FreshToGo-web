@@ -5,13 +5,14 @@ const STORAGE_KEY = 'freshtogo.ew.station'
 /**
  * The station the commuter last got off at.
  *
- * Kept in sessionStorage, not a route parameter, so that a detail or ticket screen opened
- * directly still knows which station to measure the walk from. Storage can be unavailable in
- * a webview, so every access is guarded and a miss simply means no walking distance is shown.
+ * Kept in storage rather than a route parameter, so a detail or ticket screen opened directly
+ * still knows which station to measure the walk from — and in localStorage, so the choice
+ * survives the host rebuilding its webview. Storage can be unavailable there, so every access
+ * is guarded and a miss simply falls back to the first pilot station.
  */
 export function readStationPreference(): string | null {
   try {
-    return sessionStorage.getItem(STORAGE_KEY)
+    return localStorage.getItem(STORAGE_KEY)
   } catch {
     return null
   }
@@ -19,7 +20,7 @@ export function readStationPreference(): string | null {
 
 export function writeStationPreference(stationId: string) {
   try {
-    sessionStorage.setItem(STORAGE_KEY, stationId)
+    localStorage.setItem(STORAGE_KEY, stationId)
   } catch {
     // Nothing to do — the flow carries the station in the URL from here on.
   }
