@@ -7,6 +7,7 @@ import AccountDeletionPage from './pages/AccountDeletionPage'
 import MerchantApplicationPage from './pages/MerchantApplicationPage'
 import BoxLinkPage from './pages/BoxLinkPage'
 import KnockLinkPage from './pages/KnockLinkPage'
+import EasyWalletApp from './webview/EasyWalletApp'
 import { DEMO_ENABLED } from './demo/enabled'
 
 // Dev-only demo pages, loaded on demand and left out of the production bundle.
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/merchant-apply" element={<MerchantApplicationPage />} />
       <Route path="/box/:boxId" element={<BoxLinkPage />} />
       <Route path="/knock/:knockId" element={<KnockLinkPage />} />
+      <Route path="/easywallet/*" element={<EasyWalletApp />} />
       {demoPages && (
         <>
           <Route path="/demo" element={<Suspense fallback={null}><demoPages.Hub /></Suspense>} />

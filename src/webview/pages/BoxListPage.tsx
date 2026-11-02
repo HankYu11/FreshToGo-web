@@ -1,0 +1,112 @@
+import { useNavigate, useParams } from 'react-router-dom'
+import { isReservable, listBoxes } from '../../api/boxes'
+import BoxCard from '../components/BoxCard'
+import Screen from '../components/Screen'
+import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
+import { boxesNearStation, countsByStation } from '../nearby'
+import { writeStationPreference } from '../stationPreference'
+import { STATIONS, STATION_RADIUS_M, findStation } from '../stations'
+import { useAsync } from '../useAsync'
+
+/**
+ * Step two: what can be collected around this station tonight.
+ *
+ * Every listing for today arrives in one request and the station filter is applied here —
+ * there is no station-aware endpoint, and with a pilot this size one request is cheaper than
+ * three. Sold-out and not-yet-on-sale packs stay on the list, dimmed, because an empty-looking
+ * station and a station whose packs have gone are different things to a commuter.
+ */
+export default function BoxListPage() {
+  const navigate = useNavigate()
+  const { stationId = '' } = useParams()
+  const station = findStation(stationId)
+
+  const { data: boxes, error, loading, reload } = useAsync((signal) => listBoxes(signal), [])
+
+  if (!station) {
+    return (
+      <Screen title="鮮款款" onBack={() => navigate('/easywallet', { replace: true })}>
+        <EmptyState title="找不到這一站" body="請回到上一頁重新選擇下車站。">
+          <button
+            type="button"
+            className="ew-button"
+            onClick={() => navigate('/easywallet', { replace: true })}
+          >
+            重新選擇
+          </button>
+        </EmptyState>
+      </Screen>
+    )
+  }
+
+  const nearby = boxes ? boxesNearStation(boxes, station) : []
+  const reservable = nearby.filter((item) => isReservable(item.box.status)).length
+  const counts = boxes ? countsByStation(boxes, STATIONS) : null
+  const elsewhere = counts
+    ? STATIONS.filter((other) => other.id !== station.id && counts[other.id] > 0)
+    : []
+
+  function changeStation() {
+    navigate('/easywallet')
+  }
+
+  function openStation(id: string) {
+    writeStationPreference(id)
+    navigate(`/easywallet/station/${id}`, { replace: true })
+  }
+
+  return (
+    <Screen
+      title={`${station.name}站附近`}
+      onBack={changeStation}
+      action={
+        <button type="button" className="ew-button-quiet" onClick={changeStation}>
+          換站
+        </button>
+      }
+    >
+      {loading && !boxes ? (
+        <LoadingState label="正在查看這一站附近的鮮款包…" />
+      ) : error && !boxes ? (
+        <ErrorState error={error} onRetry={reload} />
+      ) : nearby.length === 0 ? (
+        <EmptyState
+          title={`${station.name}站今天還沒有鮮款包`}
+          body={`店家多在下班前上架，稍後再回來看看。${
+            elsewhere.length > 0 ? '其他站今天還有：' : ''
+          }`}
+        >
+          {elsewhere.map((other) => (
+            <button
+              key={other.id}
+              type="button"
+              className="ew-button ew-button-secondary"
+              onClick={() => openStation(other.id)}
+            >
+              {other.name}站・{counts?.[other.id]} 款
+            </button>
+          ))}
+          <button type="button" className="ew-button ew-button-secondary" onClick={reload}>
+            重新整理
+          </button>
+        </EmptyState>
+      ) : (
+        <>
+          <p className="ew-sub" style={{ marginTop: 0, marginBottom: 14 }}>
+            出站步行 {Math.round(STATION_RADIUS_M / 100) * 100} 公尺內・今天有{' '}
+            <strong>{reservable}</strong> 款可預約
+          </p>
+          <div className="ew-cardlist">
+            {nearby.map((item) => (
+              <BoxCard
+                key={item.box.id}
+                nearby={item}
+                onSelect={() => navigate(`/easywallet/box/${item.box.id}`)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </Screen>
+  )
+}

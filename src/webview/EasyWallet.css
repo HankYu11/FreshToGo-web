@@ -1,0 +1,788 @@
+/*
+ * Styles for the wallet-embedded consumer flow.
+ *
+ * Scoped under .ew-* so nothing here reaches the marketing pages. The flow is meant to look
+ * like a page inside somebody else's app: the host owns the chrome above us, so there is no
+ * brand bar pinned to the top and no global navigation — just a back control and the content.
+ */
+
+.ew-root {
+  --ew-ink: #1d2a29;
+  --ew-ink-soft: #5b6a68;
+  --ew-ink-faint: #8a9896;
+  --ew-line: #e4ebea;
+  --ew-surface: #ffffff;
+  --ew-ground: #f6f8f7;
+  --ew-brand: #336563;
+  --ew-brand-soft: #e6f2f1;
+  --ew-grain: #edb346;
+  --ew-grain-soft: #fbefd3;
+  --ew-danger: #b3261e;
+
+  min-height: 100dvh;
+  background: var(--ew-ground);
+  color: var(--ew-ink);
+  font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  /* A rubber-band at the end of our scroll must not chain into the host app's own scroller. */
+  overscroll-behavior-y: contain;
+}
+
+/* ── Screen scaffold ─────────────────────────────────────────────── */
+
+.ew-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.ew-appbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 0 4px;
+  padding-top: env(safe-area-inset-top);
+  background: var(--ew-surface);
+  border-bottom: 1px solid var(--ew-line);
+}
+
+.ew-appbar-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Keeps the title optically centred when only one side carries a control. */
+.ew-appbar-slot {
+  flex: 0 0 auto;
+  min-width: 48px;
+  display: flex;
+  justify-content: center;
+}
+
+.ew-iconbutton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  background: none;
+  border-radius: 12px;
+  color: var(--ew-ink);
+}
+
+.ew-iconbutton:active {
+  background: var(--ew-ground);
+}
+
+.ew-body {
+  flex: 1;
+  padding: 16px;
+  /* Clears the home indicator; sticky footers add their own inset on top of this. */
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+.ew-body-flush {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* A sticky action bar has to keep the last of the scrolled content clear of itself. */
+.ew-body-with-footer {
+  padding-bottom: 16px;
+}
+
+.ew-footer {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--ew-surface);
+  border-top: 1px solid var(--ew-line);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+
+.ew-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  background: var(--ew-brand);
+  color: #fff;
+  transition: opacity 0.15s ease;
+}
+
+.ew-button:active {
+  opacity: 0.82;
+}
+
+.ew-button:disabled {
+  background: #c7d3d2;
+  color: #fff;
+  cursor: default;
+  opacity: 1;
+}
+
+.ew-button-secondary {
+  background: var(--ew-surface);
+  color: var(--ew-brand);
+  border: 1.5px solid var(--ew-brand);
+}
+
+.ew-button-secondary:active {
+  background: var(--ew-brand-soft);
+  opacity: 1;
+}
+
+.ew-button-quiet {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: none;
+  color: var(--ew-brand);
+  font-size: 15px;
+  font-weight: 600;
+  width: auto;
+}
+
+.ew-button-quiet:active {
+  background: var(--ew-brand-soft);
+}
+
+/* ── Brand chip (the only place the brand takes the lead) ─────────── */
+
+.ew-brandchip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.ew-brandchip img {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.ew-brandchip-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.ew-brandchip-tagline {
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+  line-height: 1.4;
+}
+
+/* ── Headings ────────────────────────────────────────────────────── */
+
+.ew-h1 {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.ew-h2 {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.ew-sub {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--ew-ink-soft);
+  line-height: 1.6;
+}
+
+.ew-section {
+  margin-top: 24px;
+}
+
+/* ── Station picker ──────────────────────────────────────────────── */
+
+.ew-stationlist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.ew-stationcard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--ew-surface);
+  border: 1.5px solid var(--ew-line);
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.ew-stationcard:active {
+  border-color: var(--ew-brand);
+  background: var(--ew-brand-soft);
+}
+
+.ew-stationcard-current {
+  border-color: var(--ew-brand);
+}
+
+.ew-stationcard-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-stationcard-name {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ew-stationcard-meta {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-linepips {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ew-linepip {
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.ew-chevron {
+  flex: 0 0 auto;
+  color: var(--ew-ink-faint);
+}
+
+/* ── Pack card ───────────────────────────────────────────────────── */
+
+.ew-cardlist {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ew-card {
+  display: block;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.ew-card:active {
+  border-color: var(--ew-brand);
+}
+
+.ew-card-unavailable {
+  opacity: 0.62;
+}
+
+.ew-card-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--ew-grain-soft);
+}
+
+.ew-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ew-card-media-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 34px;
+  font-weight: 800;
+  color: #c9a05a;
+}
+
+.ew-pill {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(29, 42, 41, 0.78);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ew-pill-warn {
+  background: #b3261e;
+}
+
+.ew-medallion {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--ew-grain);
+  color: #4a3208;
+  font-weight: 800;
+}
+
+.ew-medallion-num {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.ew-medallion-unit {
+  font-size: 11px;
+}
+
+.ew-card-body {
+  padding: 14px 16px 16px;
+}
+
+.ew-card-store {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ew-ink-soft);
+}
+
+.ew-storemark {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  object-fit: cover;
+  background: var(--ew-brand-soft);
+}
+
+.ew-storemark-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ew-brand);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ew-card-name {
+  margin-top: 6px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.ew-chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ew-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.ew-chip-neutral {
+  background: var(--ew-ground);
+  color: var(--ew-ink-soft);
+}
+
+.ew-metarow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+  line-height: 1.5;
+}
+
+.ew-metarow svg {
+  flex: 0 0 auto;
+  color: var(--ew-ink-faint);
+}
+
+.ew-pricerow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ew-price {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ew-brand);
+  letter-spacing: -0.01em;
+}
+
+.ew-price-original {
+  font-size: 14px;
+  color: var(--ew-ink-faint);
+  text-decoration: line-through;
+}
+
+/* ── Detail screen ───────────────────────────────────────────────── */
+
+.ew-hero {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--ew-grain-soft);
+}
+
+.ew-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ew-detail {
+  padding: 18px 16px 0;
+}
+
+.ew-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+}
+
+.ew-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-ink-faint);
+  letter-spacing: 0.04em;
+}
+
+.ew-inforow {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ew-line);
+}
+
+.ew-inforow:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.ew-inforow-label {
+  flex: 0 0 76px;
+  font-size: 14px;
+  color: var(--ew-ink-faint);
+}
+
+.ew-inforow-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.ew-inforow-strong {
+  font-weight: 700;
+}
+
+.ew-note {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+  line-height: 1.6;
+}
+
+.ew-footer-price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.ew-footer-price-label {
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+}
+
+/* ── Simulation notice ───────────────────────────────────────────── */
+
+.ew-simnote {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ew-grain-soft);
+  border: 1px solid #efd9a4;
+  color: #6b4f12;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ew-simnote-badge {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ew-grain);
+  color: #4a3208;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+/* ── Checkout ────────────────────────────────────────────────────── */
+
+.ew-summaryrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 15px;
+}
+
+.ew-summaryrow-total {
+  padding-top: 14px;
+  margin-top: 4px;
+  border-top: 1px solid var(--ew-line);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.ew-summaryrow-total .ew-price {
+  font-size: 24px;
+}
+
+.ew-paymethod {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--ew-surface);
+  border: 1.5px dashed #c8d4d3;
+}
+
+.ew-paymethod-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--ew-brand-soft);
+  color: var(--ew-brand);
+}
+
+.ew-paymethod-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-paymethod-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ew-paymethod-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+  line-height: 1.5;
+}
+
+/* ── Ticket ──────────────────────────────────────────────────────── */
+
+.ew-ticket {
+  padding: 24px 20px;
+  border-radius: 20px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  text-align: center;
+}
+
+.ew-ticket-kicker {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-brand);
+  letter-spacing: 0.08em;
+}
+
+.ew-ticket-code {
+  margin-top: 10px;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  /* The code is read aloud and typed in by hand; tabular digits keep it from wobbling. */
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.ew-ticket-qr {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.ew-ticket-qr canvas {
+  width: 200px;
+  height: 200px;
+  border-radius: 10px;
+}
+
+.ew-ticket-hint {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+  line-height: 1.6;
+}
+
+.ew-ticket-order {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ew-ink-faint);
+}
+
+/* ── States: loading, empty, error ───────────────────────────────── */
+
+.ew-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.ew-state-icon {
+  color: var(--ew-ink-faint);
+}
+
+.ew-state-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ew-state-body {
+  max-width: 30ch;
+  font-size: 14px;
+  color: var(--ew-ink-soft);
+  line-height: 1.7;
+}
+
+.ew-state-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 8px;
+}
+
+.ew-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--ew-line);
+  border-top-color: var(--ew-brand);
+  border-radius: 50%;
+  animation: ew-spin 0.8s linear infinite;
+}
+
+@keyframes ew-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ew-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eef2f1 25%, #e2e9e8 37%, #eef2f1 63%);
+  background-size: 400% 100%;
+  animation: ew-shimmer 1.3s ease infinite;
+}
+
+@keyframes ew-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+.ew-skeleton-card {
+  height: 236px;
+  border-radius: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ew-spinner,
+  .ew-skeleton {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}
+
+/* Larger phones and tablets: keep the column readable instead of letting it stretch. */
+@media (min-width: 520px) {
+  .ew-screen {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--ew-ground);
+    box-shadow: 0 0 0 1px var(--ew-line);
+  }
+}
