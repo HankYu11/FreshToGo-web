@@ -21,6 +21,26 @@ const EDGE_GUTTER = 32
 const COMMIT_X = 88
 const COMMIT_UP = 112
 
+/**
+ * How far the card may keep rising after the commit point, and how much of the extra finger
+ * travel it spends getting there.
+ *
+ * Without a ceiling a committed flick carries the card — and the stamp riding on it — clean off
+ * the top of the screen, so the one thing telling you what you are about to do disappears while
+ * you are still deciding. Past COMMIT_UP the card gives way asymptotically instead: it never
+ * passes COMMIT_UP + UP_GIVE, which keeps the stamp on screen however hard the throw.
+ */
+const UP_GIVE = 48
+const UP_GIVE_HALF = 120
+
+/** Vertical travel for a finger that has moved `dy`. Down barely moves; up resists past commit. */
+function verticalTravel(dy: number) {
+  if (dy >= 0) return Math.min(dy, 40)
+  const past = -dy - COMMIT_UP
+  if (past <= 0) return dy
+  return -(COMMIT_UP + (UP_GIVE * past) / (past + UP_GIVE_HALF))
+}
+
 interface Options {
   onDecide: (decision: SwipeDecision) => void
   enabled?: boolean
@@ -91,13 +111,19 @@ export function useCardSwipe({ onDecide, enabled = true }: Options) {
       }
     : offset
       ? {
-          transform: `translate(${offset.x}px, ${Math.min(offset.y, 40)}px) rotate(${offset.x / 22}deg)`,
+          transform: `translate(${offset.x}px, ${verticalTravel(offset.y)}px) rotate(${offset.x / 22}deg)`,
           transition: dragging ? 'none' : 'transform 0.2s ease-out',
         }
       : { transition: 'transform 0.2s ease-out' }
 
-  /** Which decision the current drag is leaning towards, for the on-card hint. */
+  /**
+   * Which decision the card is marked with: the one the drag is leaning towards, and then the
+   * one it was committed to, so the stamp rides off the screen with the card rather than
+   * blinking out at the moment of release. A button press gets the same mark, from the same
+   * state, so both paths read as the same act.
+   */
   const leaning: SwipeDecision | null = (() => {
+    if (flyOut) return flyOut
     if (!offset) return null
     if (offset.y < -COMMIT_UP / 2 && Math.abs(offset.y) > Math.abs(offset.x)) return 'take'
     if (offset.x > COMMIT_X / 2) return 'keep'
@@ -108,6 +134,13 @@ export function useCardSwipe({ onDecide, enabled = true }: Options) {
   return {
     style,
     leaning,
+    /**
+     * The card is in a gesture: the finger is down, or it is flying off the screen.
+     *
+     * Only then does it ride above the app bar. At rest it belongs under the bar like the rest
+     * of the scrolled content, or it would cover the back control.
+     */
+    lifted: offset !== null || flyOut !== null,
     handlers: {
       onPointerDown,
       onPointerMove,

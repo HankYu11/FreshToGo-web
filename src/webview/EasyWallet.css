@@ -1808,12 +1808,19 @@
   will-change: transform;
 }
 
-/* What the drag is about to do, stamped on the card the way a hand-sorted pile gets marked. */
+/*
+ * What the drag is about to do, stamped on the card the way a hand-sorted pile gets marked.
+ *
+ * Centred on the illustration rather than pinned to the card's top edge: swiping up lifts the
+ * card, and anything sitting on that edge is the first thing to leave the screen — exactly when
+ * it is telling you what the gesture will do. From the middle of the art it survives the whole
+ * throw (useCardSwipe caps how far up the card can travel).
+ */
 .ew-huntstamp {
   position: absolute;
-  top: 18px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%) rotate(-7deg);
+  transform: translate(-50%, -50%) rotate(-7deg);
   z-index: 2;
   padding: 7px 18px;
   border-radius: 999px;
@@ -1844,6 +1851,19 @@
 
 .ew-decide button:disabled {
   opacity: 0.55;
+}
+
+/*
+ * Only while the gesture is live does the card rise above the app bar (z-index 10).
+ *
+ * Swiping up throws the card towards the top of the screen, and the stamp rides at its top
+ * edge — under the bar it is the first thing to disappear, exactly when it is telling you what
+ * the gesture is about to do. A card being thrown off the screen should pass over the chrome.
+ * At rest it stays under the bar with the rest of the scrolled content, or a card scrolled up
+ * would cover the back control.
+ */
+.ew-huntcard-lifted {
+  z-index: 20;
 }
 
 @media (prefers-reduced-motion: reduce) {

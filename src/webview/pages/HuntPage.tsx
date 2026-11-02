@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Screen from '../components/Screen'
 import FoodArt from '../components/FoodArt'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
@@ -32,10 +32,10 @@ function withClock(time: string) {
  * the way, one card at a time: skip it, keep it for later, or reserve it. A store's customers
  * stop being the people who live near it and become everyone whose line passes through.
  *
- * The app does this with swipes. This does not, deliberately: a horizontal swipe inside a
- * webview collides with the system back gesture on both platforms, so every decision here is a
- * button you can hit with a thumb. The decision is the feature; the gesture was only ever how
- * the app spelled it.
+ * Swipes work here as they do in the app — what collides with the system is an edge swipe, not
+ * a swipe, so useCardSwipe simply ignores a drag that begins in the gutter. The three buttons
+ * stay regardless: a gesture nobody can see is not an interface on its own, and a thumb on a
+ * crowded train finds a button faster than it finds a drag.
  */
 export default function HuntPage() {
   const { goBack, goTo } = useWebviewNavigation()
@@ -73,6 +73,13 @@ export default function HuntPage() {
   }
 
   const swipe = useCardSwipe({ onDecide: decide, enabled: Boolean(current) })
+
+  // Crossing between the set-up form and the deck swaps the whole screen for a different one;
+  // inheriting the old screen's scroll offset would open the deck with the card's top — and the
+  // stamp that sits on it — already cut off under the app bar.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [started])
 
   function restart() {
     setStarted(false)
@@ -284,24 +291,21 @@ export default function HuntPage() {
     >
       {current && (
         <article
-          className="ew-huntcard"
+          className={`ew-huntcard${swipe.lifted ? ' ew-huntcard-lifted' : ''}`}
           key={current.box.id}
           style={swipe.style}
           {...swipe.handlers}
         >
-          {swipe.leaning && (
-            <span
-              className={`ew-huntstamp ew-huntstamp-${swipe.leaning}`}
-              aria-hidden="true"
-            >
-              {swipe.leaning === 'skip' ? '跳過' : swipe.leaning === 'keep' ? '先收著' : '預約'}
-            </span>
-          )}
           <div
             className="ew-huntcard-art"
             style={{ background: categoryWash(current.box.category) }}
           >
             <FoodArt category={current.box.category} />
+            {swipe.leaning && (
+              <span className={`ew-huntstamp ew-huntstamp-${swipe.leaning}`} aria-hidden="true">
+                {swipe.leaning === 'skip' ? '跳過' : swipe.leaning === 'keep' ? '先收著' : '預約'}
+              </span>
+            )}
             <span className="ew-card-kicker">{categoryLabel(current.box.category)}</span>
             <span className="ew-card-tear" aria-hidden="true" />
           </div>
