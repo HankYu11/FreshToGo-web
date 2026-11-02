@@ -47,6 +47,16 @@ esac
 log() { printf '  %s\n' "$*" >&2; }
 section() { printf '\n==> %s\n' "$*" >&2; }
 
+list_today() {
+  local res
+  res=$(api GET /api/boxes "")
+  body "$res" | jq -r '
+    .data
+    | if length == 0 then "  (nothing listed today)"
+      else .[] | "  \(.storeName) — \(.name) — \(.status) — 剩 \(.remainingCount) — 取貨 \(.pickupTimeStart)-\(.pickupTimeEnd)"
+      end'
+}
+
 api() { # api <METHOD> <path> <bearer-or-empty> [json-body] -> body, then http code on the last line
   local method="$1" path="$2" auth="$3" body="${4:-}"
   local args=(-sS -X "$method" "$BASE_URL$path" -H 'Content-Type: application/json' -w '\n%{http_code}')
@@ -93,12 +103,7 @@ TODAY="$(date +%Y-%m-%d)"
 # ── Check: a public endpoint, so this runs before any credential is needed ──
 if [ "$MODE" = "check" ]; then
   section "Today's listings on $BASE_URL"
-  res=$(api GET /api/boxes "" )
-  body "$res" | jq -r '
-    .data
-    | if length == 0 then "  (none — run scripts/seed-demo.sh)"
-      else .[] | "  \(.storeName) — \(.name) — \(.status) — 剩 \(.remainingCount) — 取貨 \(.pickupTimeStart)-\(.pickupTimeEnd)"
-      end'
+  list_today
   exit 0
 fi
 
@@ -170,4 +175,9 @@ section "Clearing the demo consumer's no-show state"
 res=$(api POST /api/test/users/demo/reset-no-shows "" "")
 [ "$(code "$res")" = "200" ] && log "ok" || log "skipped — $(body "$res")"
 
+section "What the demo will show"
+list_today
+
+# dev.handyla.co, never freshtogo-dev.web.app: the dev API's CORS allow-list holds the first
+# and not the second, so the .web.app copy loads and then cannot fetch anything.
 section "Done — open https://dev.handyla.co/easywallet"
