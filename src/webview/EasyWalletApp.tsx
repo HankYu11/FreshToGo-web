@@ -18,7 +18,10 @@ import './EasyWallet.css'
 export default function EasyWalletApp() {
   useEffect(() => {
     const previousTitle = document.title
-    document.title = '鮮款款｜下班順路帶一包'
+    // Matches easywallet.html's <title>. The flow is also reachable by a client-side link from
+    // /demo, where the document still carries the marketing page's title — and dropping the
+    // 合作提案展示 suffix there would undo the point of putting it in the markup.
+    document.title = '鮮款款｜下班順路帶一包（合作提案展示）'
 
     // The page background is on .ew-root, but an iOS rubber-band scroll reveals the <body>
     // behind it — which the marketing site leaves white. Match them while the flow is mounted.
