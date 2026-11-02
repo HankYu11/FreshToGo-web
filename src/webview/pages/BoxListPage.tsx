@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom'
 import { isReservable, listBoxes } from '../../api'
 import BoxCard from '../components/BoxCard'
 import Screen from '../components/Screen'
+import SimulationNote from '../components/SimulationNote'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { boxesNearStation, countsByStation } from '../nearby'
 import { writeStationPreference } from '../stationPreference'
@@ -90,9 +91,14 @@ export default function BoxListPage() {
         </EmptyState>
       ) : (
         <>
-          <p className="ew-sub" style={{ marginTop: 0, marginBottom: 14 }}>
+          <p className="ew-sub" style={{ marginTop: 0, marginBottom: 12 }}>
             出站步行 {formatRadius(STATION_RADIUS_M)}內・今天有 <strong>{reservable}</strong> 款可預約
           </p>
+          <div style={{ marginBottom: 14 }}>
+            <SimulationNote label="示意">
+              以下店家為開發環境的示意資料，不是已合作的店家。
+            </SimulationNote>
+          </div>
           <div className="ew-cardlist">
             {nearby.map((item) => (
               <BoxCard

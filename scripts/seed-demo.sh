@@ -58,20 +58,29 @@ code() { tail -n1 <<<"$1"; }
 body() { sed '$d' <<<"$1"; }
 
 # ── The demo's stores ──────────────────────────────────────────────────────
-# THE STORE NAMES AND ADDRESSES BELOW ARE INVENTED. They exist to give the demo something
-# plausible near each station; none of them is a real pilot merchant. Swap in real stores
-# before this is shown as anything but an illustration.
+# EVERY STORE BELOW IS INVENTED, and named so that nobody can mistake it for a real one.
+# This demo is shown while a partnership is being proposed, so a listing that reads as an
+# already-signed merchant is a claim nobody made. The （示範店）suffix is deliberate — keep it
+# until these are replaced by real pilot merchants, and the webview says the same thing on the
+# list and detail screens. It is a suffix rather than a prefix so each store still starts with
+# a different character: the card falls back to the store-name initial when a listing has no
+# photo, and six identical badges look like a rendering bug.
+#
 # Coordinates are within ~400 m of each station, so the walking estimate the UI shows
-# (straight line × 1.3 ÷ 80 m per minute) lands in the 2–7 minute range the pitch describes.
-# email|store name|address|lat|lng|category|pack name|originalPrice|discountedPrice|quantity
+# (straight line x 1.3 / 80 m per minute) lands in the 2-7 minute range the pitch describes.
+# Addresses are plausible street numbers near those points, not businesses.
+#
+# email|store name|address|lat|lng|category|pack name|origPrice|price|qty|pickupStart|pickupEnd
 # Prices are whole TWD, as the app renders them (PriceDisplay: "NT$$price").
+# Pickup windows are wide and staggered: wide so the demo reads as collectable whenever it is
+# given, staggered so the list looks like six different shops rather than one copied six times.
 STORES=$(cat <<'ROWS'
-demo-longshan-bakery@freshtogo.test|艋舺麥香烘焙坊|台北市萬華區西園路一段 120 號|25.0361|121.4985|BAKERY|隔日仍好吃・歐包綜合袋|220|75|6
-demo-longshan-deli@freshtogo.test|龍山小館|台北市萬華區康定路 20 號|25.0348|121.5012|DELI|今日主菜便當包|160|75|5
-demo-ximen-dessert@freshtogo.test|西門甜所|台北市萬華區漢中街 50 號|25.0435|121.5068|DESSERT|甜點櫃清空組|240|90|4
-demo-ximen-deli@freshtogo.test|西門町家常味|台北市萬華區成都路 27 號|25.0427|121.5062|DELI|熱食櫃驚喜包|150|75|6
-demo-taipei-cafe@freshtogo.test|站前日日咖啡|台北市中正區館前路 8 號|25.0455|121.5156|BEVERAGE|咖啡・麵包組|190|75|8
-demo-taipei-bakery@freshtogo.test|北車吐司工坊|台北市中正區忠孝西路一段 47 號|25.0468|121.5162|BAKERY|當日吐司與丹麥組|200|75|5
+demo-longshan-bakery@freshtogo.test|麵包坊（示範店）|台北市萬華區西園路一段 120 號|25.0361|121.4985|BAKERY|隔日仍好吃・歐包綜合袋|220|75|6|15:00|21:00
+demo-longshan-deli@freshtogo.test|便當屋（示範店）|台北市萬華區康定路 20 號|25.0348|121.5012|DELI|今日主菜便當包|160|75|5|16:30|21:30
+demo-ximen-dessert@freshtogo.test|甜點店（示範店）|台北市萬華區漢中街 50 號|25.0435|121.5068|DESSERT|甜點櫃清空組|240|90|4|14:00|21:00
+demo-ximen-deli@freshtogo.test|熟食舖（示範店）|台北市萬華區成都路 27 號|25.0427|121.5062|DELI|熱食櫃驚喜包|150|75|6|16:00|21:30
+demo-taipei-cafe@freshtogo.test|咖啡館（示範店）|台北市中正區館前路 8 號|25.0455|121.5156|BEVERAGE|咖啡・麵包組|190|75|8|14:30|20:30
+demo-taipei-bakery@freshtogo.test|吐司坊（示範店）|台北市中正區忠孝西路一段 47 號|25.0468|121.5162|BAKERY|當日吐司與丹麥組|200|75|5|15:30|21:00
 ROWS
 )
 
@@ -79,8 +88,6 @@ ROWS
 # A window that has closed makes POST /api/reservations fail with "outside sale window".
 SALE_START="00:00"
 SALE_END="23:30"
-PICKUP_START="17:30"
-PICKUP_END="21:00"
 TODAY="$(date +%Y-%m-%d)"
 
 # ── Check: a public endpoint, so this runs before any credential is needed ──
@@ -108,7 +115,7 @@ log "ok"
 
 # ── Stores ─────────────────────────────────────────────────────────────────
 section "Stores"
-while IFS='|' read -r email name address lat lng category pack original discounted qty; do
+while IFS='|' read -r email name address lat lng category pack original discounted qty pickup_start pickup_end; do
   [ -z "$email" ] && continue
   payload=$(jq -nc --arg e "$email" --arg p "$MERCHANT_PASSWORD" --arg n "$name" \
     --arg a "$address" --argjson lat "$lat" --argjson lng "$lng" \
@@ -125,7 +132,7 @@ done <<<"$STORES"
 
 # ── Today's packs ──────────────────────────────────────────────────────────
 section "Packs for $TODAY"
-while IFS='|' read -r email name address lat lng category pack original discounted qty; do
+while IFS='|' read -r email name address lat lng category pack original discounted qty pickup_start pickup_end; do
   [ -z "$email" ] && continue
 
   res=$(api POST /api/merchant/login "" "$(jq -nc --arg e "$email" --arg p "$MERCHANT_PASSWORD" '{email:$e,password:$p}')")
@@ -145,7 +152,7 @@ while IFS='|' read -r email name address lat lng category pack original discount
   fi
 
   payload=$(jq -nc --arg n "$pack" --argjson o "$original" --argjson d "$discounted" \
-    --argjson q "$qty" --arg ps "$PICKUP_START" --arg pe "$PICKUP_END" \
+    --argjson q "$qty" --arg ps "$pickup_start" --arg pe "$pickup_end" \
     --arg ss "$SALE_START" --arg se "$SALE_END" --arg date "$TODAY" --arg c "$category" \
     '{name:$n,originalPrice:$o,discountedPrice:$d,quantity:$q,
       pickupTimeStart:$ps,pickupTimeEnd:$pe,saleTimeStart:$ss,saleTimeEnd:$se,

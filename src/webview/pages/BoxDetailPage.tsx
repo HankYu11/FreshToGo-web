@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom'
 import { getBox, isReservable } from '../../api'
 import { StoreMark } from '../components/BoxCard'
 import Screen from '../components/Screen'
+import SimulationNote from '../components/SimulationNote'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { categoryColors, categoryLabel } from '../categories'
 import { formatPickupWindow, formatPrice } from '../format'
@@ -167,6 +168,11 @@ export default function BoxDetailPage() {
           {box.thumbsUpCount > 0 && (
             <p className="ew-note">已有 {box.thumbsUpCount} 位顧客給這家店好評。</p>
           )}
+          <div style={{ marginTop: 12 }}>
+            <SimulationNote label="示意">
+              這家店是開發環境的示意資料，不是已合作的店家。
+            </SimulationNote>
+          </div>
           <div className="ew-inforow" style={{ marginTop: 8 }}>
             <span className="ew-inforow-label">過敏原</span>
             <span className="ew-inforow-value">
