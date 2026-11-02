@@ -10,6 +10,7 @@ import { formatPickupWindow } from '../format'
 import { formatClock, packsOnRoute, suggestBoardingTime, type RoutePack } from '../routeHunt'
 import { STATIONS, MINUTES_PER_STOP, stationsOnRoute } from '../stations'
 import { useAsync } from '../useAsync'
+import { useCardSwipe, type SwipeDecision } from '../useCardSwipe'
 import { useWebviewNavigation } from '../useWebviewNavigation'
 
 /** Now, rounded down to the minute — the default boarding time. */
@@ -62,10 +63,17 @@ export default function HuntPage() {
   const current = packs[index]
   const finished = started && index >= packs.length
 
-  function decide(keep: boolean) {
-    if (current && keep) setKept((list) => [...list, current])
+  function decide(decision: SwipeDecision) {
+    if (!current) return
+    if (decision === 'take') {
+      goTo(`/easywallet/box/${current.box.id}`)
+      return
+    }
+    if (decision === 'keep') setKept((list) => [...list, current])
     setIndex((n) => n + 1)
   }
+
+  const swipe = useCardSwipe({ onDecide: decide, enabled: Boolean(current) })
 
   function restart() {
     setStarted(false)
@@ -239,16 +247,27 @@ export default function HuntPage() {
       onBack={restart}
       footer={
         <div className="ew-decide">
-          <button type="button" className="ew-decide-skip" onClick={() => decide(false)}>
+          <button
+            type="button"
+            className="ew-decide-skip"
+            disabled={swipe.busy}
+            onClick={() => swipe.decideFromButton('skip')}
+          >
             跳過
           </button>
-          <button type="button" className="ew-decide-keep" onClick={() => decide(true)}>
+          <button
+            type="button"
+            className="ew-decide-keep"
+            disabled={swipe.busy}
+            onClick={() => swipe.decideFromButton('keep')}
+          >
             先收著
           </button>
           <button
             type="button"
             className="ew-decide-take"
-            onClick={() => goTo(`/easywallet/box/${current.box.id}`)}
+            disabled={swipe.busy}
+            onClick={() => swipe.decideFromButton('take')}
           >
             預約
           </button>
@@ -256,7 +275,20 @@ export default function HuntPage() {
       }
     >
       {current && (
-        <article className="ew-huntcard" key={current.box.id}>
+        <article
+          className="ew-huntcard"
+          key={current.box.id}
+          style={swipe.style}
+          {...swipe.handlers}
+        >
+          {swipe.leaning && (
+            <span
+              className={`ew-huntstamp ew-huntstamp-${swipe.leaning}`}
+              aria-hidden="true"
+            >
+              {swipe.leaning === 'skip' ? '跳過' : swipe.leaning === 'keep' ? '先收著' : '預約'}
+            </span>
+          )}
           <div
             className="ew-huntcard-art"
             style={{ background: categoryWash(current.box.category) }}
@@ -305,7 +337,10 @@ export default function HuntPage() {
         </article>
       )}
 
-      {kept.length > 0 && <p className="ew-note">已先收著 {kept.length} 款</p>}
+      <p className="ew-note ew-huntswipehint">
+        左滑跳過・右滑先收著・上滑預約，也可以用下面的按鈕
+        {kept.length > 0 && ` ・ 已先收著 ${kept.length} 款`}
+      </p>
     </Screen>
   )
 }

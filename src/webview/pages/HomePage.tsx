@@ -3,7 +3,7 @@ import { loadBoxes, usingStandIns } from '../catalog'
 import BoxCard from '../components/BoxCard'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
-import { ChevronRightIcon, PinIcon } from '../components/icons'
+import { ChevronRightIcon, PinIcon, RouteIcon } from '../components/icons'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { boxesNearStation, countsByStation } from '../nearby'
 import { currentStation, writeStationPreference } from '../stationPreference'
@@ -43,7 +43,21 @@ export default function HomePage() {
   }
 
   return (
-    <Screen title="鮮款款" tab>
+    <Screen
+      title="鮮款款"
+      tab
+      fab={
+        <button
+          type="button"
+          className="ew-fab"
+          onClick={() => goTo('/easywallet/hunt')}
+          aria-label="吃 der：設定上下車站，看沿途的鮮款包"
+        >
+          <RouteIcon size={22} />
+          <span className="ew-fab-label">吃 der</span>
+        </button>
+      }
+    >
       <button
         type="button"
         className="ew-stationbar"
@@ -57,20 +71,6 @@ export default function HomePage() {
         </span>
         <span className="ew-stationbar-change">更改</span>
         <ChevronRightIcon size={18} className="ew-chevron" />
-      </button>
-
-      <button
-        type="button"
-        className="ew-hunt-entry"
-        onClick={() => goTo('/easywallet/hunt')}
-      >
-        <span className="ew-hunt-entry-main">
-          <span className="ew-hunt-entry-name">吃 der・整趟車沿途一次看完</span>
-          <span className="ew-hunt-entry-sub">
-            設定上下車站，只看你到站時還拿得到的鮮款包
-          </span>
-        </span>
-        <ChevronRightIcon size={18} />
       </button>
 
       {loading && !boxes ? (

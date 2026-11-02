@@ -154,3 +154,13 @@ export function LeafIcon({ size = 16, className }: IconProps) {
     </svg>
   )
 }
+
+export function RouteIcon({ size = 24, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <circle cx="6" cy="6" r="2.4" />
+      <circle cx="18" cy="18" r="2.4" />
+      <path d="M8.4 6H14a3.5 3.5 0 0 1 0 7h-4a3.5 3.5 0 0 0 0 7h5.6" />
+    </svg>
+  )
+}

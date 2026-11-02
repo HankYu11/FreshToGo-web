@@ -15,6 +15,8 @@ interface ScreenProps {
   flush?: boolean
   /** A top-level section: carries the bottom navigation instead of a back control. */
   tab?: boolean
+  /** A floating action, pinned clear of the bottom navigation and the home indicator. */
+  fab?: ReactNode
 }
 
 /**
@@ -33,6 +35,7 @@ export default function Screen({
   footer,
   flush,
   tab,
+  fab,
 }: ScreenProps) {
   return (
     <div className="ew-screen">
@@ -60,6 +63,7 @@ export default function Screen({
         {children}
       </main>
 
+      {fab && <div className={`ew-fabslot ${tab ? 'ew-fabslot-overtabs' : ''}`}>{fab}</div>}
       {footer && <div className="ew-footer">{footer}</div>}
       {tab && <TabBar />}
     </div>
