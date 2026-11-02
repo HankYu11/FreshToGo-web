@@ -2332,3 +2332,23 @@
 .ew-fab-label {
   letter-spacing: 0.01em;
 }
+
+/* A property worth stating, not a disclaimer worth hiding. */
+.ew-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ew-ink-soft);
+}
+
+.ew-privacy svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--ew-brand);
+}
+
+.ew-privacy strong {
+  color: var(--ew-ink);
+}

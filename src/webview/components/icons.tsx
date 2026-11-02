@@ -164,3 +164,12 @@ export function RouteIcon({ size = 24, className }: IconProps) {
     </svg>
   )
 }
+
+export function ShieldIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M12 3l7 3v5.5c0 4.3-3 8.2-7 9.5-4-1.3-7-5.2-7-9.5V6z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  )
+}

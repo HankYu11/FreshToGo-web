@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
 import Screen from '../components/Screen'
-import SimulationNote from '../components/SimulationNote'
 import FoodArt from '../components/FoodArt'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
-import { CheckIcon, ClockIcon, PinIcon, WalkIcon } from '../components/icons'
+import { CheckIcon, ClockIcon, PinIcon, ShieldIcon, WalkIcon } from '../components/icons'
 import { loadBoxes } from '../catalog'
 import { categoryLabel, categoryWash } from '../categories'
 import { formatPickupWindow } from '../format'
@@ -168,11 +167,20 @@ export default function HuntPage() {
           </button>
         )}
 
-        <div className="ew-section">
-          <SimulationNote label="示意">
-            上下車站與上車時間由你自己設定，不會使用你的乘車紀錄。
-          </SimulationNote>
-        </div>
+        {/*
+          Not a disclaimer — a property of the design, and one the partner cares about. Buried
+          under a 示意 badge it reads as an apology for something missing; stated plainly it is
+          the answer to the first question a card company asks about a commuting feature.
+        */}
+        <section className="ew-panel">
+          <p className="ew-privacy">
+            <ShieldIcon size={18} />
+            <span>
+              <strong>不使用你的乘車紀錄。</strong>
+              上下車站與上車時間都由你自己設定，鮮款款不會向悠遊卡索取、也不會收到你的刷卡資料。
+            </span>
+          </p>
+        </section>
 
         <div style={{ marginTop: 18 }}>
           <button
