@@ -51,6 +51,11 @@ export function useCardSwipe({ onDecide, enabled = true }: Options) {
     setOffset({ x: event.clientX - from.x, y: event.clientY - from.y })
   }
 
+  function onPointerCancel(event: React.PointerEvent<HTMLElement>) {
+    // The browser/OS took the gesture over (e.g. a system edge swipe): drop it, never commit it.
+    if (start.current?.id === event.pointerId) reset()
+  }
+
   function onPointerUp(event: React.PointerEvent<HTMLElement>) {
     const from = start.current
     if (!from || from.id !== event.pointerId) return
@@ -107,7 +112,7 @@ export function useCardSwipe({ onDecide, enabled = true }: Options) {
       onPointerDown,
       onPointerMove,
       onPointerUp,
-      onPointerCancel: onPointerUp,
+      onPointerCancel,
     },
     /** Drive the same animation from the buttons, so both paths look identical. */
     decideFromButton: commit,
