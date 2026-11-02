@@ -35,6 +35,9 @@ function storeSession(session: MerchantSession | null) {
 function errorText(error: unknown, fallback: string) {
   if (error instanceof ApiError && error.isOffline) return '沒有網路連線，請確認後再試。'
   if (error instanceof ApiError && error.status === 401) return '帳號或密碼不正確。'
+  if (error instanceof ApiError && error.code === 'MERCHANT_NOT_FOUND') {
+    return '後端找不到這個 email 的店家。'
+  }
   return apiErrorMessage(error) ?? (error instanceof Error ? error.message : fallback)
 }
 
@@ -177,9 +180,13 @@ function Console({
       setSession(next)
       storeSession(next)
     } catch (error) {
+      // Now that the endpoint is live, a 404 means two different things. The route answers
+      // MERCHANT_NOT_FOUND with a code; a backend that predates it answers a bare 404 with no
+      // body at all, so the code is what tells them apart.
+      const missingRoute = error instanceof ApiError && error.status === 404 && !error.code
       setPlaceError(
-        error instanceof ApiError && error.status === 404
-          ? '這個 dev 後端還沒有 POST /api/test/merchants/location（需要部署 feat/dev-place-store）。在這之前請用管理後台設定店家座標。'
+        missingRoute
+          ? '這個後端沒有 POST /api/test/merchants/location — 它只在 KTOR_DEVELOPMENT=true 的環境掛載。'
           : errorText(error, '搬移店家失敗。'),
       )
     } finally {
