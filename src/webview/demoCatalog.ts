@@ -14,7 +14,7 @@ import type { Box, Reservation } from '../api'
  * ticket says it was a simulated step, exactly as the payment does.
  */
 
-interface Seed {
+export interface Seed {
   id: string
   merchant: string
   store: string
@@ -32,7 +32,7 @@ interface Seed {
 }
 
 /** Within ~400 m of 龍山寺 / 西門 / 台北車站, so the walking estimates land at 2–6 minutes. */
-const SEEDS: Seed[] = [
+export const SEEDS: Seed[] = [
   // 龍山寺
   {
     id: 'demo-ls-bakery', merchant: 'demo-m-ls-bakery', store: '麵包坊（示範店）',

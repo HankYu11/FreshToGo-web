@@ -7,7 +7,9 @@ import {
   placeStore,
   type MerchantSession,
 } from '../api/merchant'
+import { seedDemoListings, type SeedResult } from '../api/devSeed'
 import { PLACEMENTS } from './stationPlacement'
+import { SEED_PAYLOAD } from './seedPayload'
 import { CATEGORY_OPTIONS } from './categories'
 import { nearestStation } from './nearestStation'
 import './console.css'
@@ -78,6 +80,85 @@ export default function MerchantConsolePage() {
   )
 }
 
+/**
+ * One tap, no credentials: ask the dev backend to create the demo's stores and today's packs.
+ *
+ * It sits on the sign-in screen because that is where somebody arrives when the demo has no
+ * data, and because the endpoint behind it needs no account — making people find a password
+ * first is the problem this solves, not a step on the way to it.
+ */
+function SeedPanel() {
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<SeedResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function run() {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    setResult(null)
+    try {
+      setResult(await seedDemoListings(SEED_PAYLOAD))
+    } catch (seedError) {
+      const missingRoute =
+        seedError instanceof ApiError && seedError.status === 404 && !seedError.code
+      setError(
+        missingRoute
+          ? '這個後端沒有 POST /api/test/demo/listings — 它只在 KTOR_DEVELOPMENT=true 的環境掛載。'
+          : errorText(seedError, '建立示範資料失敗。'),
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const created = result?.stores.flatMap((s) => s.listings).filter((l) => l.outcome === 'created')
+  const reused = result?.stores.flatMap((s) => s.listings).filter((l) => l.outcome === 'reused')
+  const failed = result?.stores.flatMap((s) => s.listings).filter((l) => l.outcome === 'failed')
+
+  return (
+    <div className="mc-card">
+      <h2 className="mc-h2">一鍵建立今天的示範資料</h2>
+      <p className="mc-sub">
+        在龍山寺、西門、台北車站附近建立 {SEED_PAYLOAD.length} 家示範店家與當天的鮮款包。不需要帳號密碼，重複執行不會重複建立。
+      </p>
+      <button className="mc-button" type="button" onClick={run} disabled={busy}>
+        {busy ? '建立中…' : '建立示範資料'}
+      </button>
+
+      {error && (
+        <p className="mc-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {result && (
+        <div role="status">
+          <p className="mc-done">
+            {result.saleDate}：新建 {created?.length ?? 0} 款、沿用 {reused?.length ?? 0} 款
+            {failed && failed.length > 0 ? `、失敗 ${failed.length} 款` : ''}。
+          </p>
+          {failed && failed.length > 0 && (
+            <ul className="mc-list" style={{ marginTop: 10 }}>
+              {failed.map((listing) => (
+                <li key={listing.name} className="mc-listitem">
+                  <span>
+                    <strong>{listing.name}</strong>
+                    <span className="mc-meta">{listing.reason ?? '未知原因'}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mc-hint">
+            完成後打開 /easywallet 就會看到真實資料；示意型錄只有在後端當天沒有上架時才會接手。
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SignIn({ onSignedIn }: { onSignedIn: (session: MerchantSession) => void }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -138,6 +219,7 @@ function SignIn({ onSignedIn }: { onSignedIn: (session: MerchantSession) => void
           </button>
         </form>
       </div>
+      <SeedPanel />
     </main>
   )
 }
