@@ -44,9 +44,13 @@ export default function BoxListPage() {
     ? STATIONS.filter((other) => other.id !== station.id && counts[other.id] > 0)
     : []
 
-  /** A deliberate move to the picker — pushes, so Back returns to this list. */
+  /**
+   * Swap this list for the picker rather than stacking the picker on top of it: pushing would
+   * leave this station's list underneath, and after choosing another station a Back or two
+   * would surface the station the user just moved away from.
+   */
   function changeStation() {
-    goTo('/easywallet')
+    replaceTo('/easywallet')
   }
 
   function openStation(id: string) {

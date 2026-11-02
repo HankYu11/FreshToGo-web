@@ -44,6 +44,8 @@ case "${1:-}" in
   *) echo "ERROR: unknown argument '$1' (expected --stores or --check)" >&2; exit 2 ;;
 esac
 
+FAILURES=0
+fail() { FAILURES=$((FAILURES + 1)); printf '  %s\n' "$*" >&2; }
 log() { printf '  %s\n' "$*" >&2; }
 section() { printf '\n==> %s\n' "$*" >&2; }
 
@@ -85,20 +87,25 @@ body() { sed '$d' <<<"$1"; }
 # Pickup windows are wide and staggered: wide so the demo reads as collectable whenever it is
 # given, staggered so the list looks like six different shops rather than one copied six times.
 STORES=$(cat <<'ROWS'
-demo-longshan-bakery@freshtogo.test|麵包坊（示範店）|台北市萬華區西園路一段 120 號|25.0361|121.4985|BAKERY|隔日仍好吃・歐包綜合袋|220|75|6|15:00|21:00
-demo-longshan-deli@freshtogo.test|便當屋（示範店）|台北市萬華區康定路 20 號|25.0348|121.5012|DELI|今日主菜便當包|160|75|5|16:30|21:30
-demo-ximen-dessert@freshtogo.test|甜點店（示範店）|台北市萬華區漢中街 50 號|25.0435|121.5068|DESSERT|甜點櫃清空組|240|90|4|14:00|21:00
-demo-ximen-deli@freshtogo.test|熟食舖（示範店）|台北市萬華區成都路 27 號|25.0427|121.5062|DELI|熱食櫃驚喜包|150|75|6|16:00|21:30
-demo-taipei-cafe@freshtogo.test|咖啡館（示範店）|台北市中正區館前路 8 號|25.0455|121.5156|BEVERAGE|咖啡・麵包組|190|75|8|14:30|20:30
-demo-taipei-bakery@freshtogo.test|吐司坊（示範店）|台北市中正區忠孝西路一段 47 號|25.0468|121.5162|BAKERY|當日吐司與丹麥組|200|75|5|15:30|21:00
+demo-longshan-bakery@freshtogo.test|麵包坊（示範店）|台北市萬華區西園路一段 120 號|25.0361|121.4985|BAKERY|隔日仍好吃・歐包綜合袋|220|75|6|15:00|22:00
+demo-longshan-deli@freshtogo.test|便當屋（示範店）|台北市萬華區康定路 20 號|25.0348|121.5012|DELI|今日主菜便當包|160|75|5|16:30|22:30
+demo-ximen-dessert@freshtogo.test|甜點店（示範店）|台北市萬華區漢中街 50 號|25.0435|121.5068|DESSERT|甜點櫃清空組|240|90|4|14:00|22:00
+demo-ximen-deli@freshtogo.test|熟食舖（示範店）|台北市萬華區成都路 27 號|25.0427|121.5062|DELI|熱食櫃驚喜包|150|75|6|16:00|22:30
+demo-taipei-cafe@freshtogo.test|咖啡館（示範店）|台北市中正區館前路 8 號|25.0455|121.5156|BEVERAGE|咖啡・麵包組|190|75|8|14:30|21:30
+demo-taipei-bakery@freshtogo.test|吐司坊（示範店）|台北市中正區忠孝西路一段 47 號|25.0468|121.5162|BAKERY|當日吐司與丹麥組|200|75|5|15:30|22:00
 ROWS
 )
 
-# An all-day sale window, so the pack is reservable whenever the demo happens to be given.
-# A window that has closed makes POST /api/reservations fail with "outside sale window".
+# The sale window opens at midnight and closes when that store's pickup window does. It cannot
+# run any later: the backend rejects saleTimeEnd > pickupTimeEnd outright
+# (BoxInputValidator.parseTimeWindows -> SaleEndsAfterPickupEnds), so "sell all day" would 400
+# every listing and leave the demo empty. Opening at 00:00 means a pack is never BEFORE_SALE,
+# and the pickup windows above run to 21:30-22:30 so an evening rehearsal still has something
+# to reserve.
+DEMO_ACCESS_TOKEN="DEMO_ACCESS_TOKEN"
+
 SALE_START="00:00"
-SALE_END="23:30"
-TODAY="$(date +%Y-%m-%d)"
+TODAY="$(TZ=Asia/Taipei date +%Y-%m-%d)"
 
 # ── Check: a public endpoint, so this runs before any credential is needed ──
 if [ "$MODE" = "check" ]; then
@@ -129,7 +136,7 @@ while IFS='|' read -r email name address lat lng category pack original discount
   case "$(code "$res")" in
     201) log "created  $name" ;;
     409) log "exists   $name" ;;
-    *)   log "FAILED   $name — $(body "$res")" ;;
+    *)   fail "FAILED   $name — $(body "$res")" ;;
   esac
 done <<<"$STORES"
 
@@ -142,7 +149,7 @@ while IFS='|' read -r email name address lat lng category pack original discount
 
   res=$(api POST /api/merchant/login "" "$(jq -nc --arg e "$email" --arg p "$MERCHANT_PASSWORD" '{email:$e,password:$p}')")
   if [ "$(code "$res")" != "200" ]; then
-    log "FAILED   $name — merchant login: $(body "$res")"
+    fail "FAILED   $name — merchant login: $(body "$res")"
     continue
   fi
   token=$(body "$res" | jq -r '.data.accessToken')
@@ -158,25 +165,62 @@ while IFS='|' read -r email name address lat lng category pack original discount
 
   payload=$(jq -nc --arg n "$pack" --argjson o "$original" --argjson d "$discounted" \
     --argjson q "$qty" --arg ps "$pickup_start" --arg pe "$pickup_end" \
-    --arg ss "$SALE_START" --arg se "$SALE_END" --arg date "$TODAY" --arg c "$category" \
+    --arg ss "$SALE_START" --arg se "$pickup_end" --arg date "$TODAY" --arg c "$category" \
     '{name:$n,originalPrice:$o,discountedPrice:$d,quantity:$q,
       pickupTimeStart:$ps,pickupTimeEnd:$pe,saleTimeStart:$ss,saleTimeEnd:$se,
       saleDate:$date,category:$c}')
   res=$(api POST /api/merchant/boxes "$token" "$payload")
   case "$(code "$res")" in
     201|200) log "created  $name — $pack" ;;
-    *)       log "FAILED   $name — $pack: $(body "$res")" ;;
+    *)       fail "FAILED   $name — $pack: $(body "$res")" ;;
   esac
 done <<<"$STORES"
 
-# The demo consumer is shared with the Android E2E suite, and three un-collected reservations
-# block it from reserving at all. Clearing it here means a demo never inherits yesterday's.
+# ── Clear the demo consumer ────────────────────────────────────────────────
+# Everyone who opens /easywallet is the SAME consumer, and the backend allows one active
+# reservation per pack per consumer. So a dry run in the morning makes that pack answer 409
+# RESERVATION_ALREADY_EXISTS when it is tapped in the meeting — and the webview has no orders
+# screen to reach the earlier ticket from. Cancelling here also returns the stock, which a
+# re-run of this script would otherwise leave sold out.
+section "Releasing the demo consumer's open orders"
+res=$(api POST /api/user/line/verify-token "" "$(jq -nc --arg t "$DEMO_ACCESS_TOKEN" '{lineAccessToken:$t}')")
+if [ "$(code "$res")" != "200" ]; then
+  fail "FAILED   demo login: $(body "$res")"
+else
+  demo_token=$(body "$res" | jq -r '.data.accessToken')
+  res=$(api GET "/api/reservations?active=true" "$demo_token")
+  if [ "$(code "$res")" != "200" ]; then
+    fail "FAILED   listing demo orders: $(body "$res")"
+  else
+    open_ids=$(body "$res" | jq -r '.data[]?.id')
+    if [ -z "$open_ids" ]; then
+      log "none open"
+    else
+      while read -r rid; do
+        [ -z "$rid" ] && continue
+        res=$(api DELETE "/api/reservations/$rid" "$demo_token")
+        case "$(code "$res")" in
+          200|204) log "cancelled $rid" ;;
+          *)       fail "FAILED   cancelling $rid — $(body "$res")" ;;
+        esac
+      done <<<"$open_ids"
+    fi
+  fi
+fi
+
+# Three un-collected reservations block the account from reserving at all. The cancellations
+# above stop new ones accruing; this clears whatever earlier runs already left behind.
 section "Clearing the demo consumer's no-show state"
 res=$(api POST /api/test/users/demo/reset-no-shows "" "")
 [ "$(code "$res")" = "200" ] && log "ok" || log "skipped — $(body "$res")"
 
 section "What the demo will show"
 list_today
+
+if [ "$FAILURES" -gt 0 ]; then
+  section "$FAILURES step(s) failed — read the FAILED lines above before relying on this"
+  exit 1
+fi
 
 # dev.handyla.co, never freshtogo-dev.web.app: the dev API's CORS allow-list holds the first
 # and not the second, so the .web.app copy loads and then cannot fetch anything.

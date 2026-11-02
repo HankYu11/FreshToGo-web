@@ -32,5 +32,22 @@ export function useWebviewNavigation() {
   /** Swap the current screen out, so Back skips over it. */
   const replaceTo = useCallback((to: string) => navigate(to, { replace: true }), [navigate])
 
-  return { goBack, goTo, replaceTo }
+  /**
+   * Pop several entries at once, for a screen that ends a flow.
+   *
+   * Replacing the current entry with the destination would leave everything underneath it in
+   * place: from the ticket, a replace back to the station list gives
+   * [picker, list, detail, list] — and the next Back goes *down* into the detail screen for the
+   * pack just reserved. Popping removes those entries instead, so the stack matches what the
+   * screen says it is doing.
+   */
+  const goBackBy = useCallback(
+    (steps: number, fallback: string) => {
+      if (canPop) navigate(-Math.abs(steps))
+      else navigate(fallback, { replace: true })
+    },
+    [canPop, navigate],
+  )
+
+  return { goBack, goBackBy, goTo, replaceTo }
 }

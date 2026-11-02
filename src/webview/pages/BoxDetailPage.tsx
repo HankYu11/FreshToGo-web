@@ -2,7 +2,6 @@ import { useParams } from 'react-router-dom'
 import { getBox, isReservable } from '../../api'
 import { StoreMark } from '../components/BoxCard'
 import Screen from '../components/Screen'
-import SimulationNote from '../components/SimulationNote'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { categoryColors, categoryLabel } from '../categories'
 import { formatPickupWindow, formatPrice } from '../format'
@@ -165,14 +164,14 @@ export default function BoxDetailPage() {
             <StoreMark box={box} />
             <span style={{ fontWeight: 700 }}>{box.storeName}</span>
           </div>
-          {box.thumbsUpCount > 0 && (
-            <p className="ew-note">已有 {box.thumbsUpCount} 位顧客給這家店好評。</p>
-          )}
-          <div style={{ marginTop: 12 }}>
-            <SimulationNote label="示意">
-              這家店是開發環境的示意資料，不是已合作的店家。
-            </SimulationNote>
-          </div>
+          {/*
+            A quiet line, not another yellow banner. The store name already carries （示範店）
+            into the app bar and the row above, and the list screen flagged the same thing one
+            tap ago — a fourth warning box in a row only drains the two that have to land, the
+            host identity and the payment. It names the address too: those are real Taipei
+            street numbers, chosen so the walking estimate means something.
+          */}
+          <p className="ew-note">此為開發環境的示意店家與地址，非實際合作門市。</p>
           <div className="ew-inforow" style={{ marginTop: 8 }}>
             <span className="ew-inforow-label">過敏原</span>
             <span className="ew-inforow-value">

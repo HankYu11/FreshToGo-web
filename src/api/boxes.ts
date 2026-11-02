@@ -41,7 +41,6 @@ export interface Box {
   remainingCount: number
   category: ProductCategory
   imageUrl: string | null
-  thumbsUpCount: number
 }
 
 /** Statuses a customer can still reserve. Mirrors the app's `BoxStatus.isAvailableForSale`. */
@@ -81,7 +80,6 @@ export function toBox(raw: BoxResponse): Box | null {
     remainingCount: raw.remainingCount ?? 0,
     category: raw.category ?? 'GENERAL',
     imageUrl: absoluteImageUrl(raw.resolvedImageUrl),
-    thumbsUpCount: raw.thumbsUpCount ?? 0,
   }
 }
 

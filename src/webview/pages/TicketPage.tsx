@@ -56,7 +56,7 @@ function presentation(reservation: Reservation) {
  */
 export default function TicketPage() {
   const { reservationId = '' } = useParams()
-  const { replaceTo } = useWebviewNavigation()
+  const { goBackBy } = useWebviewNavigation()
   const station = findStation(readStationPreference())
 
   const {
@@ -66,7 +66,10 @@ export default function TicketPage() {
     reload,
   } = useAsync((signal) => withSession(() => getReservation(reservationId, signal)), [reservationId])
 
-  const done = () => replaceTo(station ? `/easywallet/station/${station.id}` : '/easywallet')
+  // Two entries back is the station list: checkout was replaced by this ticket, and the pack's
+  // detail screen sits under it. A ticket opened by a deep link has nothing to pop, so it
+  // falls back to the list by name.
+  const done = () => goBackBy(2, station ? `/easywallet/station/${station.id}` : '/easywallet')
 
   if (loading && !reservation) {
     return (
