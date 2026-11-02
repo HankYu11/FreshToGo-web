@@ -13,7 +13,8 @@
 # Idempotent: a store that already exists is reused, and a pack whose name already exists for
 # today is left alone. Safe to run twice.
 #
-# CREDENTIALS come from scripts/.demo-seed.env (gitignored) or the environment:
+# CREDENTIALS come from scripts/.demo-seed.env (gitignored), from a file named by
+# DEMO_SEED_ENV, or from the environment:
 #
 #   ADMIN_EMAIL=...        # an admin on dev-admin.handyla.co — creates the stores
 #   ADMIN_PASSWORD=...
@@ -25,7 +26,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="$SCRIPT_DIR/.demo-seed.env"
+# DEMO_SEED_ENV points at an env file somewhere else — the Maestro suite's, say — so the same
+# credentials do not have to be copied to a second place to run this.
+ENV_FILE="${DEMO_SEED_ENV:-$SCRIPT_DIR/.demo-seed.env}"
 [ -f "$ENV_FILE" ] && { set -a; . "$ENV_FILE"; set +a; }
 
 BASE_URL="${BASE_URL:-https://dev-api.handyla.co}"
