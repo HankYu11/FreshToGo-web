@@ -25,6 +25,14 @@ export default function DemoHubPage() {
         </span>
         <span className="demo-hub-go">›</span>
       </Link>
+      <Link to="/merchant" className="demo-card demo-hub-item">
+        <span className="demo-hub-icon">🏪</span>
+        <span>
+          <b>店家後台</b>
+          <span className="demo-muted">用店家帳號登入，上架今天的鮮款包到 dev</span>
+        </span>
+        <span className="demo-hub-go">›</span>
+      </Link>
       <p className="demo-foot">這些功能只在測試環境（dev）顯示，不會出現在正式網站。</p>
     </div>
   )

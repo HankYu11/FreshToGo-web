@@ -152,6 +152,8 @@ function toBox(seed: Seed, remaining: number): Box {
     pickupTimeEnd: seed.pickup[1],
     status: statusFor(remaining),
     remainingCount: remaining,
+    quantity: seed.quantity,
+    saleDate: new Date().toISOString().slice(0, 10),
     category: seed.category,
     imageUrl: null,
   }

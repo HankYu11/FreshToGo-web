@@ -17,6 +17,9 @@ const demoPages = DEMO_ENABLED
       // The wallet webview: payment is simulated and the member identity is a dev account,
       // so it must never be reachable on the production site.
       EasyWallet: lazy(() => import('./webview/EasyWalletApp')),
+      // 店家後台: lists a pack for today, the way the merchant app does. Same reason it is
+      // dev-only — it writes to whichever backend this build points at.
+      Merchant: lazy(() => import('./merchant/MerchantConsolePage')),
     }
   : null
 
@@ -35,6 +38,7 @@ export default function App() {
           <Route path="/demo" element={<Suspense fallback={null}><demoPages.Hub /></Suspense>} />
           <Route path="/demo/ai-pack" element={<Suspense fallback={null}><demoPages.AiPack /></Suspense>} />
           <Route path="/easywallet/*" element={<Suspense fallback={null}><demoPages.EasyWallet /></Suspense>} />
+          <Route path="/merchant" element={<Suspense fallback={null}><demoPages.Merchant /></Suspense>} />
         </>
       )}
     </Routes>

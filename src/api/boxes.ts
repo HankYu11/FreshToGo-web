@@ -39,6 +39,10 @@ export interface Box {
   pickupTimeEnd: string
   status: BoxStatus
   remainingCount: number
+  /** Total listed, not what is left — the merchant console shows both. */
+  quantity: number
+  /** The day this listing is for, YYYY-MM-DD. */
+  saleDate: string
   category: ProductCategory
   imageUrl: string | null
 }
@@ -78,6 +82,8 @@ export function toBox(raw: BoxResponse): Box | null {
     pickupTimeEnd: raw.pickupTimeEnd ?? '',
     status,
     remainingCount: raw.remainingCount ?? 0,
+    quantity: raw.quantity ?? 0,
+    saleDate: raw.saleDate ?? '',
     category: raw.category ?? 'GENERAL',
     imageUrl: absoluteImageUrl(raw.resolvedImageUrl),
   }

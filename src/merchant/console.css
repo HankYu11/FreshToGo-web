@@ -1,0 +1,219 @@
+/*
+ * 店家後台 (dev only).
+ *
+ * Deliberately plain and desk-shaped, not the consumer app: this is a tool a shop owner uses at
+ * a counter with a keyboard, and dressing it like the webview would blur which of the two
+ * anyone is looking at in a screen share.
+ */
+
+.mc-page {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+  color: #1d2a29;
+}
+
+.mc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.mc-env {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fbefd3;
+  color: #6b4f12;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mc-title {
+  margin-top: 8px;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.mc-sub {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #5b6a68;
+  line-height: 1.6;
+}
+
+.mc-h2 {
+  margin-bottom: 14px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.mc-card {
+  margin-top: 16px;
+  padding: 20px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e4ebea;
+}
+
+.mc-signin {
+  margin-top: 48px;
+}
+
+.mc-banner {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.mc-banner-ok {
+  background: #e6f2f1;
+  color: #2c5553;
+}
+
+.mc-banner-warn {
+  background: #fff4e0;
+  color: #7a4e12;
+}
+
+.mc-label {
+  display: block;
+  margin-top: 14px;
+  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5b6a68;
+}
+
+.mc-input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #d7e0df;
+  border-radius: 10px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  color: #1d2a29;
+}
+
+.mc-input:focus-visible {
+  outline: 2px solid #336563;
+  outline-offset: 1px;
+}
+
+.mc-textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.mc-row {
+  display: flex;
+  gap: 12px;
+}
+
+.mc-row > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.mc-hint {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #8a9896;
+}
+
+.mc-button {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 18px;
+  border: none;
+  border-radius: 12px;
+  background: #336563;
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.mc-button:disabled {
+  background: #c7d3d2;
+}
+
+.mc-link {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  min-height: 44px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #336563;
+  cursor: pointer;
+}
+
+.mc-error {
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b3261e;
+}
+
+.mc-done {
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c5553;
+}
+
+.mc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mc-listitem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f6f8f7;
+  font-size: 14px;
+}
+
+.mc-meta {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: #5b6a68;
+}
+
+.mc-status {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b6a68;
+}
+
+.mc-button-quiet {
+  margin-top: 0;
+  background: #e6f2f1;
+  color: #336563;
+  font-size: 14px;
+}
+
+.mc-button-quiet:disabled {
+  background: #eef2f1;
+  color: #9fb0ae;
+}
