@@ -34,3 +34,24 @@ export function categoryLabel(category: ProductCategory) {
 export function categoryColors(category: ProductCategory) {
   return CATEGORY_COLORS[category] ?? CATEGORY_COLORS.GENERAL
 }
+
+/**
+ * The wash behind a pack's illustration, one per category.
+ *
+ * Lighter and warmer than the chip colours above: the chip is a label on a white row, this is a
+ * whole panel the food sits on, and the app's cards tint that panel rather than leaving it grey.
+ */
+const CATEGORY_WASH: Record<ProductCategory, string> = {
+  BAKERY: '#FBE7C4',
+  DELI: '#F7D6C2',
+  DESSERT: '#FBDCE2',
+  BEVERAGE: '#EFDFCE',
+  PRODUCE: '#DDEBCC',
+  GROCERY: '#FBEFC4',
+  FROZEN: '#DCEAF2',
+  GENERAL: '#DCEAE8',
+}
+
+export function categoryWash(category: ProductCategory) {
+  return CATEGORY_WASH[category] ?? CATEGORY_WASH.GENERAL
+}

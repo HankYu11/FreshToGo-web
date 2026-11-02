@@ -48,8 +48,14 @@ export function findStation(id: string | null | undefined): Station | undefined 
   return STATIONS.find((station) => station.id === id)
 }
 
-/** How far from a station a store can be and still count as "on the way home", in metres. */
-export const STATION_RADIUS_M = 1000
+/**
+ * How far from a station a store can be and still count as "on the way home", in metres.
+ *
+ * 700, not a round kilometre: 龍山寺 and 西門 are about 1.1 km apart, so a kilometre each way
+ * made their catchments overlap heavily and a station's list filled up with stores by the next
+ * one along. It also keeps the walk under about 11 minutes, which is as far as "順路" stretches.
+ */
+export const STATION_RADIUS_M = 700
 
 const EARTH_RADIUS_M = 6371000
 const toRad = (deg: number) => (deg * Math.PI) / 180

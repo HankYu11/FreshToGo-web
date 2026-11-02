@@ -325,61 +325,100 @@
 .ew-cardlist {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
+/*
+ * Lopsided on purpose, straight from the app's ListingCardShape
+ * (topStart 34 / topEnd 14 / bottomEnd 30 / bottomStart 12): corners that disagree stop the
+ * card reading as a rectangle of data and start it reading as a clipping.
+ */
 .ew-card {
   display: block;
   width: 100%;
   padding: 0;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 34px 14px 30px 12px;
   background: var(--ew-surface);
-  border: 1px solid var(--ew-line);
+  border: none;
+  box-shadow: 0 2px 10px rgba(29, 42, 41, 0.08);
   text-align: left;
   font-family: inherit;
   color: inherit;
+  transition: transform 0.12s ease;
 }
 
 .ew-card:active {
-  border-color: var(--ew-brand);
+  transform: scale(0.985);
 }
 
 .ew-card-unavailable {
-  opacity: 0.62;
+  opacity: 0.6;
 }
 
 .ew-card-media {
   display: block;
   position: relative;
-  aspect-ratio: 16 / 9;
-  background: var(--ew-grain-soft);
+  aspect-ratio: 16 / 10;
 }
 
 .ew-card-media img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.ew-card-media-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* contain, not cover: the illustration is drawn to a 16:9 box and cropping it cuts the food in
+   half, which is the one thing a surplus-food listing cannot afford to look like. */
+.ew-foodart {
+  display: block;
   width: 100%;
   height: 100%;
-  font-size: 34px;
-  font-weight: 900;
-  color: #c9a05a;
+  object-fit: contain;
+  padding: 10px 14px 16px;
+}
+
+/*
+ * The torn edge, in the card's own surface colour biting up into the art.
+ *
+ * Two layers, written longhand because the shorthand's position/size pairs are easy to get
+ * subtly wrong: a row of circles whose crests reach the top of the strip, and a solid block
+ * from their centres down, so the troughs between them are filled rather than transparent.
+ */
+.ew-card-tear {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 15px;
+  background-image:
+    radial-gradient(circle at 7px 7px, var(--ew-surface) 6.4px, transparent 6.9px),
+    linear-gradient(var(--ew-surface), var(--ew-surface));
+  background-repeat: repeat-x, repeat-x;
+  background-position: 0 0, 0 7px;
+  background-size: 14px 15px, 14px 8px;
+}
+
+.ew-card-kicker {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ew-ink);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .ew-pill {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 5px 10px;
+  top: 12px;
+  right: 14px;
+  padding: 5px 11px;
   border-radius: 999px;
-  background: rgba(29, 42, 41, 0.78);
+  background: var(--ew-brand);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -389,48 +428,31 @@
   background: #b3261e;
 }
 
-.ew-medallion {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
-  display: flex;
-  align-items: baseline;
-  gap: 1px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: var(--ew-grain);
-  color: #4a3208;
-  font-weight: 900;
-}
-
-.ew-medallion-num {
-  font-size: 17px;
-  line-height: 1;
-}
-
-.ew-medallion-unit {
-  font-size: 11px;
-}
-
 .ew-card-body {
   display: block;
-  padding: 14px 16px 16px;
+  position: relative;
+  padding: 10px 18px 18px 82px;
 }
 
-.ew-card-store {
+/* The store's mark straddles the tear, as it does on the app's card. */
+.ew-card-crest {
+  position: absolute;
+  left: 16px;
+  top: -18px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ew-ink-soft);
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--ew-surface);
+  box-shadow: 0 2px 6px rgba(29, 42, 41, 0.12);
 }
 
 .ew-storemark {
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
   object-fit: cover;
   background: var(--ew-brand-soft);
 }
@@ -440,27 +462,119 @@
   align-items: center;
   justify-content: center;
   color: var(--ew-brand);
-  font-size: 12px;
+  font-size: 19px;
   font-weight: 900;
+}
+
+/* The one element sized to be read across a table. */
+.ew-medallion {
+  position: absolute;
+  right: 14px;
+  top: -14px;
+  padding: 9px 14px;
+  border-radius: 18px 18px 20px 6px;
+  color: #8a3f1c;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.ew-card-store {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-ink-soft);
 }
 
 .ew-card-name {
   display: block;
-  margin-top: 6px;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.4;
+  margin-top: 2px;
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
+
+.ew-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+  padding-left: 0;
+}
+
+.ew-metaitem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-metaitem svg {
+  flex: 0 0 auto;
+  color: var(--ew-ink-faint);
+}
+
+.ew-card-body .ew-card-meta,
+.ew-card-body .ew-pricerow {
+  margin-left: -64px;
+}
+
+.ew-pricerow {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.ew-price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--ew-ink);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.ew-price-unit {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.ew-price-original {
+  font-size: 15px;
+  color: var(--ew-ink-faint);
+  text-decoration: line-through;
+}
+
+/* The detail screen and the footer reuse the price, at the size those layouts want. */
+.ew-footer .ew-price,
+.ew-summaryrow .ew-price {
+  font-size: 24px;
+  color: var(--ew-brand);
+}
+
+.ew-footer .ew-price-unit,
+.ew-summaryrow .ew-price-unit {
+  font-size: 14px;
+}
+
+/* Chips and meta rows, used by the detail and store screens. */
 
 .ew-chiprow {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
   margin-top: 10px;
 }
 
 .ew-chip {
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
@@ -475,11 +589,11 @@
 .ew-metarow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ew-ink-soft);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .ew-metarow svg {
@@ -487,39 +601,36 @@
   color: var(--ew-ink-faint);
 }
 
-.ew-pricerow {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.ew-price {
-  display: inline-block;
-  font-size: 22px;
-  font-weight: 900;
-  color: var(--ew-brand);
-  letter-spacing: -0.01em;
-}
-
-.ew-price-original {
-  font-size: 14px;
-  color: var(--ew-ink-faint);
-  text-decoration: line-through;
-}
-
 /* ── Detail screen ───────────────────────────────────────────────── */
 
 .ew-hero {
   position: relative;
-  aspect-ratio: 16 / 9;
-  background: var(--ew-grain-soft);
+  aspect-ratio: 16 / 10;
 }
 
 .ew-hero img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.ew-hero .ew-foodart {
+  padding: 16px 24px 26px;
+}
+
+/* The same tear as the card, in the page's own background. */
+.ew-hero-tear {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 15px;
+  background-image:
+    radial-gradient(circle at 7px 7px, var(--ew-ground) 6.4px, transparent 6.9px),
+    linear-gradient(var(--ew-ground), var(--ew-ground));
+  background-repeat: repeat-x, repeat-x;
+  background-position: 0 0, 0 7px;
+  background-size: 14px 15px, 14px 8px;
 }
 
 .ew-detail {

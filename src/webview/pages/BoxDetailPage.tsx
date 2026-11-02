@@ -1,10 +1,12 @@
 import { useParams } from 'react-router-dom'
-import { getBox, isReservable } from '../../api'
+import { isReservable } from '../../api'
+import { loadBox } from '../catalog'
 import { StoreMark } from '../components/BoxCard'
+import FoodArt from '../components/FoodArt'
 import Screen from '../components/Screen'
 import { ChevronRightIcon } from '../components/icons'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
-import { categoryColors, categoryLabel } from '../categories'
+import { categoryColors, categoryLabel, categoryWash } from '../categories'
 import { formatPickupWindow, formatPrice } from '../format'
 import { currentStation } from '../stationPreference'
 import { describeWalk } from '../nearby'
@@ -33,7 +35,7 @@ export default function BoxDetailPage() {
     error,
     loading,
     reload,
-  } = useAsync((signal) => getBox(boxId, signal), [boxId])
+  } = useAsync((signal) => loadBox(boxId, signal), [boxId])
 
   // The home tab is the listing now, so that is where a deep-linked detail screen goes back to.
   const backToList = () => goBack('/easywallet')
@@ -108,14 +110,9 @@ export default function BoxDetailPage() {
         </>
       }
     >
-      <div className="ew-hero">
-        {box.imageUrl ? (
-          <img src={box.imageUrl} alt="" />
-        ) : (
-          <div className="ew-card-media-fallback" aria-hidden="true">
-            {box.storeName.slice(0, 1)}
-          </div>
-        )}
+      <div className="ew-hero" style={{ background: categoryWash(box.category) }}>
+        {box.imageUrl ? <img src={box.imageUrl} alt="" /> : <FoodArt category={box.category} />}
+        <span className="ew-hero-tear" aria-hidden="true" />
       </div>
 
       <div className="ew-detail">

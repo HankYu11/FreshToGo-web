@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
-import { getStoreProfile, isReservable } from '../../api'
+import { isReservable } from '../../api'
+import { loadStore } from '../catalog'
 import BoxCard from '../components/BoxCard'
 import Screen from '../components/Screen'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
@@ -26,7 +27,7 @@ export default function StorePage() {
     error,
     loading,
     reload,
-  } = useAsync((signal) => getStoreProfile(merchantId, signal), [merchantId])
+  } = useAsync((signal) => loadStore(merchantId, signal), [merchantId])
 
   const back = () => goBack('/easywallet')
 

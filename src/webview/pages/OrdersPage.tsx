@@ -1,4 +1,5 @@
-import { listReservations, withSession, type Reservation } from '../../api'
+import type { Reservation } from '../../api'
+import { loadReservations } from '../catalog'
 import Screen from '../components/Screen'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { ChevronRightIcon, ClockIcon, StoreIcon } from '../components/icons'
@@ -66,7 +67,7 @@ export default function OrdersPage() {
     error,
     loading,
     reload,
-  } = useAsync((signal) => withSession(() => listReservations({ signal })), [])
+  } = useAsync((signal) => loadReservations(signal), [])
 
   const live = (orders ?? []).filter((o) => statusLabel(o).tone === 'ew-orderstatus-live')
   const past = (orders ?? []).filter((o) => statusLabel(o).tone !== 'ew-orderstatus-live')

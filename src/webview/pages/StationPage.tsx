@@ -1,4 +1,4 @@
-import { listBoxes } from '../../api'
+import { loadBoxes } from '../catalog'
 import Screen from '../components/Screen'
 import { CheckIcon, ChevronRightIcon } from '../components/icons'
 import { countsByStation } from '../nearby'
@@ -25,7 +25,7 @@ export default function StationPage() {
   // currentStation(), not the raw preference: with nothing stored yet the home screen is
   // already showing the first station, so the picker has to mark that one as current too.
   const current = currentStation().id
-  const { data: boxes, error, loading, reload } = useAsync((signal) => listBoxes(signal), [])
+  const { data: boxes, error, loading, reload } = useAsync((signal) => loadBoxes(signal), [])
 
   const counts = boxes ? countsByStation(boxes, STATIONS) : null
 

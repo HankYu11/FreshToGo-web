@@ -1,7 +1,10 @@
 import { useLocation, useParams } from 'react-router-dom'
-import { getReservation, withSession, type Reservation } from '../../api'
+import type { Reservation } from '../../api'
+import { loadReservation } from '../catalog'
+import { isDemoId } from '../demoCatalog'
 import QrCode from '../components/QrCode'
 import Screen from '../components/Screen'
+import SimulationNote from '../components/SimulationNote'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { isMissing } from '../errors'
 import { formatPickupDate, formatPickupWindow, formatPickupWindowUtc, formatPrice } from '../format'
@@ -64,7 +67,7 @@ export default function TicketPage() {
     error,
     loading,
     reload,
-  } = useAsync((signal) => withSession(() => getReservation(reservationId, signal)), [reservationId])
+  } = useAsync((signal) => loadReservation(reservationId, signal), [reservationId])
 
   /**
    * How far back the way out is depends on how the ticket was reached.
@@ -183,6 +186,14 @@ export default function TicketPage() {
       </section>
 
       {view.live && <p className="ew-note">請在取貨時段內到店，逾時未取將計為未到店。</p>}
+
+      {isDemoId(reservation.id) && (
+        <div className="ew-section">
+          <SimulationNote label="示意">
+            這張取貨券來自示意的鮮款包，只存在這支手機上，沒有送出到後端。開發環境有上架資料時，同一個流程會建立真正的預約。
+          </SimulationNote>
+        </div>
+      )}
     </Screen>
   )
 }

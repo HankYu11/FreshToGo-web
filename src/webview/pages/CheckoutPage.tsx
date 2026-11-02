@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { createReservation, getBox, isReservable, withSession } from '../../api'
+import { isReservable } from '../../api'
+import { loadBox, reserve } from '../catalog'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
@@ -26,7 +27,7 @@ export default function CheckoutPage() {
   // which matters more here than anywhere else in the flow.
   const inFlight = useRef(false)
 
-  const { data: box, error, loading, reload } = useAsync((signal) => getBox(boxId, signal), [boxId])
+  const { data: box, error, loading, reload } = useAsync((signal) => loadBox(boxId, signal), [boxId])
 
   async function confirm() {
     if (inFlight.current) return
@@ -34,7 +35,7 @@ export default function CheckoutPage() {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const reservation = await withSession(() => createReservation(boxId))
+      const reservation = await reserve(boxId)
       // replace: the ticket ends the flow, so Back from it returns to the listing instead of
       // re-entering checkout and risking a second reservation. The ticket is told it came from
       // here, because that decides how far back "回到列表" has to go.

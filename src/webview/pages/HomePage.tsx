@@ -1,4 +1,5 @@
-import { isReservable, listBoxes } from '../../api'
+import { isReservable } from '../../api'
+import { loadBoxes, usingStandIns } from '../catalog'
 import BoxCard from '../components/BoxCard'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
@@ -26,8 +27,9 @@ export default function HomePage() {
   const { goTo } = useWebviewNavigation()
   const station = currentStation()
 
-  const { data: boxes, error, loading, reload } = useAsync((signal) => listBoxes(signal), [])
+  const { data: boxes, error, loading, reload } = useAsync((signal) => loadBoxes(signal), [])
 
+  const standIns = Boolean(boxes) && usingStandIns()
   const nearby = boxes ? boxesNearStation(boxes, station) : []
   const reservable = nearby.filter((item) => isReservable(item.box.status)).length
   const counts = boxes ? countsByStation(boxes, STATIONS) : null
@@ -89,7 +91,9 @@ export default function HomePage() {
           </p>
           <div style={{ marginBottom: 14 }}>
             <SimulationNote label="示意">
-              以下店家為開發環境的示意資料，不是已合作的店家。
+              {standIns
+                ? '開發環境今天沒有上架資料，以下為示意店家與鮮款包，不是已合作的店家；預約會在這支手機上完成，不會送出到後端。'
+                : '以下店家為開發環境的示意資料，不是已合作的店家。'}
             </SimulationNote>
           </div>
           <div className="ew-cardlist">

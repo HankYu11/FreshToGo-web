@@ -1,7 +1,8 @@
 import { isReservable, type Box } from '../../api'
-import { categoryColors, categoryLabel } from '../categories'
-import { formatPickupWindow, formatPrice } from '../format'
+import { categoryLabel, categoryWash } from '../categories'
+import { formatPickupWindow } from '../format'
 import type { NearbyBox } from '../nearby'
+import FoodArt from './FoodArt'
 import { ClockIcon, WalkIcon } from './icons'
 
 /** The store's logo, or its first character when it has none — same fallback as the app. */
@@ -34,11 +35,17 @@ function statusPill(box: Box) {
 }
 
 /**
- * One pack in the station list.
+ * One pack in the feed, built to the app's listing card.
  *
- * A button rather than a link: the whole flow is driven by taps, never by a swipe, so it
- * cannot fight the system back gesture on either platform. Everything inside is a <span> —
- * a button may only contain phrasing content, so the usual <div>/<p> would be invalid markup.
+ * The silhouette is deliberately lopsided and the illustration is torn off along its bottom
+ * edge, so the card reads as a clipping rather than a container; the store's mark straddles that
+ * tear, and the discount is carried by an oversized numeral in a category-tinted blob — the one
+ * element sized to be read across a table. Ported from `MysteryBoxCard` / `ListingCardShape` /
+ * `TornEdgeShape` rather than invented, so the webview and the app are recognisably one product.
+ *
+ * A button, not a link: the whole flow is driven by taps, never a swipe, so it cannot fight the
+ * system back gesture. Everything inside is a <span>, because a button may only contain phrasing
+ * content.
  */
 export default function BoxCard({
   nearby,
@@ -48,18 +55,15 @@ export default function BoxCard({
   onSelect: () => void
 }) {
   const { box, walkMinutes, direction } = nearby
-  const colors = categoryColors(box.category)
   const pill = statusPill(box)
   const available = isReservable(box.status)
   const pickup = formatPickupWindow(box.pickupTimeStart, box.pickupTimeEnd)
 
-  // The card's text nodes concatenate into one run-on string for a screen reader
-  // ("剩 4 份省66%…"), so the button states its own name in the order it would be read.
   const label = [
     box.storeName,
     box.name,
     categoryLabel(box.category),
-    formatPrice(box.discountedPrice),
+    `${box.discountedPrice} 元`,
     pickup && `取貨 ${pickup}`,
     direction && `出站往${direction}步行約 ${walkMinutes} 分`,
     pill?.label,
@@ -74,56 +78,56 @@ export default function BoxCard({
       onClick={onSelect}
       aria-label={label}
     >
-      <span className="ew-card-media">
+      <span className="ew-card-media" style={{ background: categoryWash(box.category) }}>
         {box.imageUrl ? (
           <img src={box.imageUrl} alt="" loading="lazy" />
         ) : (
-          <span className="ew-card-media-fallback" aria-hidden="true">
-            {box.storeName.slice(0, 1)}
-          </span>
+          <FoodArt category={box.category} />
         )}
+
+        <span className="ew-card-kicker">{categoryLabel(box.category)}</span>
         {pill && <span className={`ew-pill ${pill.warn ? 'ew-pill-warn' : ''}`}>{pill.label}</span>}
-        {box.discountPercent > 0 && (
-          <span className="ew-medallion">
-            <span className="ew-medallion-unit">省</span>
-            <span className="ew-medallion-num">{box.discountPercent}</span>
-            <span className="ew-medallion-unit">%</span>
-          </span>
-        )}
+
+        {/* The teeth are painted in the card's own surface colour, biting up into the art. */}
+        <span className="ew-card-tear" aria-hidden="true" />
       </span>
 
       <span className="ew-card-body">
-        <span className="ew-card-store">
+        <span className="ew-card-crest">
           <StoreMark box={box} />
-          <span>{box.storeName}</span>
         </span>
 
+        {box.discountPercent > 0 && (
+          <span className="ew-medallion" style={{ background: categoryWash(box.category) }}>
+            −{box.discountPercent}%
+          </span>
+        )}
+
+        <span className="ew-card-store">{box.storeName}</span>
         <span className="ew-card-name">{box.name}</span>
 
-        <span className="ew-chiprow">
-          <span className="ew-chip" style={{ background: colors.bg, color: colors.fg }}>
-            {categoryLabel(box.category)}
-          </span>
+        <span className="ew-card-meta">
+          {pickup && (
+            <span className="ew-metaitem">
+              <ClockIcon size={15} />
+              取貨 {pickup}
+            </span>
+          )}
+          {direction && (
+            <span className="ew-metaitem">
+              <WalkIcon size={15} />
+              出站往{direction} {walkMinutes} 分
+            </span>
+          )}
         </span>
 
-        {pickup && (
-          <span className="ew-metarow">
-            <ClockIcon />
-            取貨 {pickup}
-          </span>
-        )}
-
-        {direction && (
-          <span className="ew-metarow">
-            <WalkIcon />
-            出站往{direction}步行約 {walkMinutes} 分
-          </span>
-        )}
-
         <span className="ew-pricerow">
-          <span className="ew-price">{formatPrice(box.discountedPrice)}</span>
+          <span className="ew-price">
+            <span className="ew-price-unit">NT$</span>
+            {box.discountedPrice}
+          </span>
           {box.originalPrice > box.discountedPrice && (
-            <span className="ew-price-original">{formatPrice(box.originalPrice)}</span>
+            <span className="ew-price-original">NT${box.originalPrice}</span>
           )}
         </span>
       </span>
