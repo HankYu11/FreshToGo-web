@@ -1,0 +1,2334 @@
+/*
+ * Styles for the wallet-embedded consumer flow.
+ *
+ * Scoped under .ew-* so nothing here reaches the marketing pages. The flow is meant to look
+ * like a page inside somebody else's app: the host owns the chrome above us, so there is no
+ * brand bar pinned to the top and no global navigation — just a back control and the content.
+ */
+
+.ew-root {
+  --ew-ink: #1d2a29;
+  --ew-ink-soft: #5b6a68;
+  --ew-ink-faint: #8a9896;
+  --ew-line: #e4ebea;
+  --ew-surface: #ffffff;
+  --ew-ground: #f6f8f7;
+  --ew-brand: #336563;
+  --ew-brand-soft: #e6f2f1;
+  --ew-grain: #edb346;
+  --ew-grain-soft: #fbefd3;
+  --ew-danger: #b3261e;
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--ew-ground);
+  color: var(--ew-ink);
+  font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  /* A slow tap on a card otherwise raises the native selection loupe and callout bar. Text
+     worth copying — the pickup code, the store address — opts back in below. */
+  -webkit-user-select: none;
+  user-select: none;
+  /* The tabs are <a> elements; a long press on one otherwise raises iOS's link-preview sheet,
+     complete with the URL — the clearest possible tell that this is a web page. */
+  -webkit-touch-callout: none;
+}
+
+.ew-ticket-code,
+.ew-ticket-order,
+.ew-inforow-value {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Long-pressing an image in a webview otherwise offers to save or share it. */
+.ew-root img {
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
+/* index.css clears the outline on every button for the marketing pages; inside the flow a
+   keyboard or switch user still needs to see where they are. */
+.ew-root :focus-visible {
+  outline: 2px solid var(--ew-brand);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* ── Screen scaffold ─────────────────────────────────────────────── */
+
+.ew-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.ew-appbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 0 4px;
+  padding-top: env(safe-area-inset-top);
+  background: var(--ew-surface);
+  border-bottom: 1px solid var(--ew-line);
+}
+
+.ew-appbar-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Keeps the title optically centred when only one side carries a control. */
+.ew-appbar-slot {
+  flex: 0 0 auto;
+  min-width: 48px;
+  display: flex;
+  justify-content: center;
+}
+
+.ew-iconbutton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  background: none;
+  border-radius: 12px;
+  color: var(--ew-ink);
+}
+
+.ew-iconbutton:active {
+  background: var(--ew-ground);
+}
+
+.ew-body {
+  flex: 1;
+  padding: 16px;
+  /* Clears the home indicator; sticky footers add their own inset on top of this. */
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+.ew-body-flush {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* A sticky action bar has to keep the last of the scrolled content clear of itself. */
+.ew-body-with-footer {
+  padding-bottom: 16px;
+}
+
+.ew-footer {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--ew-surface);
+  border-top: 1px solid var(--ew-line);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+
+.ew-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  background: var(--ew-brand);
+  color: #fff;
+  transition: opacity 0.15s ease;
+}
+
+.ew-button:active {
+  opacity: 0.82;
+}
+
+.ew-button:disabled {
+  background: #c7d3d2;
+  color: #fff;
+  cursor: default;
+  opacity: 1;
+}
+
+.ew-button-secondary {
+  background: var(--ew-surface);
+  color: var(--ew-brand);
+  border: 1.5px solid var(--ew-brand);
+}
+
+.ew-button-secondary:active {
+  background: var(--ew-brand-soft);
+  opacity: 1;
+}
+
+.ew-button-quiet {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: none;
+  color: var(--ew-brand);
+  font-size: 15px;
+  font-weight: 700;
+  width: auto;
+}
+
+.ew-button-quiet:active {
+  background: var(--ew-brand-soft);
+}
+
+/* ── Brand chip (the only place the brand takes the lead) ─────────── */
+
+.ew-brandchip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.ew-brandchip img {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.ew-brandchip-name {
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.ew-brandchip-tagline {
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+  line-height: 1.4;
+}
+
+/* ── Headings ────────────────────────────────────────────────────── */
+
+.ew-h1 {
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.ew-h2 {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.ew-sub {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--ew-ink-soft);
+  line-height: 1.6;
+}
+
+.ew-section {
+  margin-top: 24px;
+}
+
+/* ── Station picker ──────────────────────────────────────────────── */
+
+.ew-stationlist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.ew-stationcard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--ew-surface);
+  border: 1.5px solid var(--ew-line);
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.ew-stationcard:active {
+  border-color: var(--ew-brand);
+  background: var(--ew-brand-soft);
+}
+
+.ew-stationcard-current {
+  border-color: var(--ew-brand);
+}
+
+.ew-stationcard-main {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-stationcard-name {
+  display: block;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ew-stationcard-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-linepips {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ew-linepip {
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.ew-chevron {
+  flex: 0 0 auto;
+  color: var(--ew-ink-faint);
+}
+
+/* ── Pack card ───────────────────────────────────────────────────── */
+
+.ew-cardlist {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/*
+ * Lopsided on purpose, straight from the app's ListingCardShape
+ * (topStart 34 / topEnd 14 / bottomEnd 30 / bottomStart 12): corners that disagree stop the
+ * card reading as a rectangle of data and start it reading as a clipping.
+ */
+.ew-card {
+  display: block;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 34px 14px 30px 12px;
+  background: var(--ew-surface);
+  border: none;
+  box-shadow: 0 2px 10px rgba(29, 42, 41, 0.08);
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  transition: transform 0.12s ease;
+}
+
+.ew-card:active {
+  transform: scale(0.985);
+}
+
+.ew-card-unavailable {
+  opacity: 0.6;
+}
+
+.ew-card-media {
+  display: block;
+  position: relative;
+  aspect-ratio: 16 / 10;
+}
+
+.ew-card-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* contain, not cover: the illustration is drawn to a 16:9 box and cropping it cuts the food in
+   half, which is the one thing a surplus-food listing cannot afford to look like. */
+.ew-foodart {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 10px 14px 16px;
+}
+
+/*
+ * The torn edge, in the card's own surface colour biting up into the art.
+ *
+ * Two layers, written longhand because the shorthand's position/size pairs are easy to get
+ * subtly wrong: a row of circles whose crests reach the top of the strip, and a solid block
+ * from their centres down, so the troughs between them are filled rather than transparent.
+ */
+.ew-card-tear {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 15px;
+  background-image:
+    radial-gradient(circle at 7px 7px, var(--ew-surface) 6.4px, transparent 6.9px),
+    linear-gradient(var(--ew-surface), var(--ew-surface));
+  background-repeat: repeat-x, repeat-x;
+  background-position: 0 0, 0 7px;
+  background-size: 14px 15px, 14px 8px;
+}
+
+.ew-card-kicker {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ew-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ew-pill {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--ew-brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ew-pill-warn {
+  background: #b3261e;
+}
+
+.ew-card-body {
+  display: block;
+  position: relative;
+  padding: 10px 18px 18px 82px;
+}
+
+/* The store's mark straddles the tear, as it does on the app's card. */
+.ew-card-crest {
+  position: absolute;
+  left: 16px;
+  top: -18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--ew-surface);
+  box-shadow: 0 2px 6px rgba(29, 42, 41, 0.12);
+}
+
+.ew-storemark {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--ew-brand-soft);
+}
+
+.ew-storemark-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ew-brand);
+  font-size: 19px;
+  font-weight: 900;
+}
+
+/* The one element sized to be read across a table. */
+.ew-medallion {
+  position: absolute;
+  right: 14px;
+  top: -14px;
+  padding: 9px 14px;
+  border-radius: 18px 18px 20px 6px;
+  color: #8a3f1c;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.ew-card-store {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-ink-soft);
+}
+
+.ew-card-name {
+  display: block;
+  margin-top: 2px;
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.ew-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+  padding-left: 0;
+}
+
+.ew-metaitem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-metaitem svg {
+  flex: 0 0 auto;
+  color: var(--ew-ink-faint);
+}
+
+.ew-card-body .ew-card-meta,
+.ew-card-body .ew-pricerow {
+  margin-left: -64px;
+}
+
+.ew-pricerow {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.ew-price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--ew-ink);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.ew-price-unit {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.ew-price-original {
+  font-size: 15px;
+  color: var(--ew-ink-faint);
+  text-decoration: line-through;
+}
+
+/* The detail screen and the footer reuse the price, at the size those layouts want. */
+.ew-footer .ew-price,
+.ew-summaryrow .ew-price {
+  font-size: 24px;
+  color: var(--ew-brand);
+}
+
+.ew-footer .ew-price-unit,
+.ew-summaryrow .ew-price-unit {
+  font-size: 14px;
+}
+
+/* Chips and meta rows, used by the detail and store screens. */
+
+.ew-chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ew-chip {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.ew-chip-neutral {
+  background: var(--ew-ground);
+  color: var(--ew-ink-soft);
+}
+
+.ew-metarow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--ew-ink-soft);
+  line-height: 1.6;
+}
+
+.ew-metarow svg {
+  flex: 0 0 auto;
+  color: var(--ew-ink-faint);
+}
+
+/* ── Detail screen ───────────────────────────────────────────────── */
+
+.ew-hero {
+  position: relative;
+  aspect-ratio: 16 / 10;
+}
+
+.ew-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ew-hero .ew-foodart {
+  padding: 16px 24px 26px;
+}
+
+/* The same tear as the card, in the page's own background. */
+.ew-hero-tear {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 15px;
+  background-image:
+    radial-gradient(circle at 7px 7px, var(--ew-ground) 6.4px, transparent 6.9px),
+    linear-gradient(var(--ew-ground), var(--ew-ground));
+  background-repeat: repeat-x, repeat-x;
+  background-position: 0 0, 0 7px;
+  background-size: 14px 15px, 14px 8px;
+}
+
+.ew-detail {
+  padding: 18px 16px 0;
+}
+
+.ew-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+}
+
+.ew-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-ink-faint);
+  letter-spacing: 0.04em;
+}
+
+.ew-inforow {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ew-line);
+}
+
+.ew-inforow:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.ew-inforow-label {
+  flex: 0 0 76px;
+  font-size: 14px;
+  color: var(--ew-ink-faint);
+}
+
+.ew-inforow-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.ew-inforow-strong {
+  font-weight: 700;
+}
+
+.ew-note {
+  /* Also used as a <span> inside an info row's value, where inline would swallow the margin. */
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+  line-height: 1.6;
+}
+
+.ew-footer-price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.ew-footer-price-label {
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+}
+
+/* ── Simulation notice ───────────────────────────────────────────── */
+
+.ew-simnote {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ew-grain-soft);
+  border: 1px solid #efd9a4;
+  color: #6b4f12;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ew-simnote-badge {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ew-grain);
+  color: #4a3208;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+/* ── Checkout ────────────────────────────────────────────────────── */
+
+.ew-summaryrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 15px;
+}
+
+.ew-summaryrow-total {
+  padding-top: 14px;
+  margin-top: 4px;
+  border-top: 1px solid var(--ew-line);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.ew-summaryrow-total .ew-price {
+  font-size: 24px;
+}
+
+.ew-paymethod {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--ew-surface);
+  border: 1.5px dashed #c8d4d3;
+}
+
+.ew-paymethod-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--ew-brand-soft);
+  color: var(--ew-brand);
+}
+
+.ew-paymethod-main {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-paymethod-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ew-paymethod-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+  line-height: 1.5;
+}
+
+/* ── Ticket ──────────────────────────────────────────────────────── */
+
+.ew-ticket {
+  padding: 24px 20px;
+  border-radius: 20px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  text-align: center;
+}
+
+/* A collected, cancelled or expired ticket: still readable, visibly not a live voucher. */
+.ew-ticket-spent {
+  background: var(--ew-ground);
+}
+
+.ew-ticket-spent .ew-ticket-kicker {
+  color: var(--ew-ink-faint);
+}
+
+.ew-ticket-spent .ew-ticket-code {
+  color: var(--ew-ink-faint);
+  text-decoration: line-through;
+}
+
+.ew-ticket-kicker {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-brand);
+  letter-spacing: 0.08em;
+}
+
+.ew-ticket-code {
+  margin-top: 10px;
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  /* The code is read aloud and typed in by hand; tabular digits keep it from wobbling. */
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.ew-ticket-qr {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+/* The component sets the canvas's CSS size inline (it draws at device pixel density). */
+.ew-ticket-qr canvas {
+  border-radius: 10px;
+}
+
+.ew-ticket-hint {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+  line-height: 1.6;
+}
+
+.ew-ticket-order {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ew-ink-faint);
+}
+
+.ew-inlineretry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ew-ink-soft);
+}
+
+/* ── States: loading, empty, error ───────────────────────────────── */
+
+.ew-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.ew-state-icon {
+  color: var(--ew-ink-faint);
+}
+
+.ew-state-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ew-state-body {
+  max-width: 30ch;
+  font-size: 14px;
+  color: var(--ew-ink-soft);
+  line-height: 1.7;
+}
+
+.ew-state-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 8px;
+}
+
+.ew-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--ew-line);
+  border-top-color: var(--ew-brand);
+  border-radius: 50%;
+  animation: ew-spin 0.8s linear infinite;
+}
+
+@keyframes ew-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ew-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eef2f1 25%, #e2e9e8 37%, #eef2f1 63%);
+  background-size: 400% 100%;
+  animation: ew-shimmer 1.3s ease infinite;
+}
+
+@keyframes ew-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+.ew-skeleton-card {
+  height: 236px;
+  border-radius: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ew-spinner,
+  .ew-skeleton {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}
+
+/* Larger phones and tablets: keep the column readable instead of letting it stretch. */
+@media (min-width: 520px) {
+  .ew-screen {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--ew-ground);
+    box-shadow: 0 0 0 1px var(--ew-line);
+  }
+}
+
+/* ── Bottom navigation ───────────────────────────────────────────────── */
+
+.ew-tabbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  background: var(--ew-surface);
+  border-top: 1px solid var(--ew-line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.ew-tab {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  /* Comfortably over the 44px minimum once the safe-area inset is added below it. */
+  min-height: 56px;
+  padding: 7px 0 9px;
+  color: var(--ew-ink-faint);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.ew-tab-active {
+  color: var(--ew-brand);
+  font-weight: 700;
+}
+
+.ew-tab:active {
+  background: var(--ew-ground);
+}
+
+.ew-tab-label {
+  line-height: 1.2;
+}
+
+/* The grain, as the marker for the section you are in. */
+.ew-tab-dot {
+  position: absolute;
+  top: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ew-grain);
+}
+
+/* ── Station bar on the home feed ────────────────────────────────────── */
+
+.ew-stationbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--ew-brand-soft);
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  color: var(--ew-brand);
+}
+
+.ew-stationbar:active {
+  opacity: 0.85;
+}
+
+.ew-stationbar-main {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-stationbar-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.ew-stationbar-name {
+  display: block;
+  margin-top: 1px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ew-ink);
+}
+
+.ew-stationbar-change {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ew-stationcard-check {
+  flex: 0 0 auto;
+  color: var(--ew-brand);
+}
+
+/* ── Section headings ────────────────────────────────────────────────── */
+
+.ew-sectiontitle {
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ew-ink-soft);
+}
+
+/* ── Order rows ──────────────────────────────────────────────────────── */
+
+.ew-orderlist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ew-orderrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 14px 14px 16px;
+  border-radius: 16px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.ew-orderrow:active {
+  border-color: var(--ew-brand);
+}
+
+.ew-orderrow-main {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-orderrow-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ew-orderstatus {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ew-orderstatus-live {
+  background: var(--ew-brand);
+  color: #fff;
+}
+
+.ew-orderstatus-done {
+  background: var(--ew-brand-soft);
+  color: var(--ew-brand);
+}
+
+.ew-orderstatus-off {
+  background: var(--ew-ground);
+  color: var(--ew-ink-faint);
+}
+
+.ew-orderrow-id {
+  font-size: 11px;
+  color: var(--ew-ink-faint);
+}
+
+.ew-orderrow-store {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ew-ink-soft);
+}
+
+.ew-orderrow-name {
+  display: block;
+  margin-top: 3px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.ew-orderrow-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-orderrow-right {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+
+.ew-orderrow-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ew-brand);
+}
+
+/* ── Profile ─────────────────────────────────────────────────────────── */
+
+.ew-memberrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 2px 18px;
+}
+
+.ew-memberavatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--ew-brand-soft);
+  color: var(--ew-brand);
+}
+
+.ew-memberrow-main {
+  display: block;
+  min-width: 0;
+}
+
+.ew-memberrow-name {
+  display: block;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.ew-memberrow-sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ew-ink-soft);
+  line-height: 1.5;
+}
+
+.ew-statrow {
+  display: flex;
+  gap: 10px;
+}
+
+.ew-stat {
+  flex: 1;
+  padding: 16px 8px;
+  border-radius: 16px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  text-align: center;
+}
+
+.ew-stat-value {
+  display: block;
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--ew-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.ew-stat-label {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-impact {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ew-ink-soft);
+}
+
+.ew-impact svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--ew-brand);
+}
+
+.ew-settingrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 10px 0 0;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  color: inherit;
+  text-align: left;
+}
+
+.ew-settingrow-value {
+  font-weight: 700;
+  color: var(--ew-brand);
+}
+
+/* ── Store page ──────────────────────────────────────────────────────── */
+
+.ew-storehead {
+  padding: 6px 0 2px;
+}
+
+.ew-storehead-logo {
+  display: block;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  object-fit: cover;
+  background: var(--ew-brand-soft);
+}
+
+.ew-storehead-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ew-brand);
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.ew-storelink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 10px 0 0;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ew-brand);
+  text-align: left;
+}
+
+/* ── Wallet payment sheet ────────────────────────────────────────────── */
+
+.ew-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(16, 24, 23, 0.45);
+  animation: ew-fadein 0.18s ease;
+}
+
+.ew-sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88dvh;
+  overflow-y: auto;
+  padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
+  background: var(--ew-surface);
+  animation: ew-riseup 0.24s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.ew-sheet:focus {
+  outline: none;
+}
+
+@keyframes ew-fadein {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ew-riseup {
+  from {
+    transform: translateY(14%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ew-sheet-scrim,
+  .ew-sheet {
+    animation: none;
+  }
+}
+
+.ew-sheet-grip {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 16px;
+  border-radius: 2px;
+  background: var(--ew-line);
+}
+
+.ew-sheet-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ew-line);
+}
+
+.ew-sheet-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #e7f0f7;
+  color: #1f6fa8;
+}
+
+.ew-sheet-brandname {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 900;
+  color: #1f6fa8;
+  letter-spacing: 0.01em;
+}
+
+/* Never out of sight: this is a mock-up of somebody else's payment step. */
+.ew-sheet-sim {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ew-grain);
+  color: #4a3208;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.ew-sheet-title {
+  margin-top: 18px;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.ew-sheet-amount {
+  margin-top: 10px;
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ew-ink);
+}
+
+.ew-sheet-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.ew-sheet-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ew-ink-soft);
+}
+
+.ew-sheet-list svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--ew-brand);
+}
+
+.ew-sheet-rows {
+  margin-top: 16px;
+  border-top: 1px solid var(--ew-line);
+}
+
+.ew-sheet-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--ew-line);
+  font-size: 14px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-sheet-rowvalue {
+  font-weight: 700;
+  color: var(--ew-ink);
+  text-align: right;
+}
+
+.ew-sheet-note {
+  margin-top: 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ew-ink-soft);
+}
+
+.ew-button-plain {
+  margin-top: 8px;
+  background: none;
+  color: var(--ew-ink-soft);
+  font-weight: 700;
+}
+
+.ew-button-plain:active {
+  background: var(--ew-ground);
+  opacity: 1;
+}
+
+.ew-sheet-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 56px 0 48px;
+}
+
+.ew-sheet-tick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--ew-brand);
+  color: #fff;
+}
+
+.ew-sheet-statetext {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ── 吃 der ──────────────────────────────────────────────────────────── */
+
+.ew-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ew-line);
+}
+
+.ew-field:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ew-field-label {
+  font-size: 14px;
+  color: var(--ew-ink-faint);
+}
+
+.ew-select {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--ew-line);
+  border-radius: 10px;
+  background: var(--ew-surface);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ew-ink);
+  text-align: right;
+}
+
+.ew-routeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ew-routestop {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ew-routedash {
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--ew-line);
+}
+
+.ew-huntcard {
+  overflow: hidden;
+  border-radius: 34px 14px 30px 12px;
+  background: var(--ew-surface);
+  box-shadow: 0 4px 18px rgba(29, 42, 41, 0.1);
+}
+
+.ew-huntcard-art {
+  position: relative;
+  aspect-ratio: 4 / 3;
+}
+
+.ew-huntcard-art .ew-foodart {
+  padding: 18px 20px 24px;
+}
+
+.ew-huntcard-body {
+  padding: 16px 20px 22px;
+}
+
+.ew-huntcard-stop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-brand);
+}
+
+.ew-huntcard-name {
+  margin-top: 8px;
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.ew-huntcard-store {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-huntcard-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 14px;
+}
+
+/* The promise the screen makes: you will still be able to collect this one. */
+.ew-huntcard-reach {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: var(--ew-brand-soft);
+  color: #2c5553;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ew-huntcard-reach svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* ── The three decisions ─────────────────────────────────────────────── */
+
+.ew-decide {
+  display: flex;
+  gap: 10px;
+}
+
+.ew-decide button {
+  flex: 1;
+  min-height: 54px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ew-decide-skip {
+  background: var(--ew-ground);
+  color: var(--ew-ink-soft);
+}
+
+.ew-decide-keep {
+  background: var(--ew-grain-soft);
+  color: #6b4f12;
+}
+
+.ew-decide-take {
+  flex: 1.3 !important;
+  background: var(--ew-brand);
+  color: #fff;
+  font-weight: 900;
+}
+
+.ew-decide button:active {
+  opacity: 0.82;
+}
+
+/* ── Kept list ───────────────────────────────────────────────────────── */
+
+.ew-keptrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px 10px 10px;
+  border-radius: 18px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.ew-keptrow:active {
+  border-color: var(--ew-brand);
+}
+
+.ew-keptart {
+  flex: 0 0 auto;
+  width: 62px;
+  height: 62px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ew-keptart .ew-foodart {
+  padding: 4px;
+}
+
+.ew-keptmain {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-keptstation {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ew-brand);
+}
+
+.ew-keptname {
+  display: block;
+  margin-top: 3px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.ew-keptstore {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-keptprice {
+  flex: 0 0 auto;
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--ew-brand);
+}
+
+/* ── Wallet payment sheet ────────────────────────────────────────────── */
+
+.ew-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(16, 24, 23, 0.45);
+  animation: ew-fadein 0.18s ease;
+}
+
+.ew-sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88dvh;
+  overflow-y: auto;
+  padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
+  background: var(--ew-surface);
+  animation: ew-riseup 0.24s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.ew-sheet:focus {
+  outline: none;
+}
+
+@keyframes ew-fadein {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ew-riseup {
+  from {
+    transform: translateY(14%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ew-sheet-scrim,
+  .ew-sheet {
+    animation: none;
+  }
+}
+
+.ew-sheet-grip {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 16px;
+  border-radius: 2px;
+  background: var(--ew-line);
+}
+
+.ew-sheet-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ew-line);
+}
+
+.ew-sheet-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #e7f0f7;
+  color: #1f6fa8;
+}
+
+.ew-sheet-brandname {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 900;
+  color: #1f6fa8;
+  letter-spacing: 0.01em;
+}
+
+/* Never out of sight: this is a mock-up of somebody else's payment step. */
+.ew-sheet-sim {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ew-grain);
+  color: #4a3208;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.ew-sheet-title {
+  margin-top: 18px;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.ew-sheet-amount {
+  margin-top: 10px;
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ew-ink);
+}
+
+.ew-sheet-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.ew-sheet-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ew-ink-soft);
+}
+
+.ew-sheet-list svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--ew-brand);
+}
+
+.ew-sheet-rows {
+  margin-top: 16px;
+  border-top: 1px solid var(--ew-line);
+}
+
+.ew-sheet-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--ew-line);
+  font-size: 14px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-sheet-rowvalue {
+  font-weight: 700;
+  color: var(--ew-ink);
+  text-align: right;
+}
+
+.ew-sheet-note {
+  margin-top: 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ew-ink-soft);
+}
+
+.ew-button-plain {
+  margin-top: 8px;
+  background: none;
+  color: var(--ew-ink-soft);
+  font-weight: 700;
+}
+
+.ew-button-plain:active {
+  background: var(--ew-ground);
+  opacity: 1;
+}
+
+.ew-sheet-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 56px 0 48px;
+}
+
+.ew-sheet-tick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--ew-brand);
+  color: #fff;
+}
+
+.ew-sheet-statetext {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ── 吃 der ──────────────────────────────────────────────────────────── */
+
+.ew-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ew-line);
+}
+
+.ew-field:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ew-field-label {
+  font-size: 14px;
+  color: var(--ew-ink-faint);
+}
+
+.ew-select {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--ew-line);
+  border-radius: 10px;
+  background: var(--ew-surface);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ew-ink);
+  text-align: right;
+}
+
+.ew-routeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ew-routestop {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ew-routedash {
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--ew-line);
+}
+
+.ew-huntcard {
+  overflow: hidden;
+  border-radius: 34px 14px 30px 12px;
+  background: var(--ew-surface);
+  box-shadow: 0 4px 18px rgba(29, 42, 41, 0.1);
+}
+
+.ew-huntcard-art {
+  position: relative;
+  aspect-ratio: 4 / 3;
+}
+
+.ew-huntcard-art .ew-foodart {
+  padding: 18px 20px 24px;
+}
+
+.ew-huntcard-body {
+  padding: 16px 20px 22px;
+}
+
+.ew-huntcard-stop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-brand);
+}
+
+.ew-huntcard-name {
+  margin-top: 8px;
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.ew-huntcard-store {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-huntcard-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 14px;
+}
+
+/* The promise the screen makes: you will still be able to collect this one. */
+.ew-huntcard-reach {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: var(--ew-brand-soft);
+  color: #2c5553;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ew-huntcard-reach svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* ── The three decisions ─────────────────────────────────────────────── */
+
+.ew-decide {
+  display: flex;
+  gap: 10px;
+}
+
+.ew-decide button {
+  flex: 1;
+  min-height: 54px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ew-decide-skip {
+  background: var(--ew-ground);
+  color: var(--ew-ink-soft);
+}
+
+.ew-decide-keep {
+  background: var(--ew-grain-soft);
+  color: #6b4f12;
+}
+
+.ew-decide-take {
+  flex: 1.3 !important;
+  background: var(--ew-brand);
+  color: #fff;
+  font-weight: 900;
+}
+
+.ew-decide button:active {
+  opacity: 0.82;
+}
+
+/* ── Kept list ───────────────────────────────────────────────────────── */
+
+.ew-keptrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px 10px 10px;
+  border-radius: 18px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.ew-keptrow:active {
+  border-color: var(--ew-brand);
+}
+
+.ew-keptart {
+  flex: 0 0 auto;
+  width: 62px;
+  height: 62px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ew-keptart .ew-foodart {
+  padding: 4px;
+}
+
+.ew-keptmain {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-keptstation {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ew-brand);
+}
+
+.ew-keptname {
+  display: block;
+  margin-top: 3px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.ew-keptstore {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-keptprice {
+  flex: 0 0 auto;
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--ew-brand);
+}
+
+/* ── 吃 der entry on the home feed ───────────────────────────────────── */
+
+.ew-hunt-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(100deg, #336563, #4b8f8c);
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  color: #fff;
+}
+
+.ew-hunt-entry:active {
+  opacity: 0.9;
+}
+
+.ew-hunt-entry-main {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-hunt-entry-name {
+  display: block;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.ew-hunt-entry-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.88;
+  line-height: 1.5;
+}
+
+/* ── 吃 der: drag to decide ──────────────────────────────────────────── */
+
+.ew-huntcard {
+  position: relative;
+  /* We own the gesture on this card, so the page does not scroll under the drag. The edge
+     gutter is enforced in useCardSwipe, where the OS can still claim its own. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  will-change: transform;
+}
+
+/* What the drag is about to do, stamped on the card the way a hand-sorted pile gets marked. */
+.ew-huntstamp {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-7deg);
+  z-index: 2;
+  padding: 7px 18px;
+  border-radius: 999px;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  box-shadow: 0 2px 10px rgba(29, 42, 41, 0.18);
+}
+
+.ew-huntstamp-skip {
+  background: #e8edec;
+  color: var(--ew-ink-soft);
+}
+
+.ew-huntstamp-keep {
+  background: var(--ew-grain);
+  color: #4a3208;
+}
+
+.ew-huntstamp-take {
+  background: var(--ew-brand);
+  color: #fff;
+}
+
+.ew-huntswipehint {
+  text-align: center;
+}
+
+.ew-decide button:disabled {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ew-huntcard {
+    transition: none !important;
+  }
+}
+
+/* ── Floating action ─────────────────────────────────────────────────── */
+
+/*
+ * Fixed, and centred on the same column the screen uses at tablet widths, so it rides the right
+ * edge of the content rather than the right edge of a wide window. The wrapper ignores pointer
+ * events; only the button takes them, so it never blocks a card underneath it.
+ */
+.ew-fabslot {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  z-index: 11;
+  display: flex;
+  justify-content: flex-end;
+  max-width: 480px;
+  margin: 0 auto;
+  padding-right: 16px;
+  pointer-events: none;
+}
+
+/* Clear of the bottom navigation (56px) and the home indicator below it. */
+.ew-fabslot-overtabs {
+  bottom: calc(env(safe-area-inset-bottom) + 72px);
+}
+
+.ew-fab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: 26px;
+  border: none;
+  background: linear-gradient(100deg, #336563, #4b8f8c);
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 900;
+  box-shadow: 0 6px 18px rgba(29, 54, 52, 0.32);
+  pointer-events: auto;
+  transition: transform 0.12s ease;
+}
+
+.ew-fab:active {
+  transform: scale(0.95);
+}
+
+.ew-fab-label {
+  letter-spacing: 0.01em;
+}
