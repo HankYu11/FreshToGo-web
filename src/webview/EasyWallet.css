@@ -1943,3 +1943,185 @@
 .ew-privacy strong {
   color: var(--ew-ink);
 }
+
+/* ── Feed headings ───────────────────────────────────────────────────── */
+
+.ew-feedhead {
+  margin: 20px 0 12px;
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.ew-feedhead-spaced {
+  margin-top: 30px;
+}
+
+.ew-feedhead-sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ew-ink-soft);
+  letter-spacing: 0;
+}
+
+/* ── A station's row ─────────────────────────────────────────────────── */
+
+.ew-stationsection {
+  margin-bottom: 18px;
+}
+
+.ew-stationsection-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  color: var(--ew-ink);
+  text-align: left;
+}
+
+.ew-stationsection-head svg:first-child {
+  color: var(--ew-brand);
+}
+
+.ew-stationsection-name {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.ew-stationsection-count {
+  flex: 1;
+  font-size: 12px;
+  color: var(--ew-ink-faint);
+}
+
+/*
+ * The row only claims the horizontal axis, so a vertical drag still scrolls the page under it.
+ * The negative margin lets cards run to the screen edge while the first one still starts at the
+ * page's own gutter — so a drag never begins where the OS wants its back gesture.
+ */
+.ew-stationrow {
+  display: flex;
+  gap: 12px;
+  margin: 10px -16px 0;
+  padding: 2px 16px 6px;
+  overflow-x: auto;
+  touch-action: pan-x;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.ew-stationrow::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── A pack in that row ──────────────────────────────────────────────── */
+
+.ew-mini {
+  flex: 0 0 auto;
+  width: 164px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--ew-line);
+  border-radius: 20px 10px 18px 10px;
+  background: var(--ew-surface);
+  scroll-snap-align: start;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  transition: transform 0.12s ease;
+}
+
+.ew-mini:active {
+  transform: scale(0.97);
+}
+
+.ew-mini-unavailable {
+  opacity: 0.6;
+}
+
+.ew-mini-art {
+  display: block;
+  position: relative;
+  aspect-ratio: 4 / 3;
+}
+
+.ew-mini-art .ew-foodart {
+  padding: 6px 8px;
+}
+
+.ew-mini-off {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #8a3f1c;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ew-mini-body {
+  display: block;
+  padding: 10px 12px 12px;
+}
+
+.ew-mini-cat {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ew-ink-faint);
+}
+
+.ew-mini-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 3px;
+  min-height: 2.7em;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.ew-mini-store {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--ew-ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ew-mini-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ew-mini-price {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--ew-ink);
+  letter-spacing: -0.02em;
+}
+
+.ew-mini-walk {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--ew-ink-soft);
+}

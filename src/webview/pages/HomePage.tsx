@@ -1,27 +1,32 @@
 import { isReservable } from '../../api'
-import { loadBoxes, usingStandIns } from '../catalog'
 import BoxCard from '../components/BoxCard'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
+import StationRow from '../components/StationRow'
 import { ChevronRightIcon, PinIcon, RouteIcon } from '../components/icons'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
-import { boxesNearStation, countsByStation } from '../nearby'
+import { loadBoxes, usingStandIns } from '../catalog'
+import { boxesNearStation } from '../nearby'
 import { currentStation, writeStationPreference } from '../stationPreference'
 import { STATIONS, STATION_RADIUS_M } from '../stations'
 import { useAsync } from '../useAsync'
 import { useWebviewNavigation } from '../useWebviewNavigation'
 
-/** 1000 m reads better as 1 公里 than as 1000 公尺. */
+/** 700 m reads better as 700 公尺 than as 0.7 公里. */
 function formatRadius(meters: number) {
   return meters >= 1000 ? `${meters / 1000} 公里` : `${meters} 公尺`
 }
 
 /**
- * The app's home: what you can collect on the way out of your station tonight.
+ * The app's home, organised the way the pilot actually works: by stop.
  *
- * The station is a filter in the header, not a gate in front of the app — someone opening this
- * from a wallet's home screen should land on something to look at, and change the station if it
- * is wrong. The picker is still a screen of its own, one tap away.
+ * The line is the unit, not the neighbourhood. The station you get off at gets the full cards —
+ * that is the decision in front of you tonight — and every other stop on the pilot gets a row
+ * you can push sideways, because a commuter who could just as easily get off one stop earlier
+ * should be able to see what is there without changing any setting first.
+ *
+ * A flat list could not say any of that: it put 台北車站 and 龍山寺 shoulder to shoulder with
+ * nothing to indicate they are twenty minutes apart.
  */
 export default function HomePage() {
   const { goTo } = useWebviewNavigation()
@@ -30,17 +35,29 @@ export default function HomePage() {
   const { data: boxes, error, loading, reload } = useAsync((signal) => loadBoxes(signal), [])
 
   const standIns = Boolean(boxes) && usingStandIns()
-  const nearby = boxes ? boxesNearStation(boxes, station) : []
-  const reservable = nearby.filter((item) => isReservable(item.box.status)).length
-  const counts = boxes ? countsByStation(boxes, STATIONS) : null
-  const elsewhere = counts
-    ? STATIONS.filter((other) => other.id !== station.id && counts[other.id] > 0)
+  const here = boxes ? boxesNearStation(boxes, station) : []
+  const reservable = here.filter((item) => isReservable(item.box.status)).length
+
+  // Every other stop on the pilot, in line order, keeping only what can still be reserved —
+  // a row of sold-out packs for a station you are not even at is noise.
+  const elsewhere = boxes
+    ? STATIONS.filter((other) => other.id !== station.id)
+        .map((other) => ({
+          station: other,
+          packs: boxesNearStation(boxes, other).filter((item) => isReservable(item.box.status)),
+        }))
+        .filter((group) => group.packs.length > 0)
     : []
 
-  function openStation(id: string) {
+  function chooseStation(id: string) {
     writeStationPreference(id)
+    // The feed is rebuilt around a different stop: keeping the old scroll offset would land the
+    // commuter somewhere in the middle of a page that no longer says what it said.
+    window.scrollTo(0, 0)
     reload()
   }
+
+  const nothingAnywhere = here.length === 0 && elsewhere.length === 0
 
   return (
     <Screen
@@ -77,48 +94,66 @@ export default function HomePage() {
         <LoadingState label="正在查看這一站附近的鮮款包…" />
       ) : error && !boxes ? (
         <ErrorState error={error} onRetry={reload} />
-      ) : nearby.length === 0 ? (
+      ) : nothingAnywhere ? (
         <EmptyState
-          title={`${station.fullName}今天還沒有鮮款包`}
-          body={`店家多在下班前上架，稍後再回來看看。${
-            elsewhere.length > 0 ? '其他站今天還有：' : ''
-          }`}
+          title="今天三站都還沒有鮮款包"
+          body="店家多在下班前上架，稍後再回來看看。"
         >
-          {elsewhere.map((other) => (
-            <button
-              key={other.id}
-              type="button"
-              className="ew-button ew-button-secondary"
-              onClick={() => openStation(other.id)}
-            >
-              {other.fullName}・{counts?.[other.id]} 款
-            </button>
-          ))}
           <button type="button" className="ew-button ew-button-secondary" onClick={reload}>
             重新整理
           </button>
         </EmptyState>
       ) : (
         <>
-          <p className="ew-sub" style={{ marginTop: 16, marginBottom: 12 }}>
-            出站步行 {formatRadius(STATION_RADIUS_M)}內・今天有 <strong>{reservable}</strong> 款可預約
-          </p>
-          <div style={{ marginBottom: 14 }}>
-            <SimulationNote label="示意">
-              {standIns
-                ? '開發環境今天沒有上架資料，以下為示意店家與鮮款包，不是已合作的店家；預約會在這支手機上完成，不會送出到後端。'
-                : '以下店家為開發環境的示意資料，不是已合作的店家。'}
-            </SimulationNote>
-          </div>
-          <div className="ew-cardlist">
-            {nearby.map((item) => (
-              <BoxCard
-                key={item.box.id}
-                nearby={item}
-                onSelect={() => goTo(`/easywallet/box/${item.box.id}`)}
-              />
-            ))}
-          </div>
+          {standIns && (
+            <div style={{ marginTop: 14 }}>
+              <SimulationNote label="示意">
+                開發環境今天沒有上架資料，以下為示意店家與鮮款包，不是已合作的店家；預約會在這支手機上完成，不會送出到後端。
+              </SimulationNote>
+            </div>
+          )}
+
+          <h2 className="ew-feedhead">
+            {station.fullName}附近
+            <span className="ew-feedhead-sub">
+              出站步行 {formatRadius(STATION_RADIUS_M)}內・{reservable} 款可預約
+            </span>
+          </h2>
+
+          {here.length === 0 ? (
+            <EmptyState
+              title={`${station.fullName}今天還沒有鮮款包`}
+              body="下面幾站今天還有，或稍後再回來看看。"
+            />
+          ) : (
+            <div className="ew-cardlist">
+              {here.map((item) => (
+                <BoxCard
+                  key={item.box.id}
+                  nearby={item}
+                  onSelect={() => goTo(`/easywallet/box/${item.box.id}`)}
+                />
+              ))}
+            </div>
+          )}
+
+          {elsewhere.length > 0 && (
+            <>
+              <h2 className="ew-feedhead ew-feedhead-spaced">
+                沿線其他站
+                <span className="ew-feedhead-sub">提早一站下車也拿得到</span>
+              </h2>
+              {elsewhere.map((group) => (
+                <StationRow
+                  key={group.station.id}
+                  station={group.station}
+                  packs={group.packs}
+                  onSelectStation={() => chooseStation(group.station.id)}
+                  onSelectPack={(boxId) => goTo(`/easywallet/box/${boxId}`)}
+                />
+              ))}
+            </>
+          )}
         </>
       )}
     </Screen>
