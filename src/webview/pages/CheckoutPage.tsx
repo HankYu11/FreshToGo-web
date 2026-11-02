@@ -4,6 +4,7 @@ import { isReservable } from '../../api'
 import { loadBox, reserve } from '../catalog'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
+import WalletSheet from '../components/WalletSheet'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { WalletIcon } from '../components/icons'
 import { errorCode, isMissing, isTerminalReserveError, reserveErrorMessage } from '../errors'
@@ -23,15 +24,25 @@ export default function CheckoutPage() {
   const { goBack, replaceTo } = useWebviewNavigation()
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<unknown>(null)
+  // The wallet's step comes first: the reservation is only created once it reports paid,
+  // which is the order the proposal describes.
+  const [paying, setPaying] = useState(false)
   // State alone cannot stop two taps landing in the same frame; a ref closes that window,
   // which matters more here than anywhere else in the flow.
   const inFlight = useRef(false)
 
   const { data: box, error, loading, reload } = useAsync((signal) => loadBox(boxId, signal), [boxId])
 
+  function startPayment() {
+    if (inFlight.current) return
+    setSubmitError(null)
+    setPaying(true)
+  }
+
   async function confirm() {
     if (inFlight.current) return
     inFlight.current = true
+    setPaying(false)
     setSubmitting(true)
     setSubmitError(null)
     try {
@@ -93,10 +104,10 @@ export default function CheckoutPage() {
         <button
           type="button"
           className="ew-button"
-          onClick={confirm}
+          onClick={startPayment}
           disabled={submitting || blocked}
         >
-          {submitting ? '預約中…' : `確認預約・${formatPrice(box.discountedPrice)}`}
+          {submitting ? '預約中…' : `用悠遊付付款・${formatPrice(box.discountedPrice)}`}
         </button>
       }
     >
@@ -130,15 +141,15 @@ export default function CheckoutPage() {
             <WalletIcon />
           </span>
           <span className="ew-paymethod-main">
-            <span className="ew-paymethod-name">由悠遊付完成付款</span>
+            <span className="ew-paymethod-name">悠遊付帳戶</span>
             <span className="ew-paymethod-sub">
-              正式版將由宿主 App 的付款流程扣款，本版本不會發生任何金流。
+              首次使用時同意授權，之後每筆訂單仍逐筆確認金額，不需綁定信用卡。
             </span>
           </span>
         </div>
         <div style={{ marginTop: 12 }}>
           <SimulationNote>
-            付款為模擬步驟：按下確認只會在開發環境建立一筆預約並產生取貨碼，不會向任何帳戶請款。
+            付款畫面是提案用的模擬：不會向任何帳戶請款，也沒有連到任何金流服務。按下確認只會建立一筆預約並產生取貨碼。
           </SimulationNote>
         </div>
       </section>
@@ -147,6 +158,16 @@ export default function CheckoutPage() {
         <p className="ew-note" style={{ color: 'var(--ew-danger)' }}>
           這一包目前無法預約，請回上一頁看看其他款。
         </p>
+      )}
+
+      {paying && (
+        <WalletSheet
+          amount={box.discountedPrice}
+          storeName={box.storeName}
+          packName={box.name}
+          onPaid={confirm}
+          onCancel={() => setPaying(false)}
+        />
       )}
 
       {submitError !== null && (

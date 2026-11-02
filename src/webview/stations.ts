@@ -13,6 +13,13 @@ export interface Station {
   fullName: string
   /** MRT line colours, for the line pip next to the name. */
   lines: string[]
+  /**
+   * Position on the 板南線, west to east: 龍山寺 BL10, 西門 BL11, 台北車站 BL12.
+   *
+   * The three pilot stations are consecutive, which is what lets 吃 der take a boarding and an
+   * alighting station and work out the stops in between.
+   */
+  sequence: number
   latitude: number
   longitude: number
 }
@@ -20,6 +27,7 @@ export interface Station {
 export const STATIONS: Station[] = [
   {
     id: 'longshan',
+    sequence: 10,
     name: '龍山寺',
     fullName: '龍山寺站',
     lines: ['BL'],
@@ -28,6 +36,7 @@ export const STATIONS: Station[] = [
   },
   {
     id: 'ximen',
+    sequence: 11,
     name: '西門',
     fullName: '西門站',
     lines: ['BL', 'G'],
@@ -36,6 +45,7 @@ export const STATIONS: Station[] = [
   },
   {
     id: 'taipei-main',
+    sequence: 12,
     name: '台北車站',
     fullName: '台北車站',
     lines: ['BL', 'R'],
@@ -103,4 +113,26 @@ export function compassDirection(
 
   const index = Math.round(((bearing + 360) % 360) / 45) % 8
   return COMPASS[index]
+}
+
+/** Roughly how long the train takes between two adjacent stops on this line. */
+export const MINUTES_PER_STOP = 3
+
+/**
+ * The stations a rider passes, boarding at one and getting off at the other, in travel order.
+ *
+ * Inclusive of both ends: 吃 der lists packs at every stop on the way, and the one you board at
+ * counts — somebody can collect before they get on as easily as after they get off.
+ */
+export function stationsOnRoute(from: Station, to: Station): Station[] {
+  const low = Math.min(from.sequence, to.sequence)
+  const high = Math.max(from.sequence, to.sequence)
+  const run = STATIONS.filter((s) => s.sequence >= low && s.sequence <= high)
+  return from.sequence <= to.sequence ? run : [...run].reverse()
+}
+
+/** Minutes into the journey that the rider reaches a stop, counting from boarding. */
+export function minutesToStation(route: Station[], station: Station): number {
+  const index = route.findIndex((s) => s.id === station.id)
+  return index < 0 ? 0 : index * MINUTES_PER_STOP
 }

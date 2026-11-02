@@ -4,6 +4,7 @@ import ScrollToTop from './components/ScrollToTop'
 import BoxDetailPage from './pages/BoxDetailPage'
 import CheckoutPage from './pages/CheckoutPage'
 import HomePage from './pages/HomePage'
+import HuntPage from './pages/HuntPage'
 import OrdersPage from './pages/OrdersPage'
 import ProfilePage from './pages/ProfilePage'
 import StationPage from './pages/StationPage'
@@ -55,6 +56,7 @@ export default function EasyWalletApp() {
 
         {/* Pushed over them, each with a back control instead. */}
         <Route path="stations" element={<StationPage />} />
+        <Route path="hunt" element={<HuntPage />} />
         <Route path="box/:boxId" element={<BoxDetailPage />} />
         <Route path="store/:merchantId" element={<StorePage />} />
         <Route path="checkout/:boxId" element={<CheckoutPage />} />

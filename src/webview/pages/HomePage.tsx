@@ -59,6 +59,20 @@ export default function HomePage() {
         <ChevronRightIcon size={18} className="ew-chevron" />
       </button>
 
+      <button
+        type="button"
+        className="ew-hunt-entry"
+        onClick={() => goTo('/easywallet/hunt')}
+      >
+        <span className="ew-hunt-entry-main">
+          <span className="ew-hunt-entry-name">吃 der・整趟車沿途一次看完</span>
+          <span className="ew-hunt-entry-sub">
+            設定上下車站，只看你到站時還拿得到的鮮款包
+          </span>
+        </span>
+        <ChevronRightIcon size={18} />
+      </button>
+
       {loading && !boxes ? (
         <LoadingState label="正在查看這一站附近的鮮款包…" />
       ) : error && !boxes ? (
