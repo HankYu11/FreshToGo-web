@@ -2,9 +2,12 @@ import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ScrollToTop from './components/ScrollToTop'
 import BoxDetailPage from './pages/BoxDetailPage'
-import BoxListPage from './pages/BoxListPage'
 import CheckoutPage from './pages/CheckoutPage'
+import HomePage from './pages/HomePage'
+import OrdersPage from './pages/OrdersPage'
+import ProfilePage from './pages/ProfilePage'
 import StationPage from './pages/StationPage'
+import StorePage from './pages/StorePage'
 import TicketPage from './pages/TicketPage'
 import './EasyWallet.css'
 
@@ -45,11 +48,20 @@ export default function EasyWalletApp() {
     <div className="ew-root">
       <ScrollToTop />
       <Routes>
-        <Route index element={<StationPage />} />
-        <Route path="station/:stationId" element={<BoxListPage />} />
+        {/* The three sections that carry the bottom navigation. */}
+        <Route index element={<HomePage />} />
+        <Route path="orders" element={<OrdersPage />} />
+        <Route path="me" element={<ProfilePage />} />
+
+        {/* Pushed over them, each with a back control instead. */}
+        <Route path="stations" element={<StationPage />} />
         <Route path="box/:boxId" element={<BoxDetailPage />} />
+        <Route path="store/:merchantId" element={<StorePage />} />
         <Route path="checkout/:boxId" element={<CheckoutPage />} />
         <Route path="ticket/:reservationId" element={<TicketPage />} />
+
+        {/* Older links pointed at a per-station listing; the home feed is that now. */}
+        <Route path="station/:stationId" element={<Navigate to="/easywallet" replace />} />
         <Route path="*" element={<Navigate to="/easywallet" replace />} />
       </Routes>
     </div>

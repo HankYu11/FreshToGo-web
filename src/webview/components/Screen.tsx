@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import TabBar from './TabBar'
 import { ChevronLeftIcon } from './icons'
 
 interface ScreenProps {
@@ -12,6 +13,8 @@ interface ScreenProps {
   footer?: ReactNode
   /** Let the content run edge to edge (a hero image); the children own their padding. */
   flush?: boolean
+  /** A top-level section: carries the bottom navigation instead of a back control. */
+  tab?: boolean
 }
 
 /**
@@ -21,7 +24,15 @@ interface ScreenProps {
  * and no brand header, because in the real integration the wallet app's own chrome is directly
  * above this and a second navigation layer would read as a separate app bolted on.
  */
-export default function Screen({ title, onBack, action, children, footer, flush }: ScreenProps) {
+export default function Screen({
+  title,
+  onBack,
+  action,
+  children,
+  footer,
+  flush,
+  tab,
+}: ScreenProps) {
   return (
     <div className="ew-screen">
       <header className="ew-appbar">
@@ -40,7 +51,7 @@ export default function Screen({ title, onBack, action, children, footer, flush 
         className={[
           'ew-body',
           flush ? 'ew-body-flush' : '',
-          footer ? 'ew-body-with-footer' : '',
+          footer || tab ? 'ew-body-with-footer' : '',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -49,6 +60,7 @@ export default function Screen({ title, onBack, action, children, footer, flush 
       </main>
 
       {footer && <div className="ew-footer">{footer}</div>}
+      {tab && <TabBar />}
     </div>
   )
 }

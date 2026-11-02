@@ -110,3 +110,47 @@ export function CheckIcon({ size = 20, className }: IconProps) {
     </svg>
   )
 }
+
+export function HomeIcon({ size = 24, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1Z" />
+    </svg>
+  )
+}
+
+export function TicketIcon({ size = 24, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z" />
+      <path d="M13 6v12" strokeDasharray="2 2.5" />
+    </svg>
+  )
+}
+
+export function PersonIcon({ size = 24, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </svg>
+  )
+}
+
+export function StoreIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z" />
+      <path d="M4 9 5.5 4h13L20 9" />
+    </svg>
+  )
+}
+
+export function LeafIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M20 4c0 8-5 13-12 13H5c0-8 5-13 12-13Z" />
+      <path d="M5 20c0-4 2-7 5-9" />
+    </svg>
+  )
+}

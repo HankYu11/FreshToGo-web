@@ -1,3 +1,5 @@
+import { STATIONS, findStation, type Station } from './stations'
+
 const STORAGE_KEY = 'freshtogo.ew.station'
 
 /**
@@ -21,4 +23,14 @@ export function writeStationPreference(stationId: string) {
   } catch {
     // Nothing to do — the flow carries the station in the URL from here on.
   }
+}
+
+/**
+ * The station every screen measures from: the stored one, or the first of the pilot.
+ *
+ * Derived rather than written on first load, so nothing has to mutate storage during a render
+ * to make the rest of the app agree with the home screen.
+ */
+export function currentStation(): Station {
+  return findStation(readStationPreference()) ?? STATIONS[0]
 }

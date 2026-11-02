@@ -2,11 +2,11 @@ import { useParams } from 'react-router-dom'
 import { getBox, isReservable } from '../../api'
 import { StoreMark } from '../components/BoxCard'
 import Screen from '../components/Screen'
+import { ChevronRightIcon } from '../components/icons'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { categoryColors, categoryLabel } from '../categories'
 import { formatPickupWindow, formatPrice } from '../format'
-import { readStationPreference } from '../stationPreference'
-import { findStation } from '../stations'
+import { currentStation } from '../stationPreference'
 import { describeWalk } from '../nearby'
 import { errorCode, isMissing } from '../errors'
 import { useAsync } from '../useAsync'
@@ -26,7 +26,7 @@ const UNAVAILABLE_LABEL: Record<string, string> = {
 export default function BoxDetailPage() {
   const { boxId = '' } = useParams()
   const { goBack, goTo } = useWebviewNavigation()
-  const station = findStation(readStationPreference())
+  const station = currentStation()
 
   const {
     data: box,
@@ -35,8 +35,8 @@ export default function BoxDetailPage() {
     reload,
   } = useAsync((signal) => getBox(boxId, signal), [boxId])
 
-  const backToList = () =>
-    goBack(station ? `/easywallet/station/${station.id}` : '/easywallet')
+  // The home tab is the listing now, so that is where a deep-linked detail screen goes back to.
+  const backToList = () => goBack('/easywallet')
 
   if (loading && !box) {
     return (
@@ -145,7 +145,7 @@ export default function BoxDetailPage() {
             <span className="ew-inforow-label">地點</span>
             <span className="ew-inforow-value">{box.storeAddress || '請洽店家'}</span>
           </div>
-          {walk && station && (
+          {walk && (
             <div className="ew-inforow">
               <span className="ew-inforow-label">出站後</span>
               <span className="ew-inforow-value">
@@ -172,6 +172,16 @@ export default function BoxDetailPage() {
             street numbers, chosen so the walking estimate means something.
           */}
           <p className="ew-note">此為開發環境的示意店家與地址，非實際合作門市。</p>
+          {box.merchantId && (
+            <button
+              type="button"
+              className="ew-storelink"
+              onClick={() => goTo(`/easywallet/store/${box.merchantId}`)}
+            >
+              看這家店的其他鮮款包
+              <ChevronRightIcon size={18} />
+            </button>
+          )}
           <div className="ew-inforow" style={{ marginTop: 8 }}>
             <span className="ew-inforow-label">過敏原</span>
             <span className="ew-inforow-value">

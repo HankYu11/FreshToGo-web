@@ -24,8 +24,12 @@ export {
 export {
   createReservation,
   getReservation,
+  getReservationStats,
+  listReservations,
   type CreatedReservation,
   type Reservation,
+  type ReservationStats,
   type ReservationStatus,
 } from './reservations'
+export { getStoreProfile, type StoreProfile } from './stores'
 export { ensureSession, ensureSessionQuietly, withSession, type Session } from './session'

@@ -61,7 +61,7 @@ export default function BoxCard({
     categoryLabel(box.category),
     formatPrice(box.discountedPrice),
     pickup && `取貨 ${pickup}`,
-    `出站往${direction}步行約 ${walkMinutes} 分`,
+    direction && `出站往${direction}步行約 ${walkMinutes} 分`,
     pill?.label,
   ]
     .filter(Boolean)
@@ -113,10 +113,12 @@ export default function BoxCard({
           </span>
         )}
 
-        <span className="ew-metarow">
-          <WalkIcon />
-          出站往{direction}步行約 {walkMinutes} 分
-        </span>
+        {direction && (
+          <span className="ew-metarow">
+            <WalkIcon />
+            出站往{direction}步行約 {walkMinutes} 分
+          </span>
+        )}
 
         <span className="ew-pricerow">
           <span className="ew-price">{formatPrice(box.discountedPrice)}</span>

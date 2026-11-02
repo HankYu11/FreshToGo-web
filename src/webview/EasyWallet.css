@@ -846,3 +846,368 @@
     box-shadow: 0 0 0 1px var(--ew-line);
   }
 }
+
+/* ── Bottom navigation ───────────────────────────────────────────────── */
+
+.ew-tabbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  background: var(--ew-surface);
+  border-top: 1px solid var(--ew-line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.ew-tab {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  /* Comfortably over the 44px minimum once the safe-area inset is added below it. */
+  min-height: 56px;
+  padding: 7px 0 9px;
+  color: var(--ew-ink-faint);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.ew-tab-active {
+  color: var(--ew-brand);
+  font-weight: 700;
+}
+
+.ew-tab:active {
+  background: var(--ew-ground);
+}
+
+.ew-tab-label {
+  line-height: 1.2;
+}
+
+/* The grain, as the marker for the section you are in. */
+.ew-tab-dot {
+  position: absolute;
+  top: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ew-grain);
+}
+
+/* ── Station bar on the home feed ────────────────────────────────────── */
+
+.ew-stationbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--ew-brand-soft);
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  color: var(--ew-brand);
+}
+
+.ew-stationbar:active {
+  opacity: 0.85;
+}
+
+.ew-stationbar-main {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-stationbar-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.ew-stationbar-name {
+  display: block;
+  margin-top: 1px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ew-ink);
+}
+
+.ew-stationbar-change {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ew-stationcard-check {
+  flex: 0 0 auto;
+  color: var(--ew-brand);
+}
+
+/* ── Section headings ────────────────────────────────────────────────── */
+
+.ew-sectiontitle {
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ew-ink-soft);
+}
+
+/* ── Order rows ──────────────────────────────────────────────────────── */
+
+.ew-orderlist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ew-orderrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 14px 14px 16px;
+  border-radius: 16px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.ew-orderrow:active {
+  border-color: var(--ew-brand);
+}
+
+.ew-orderrow-main {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ew-orderrow-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ew-orderstatus {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ew-orderstatus-live {
+  background: var(--ew-brand);
+  color: #fff;
+}
+
+.ew-orderstatus-done {
+  background: var(--ew-brand-soft);
+  color: var(--ew-brand);
+}
+
+.ew-orderstatus-off {
+  background: var(--ew-ground);
+  color: var(--ew-ink-faint);
+}
+
+.ew-orderrow-id {
+  font-size: 11px;
+  color: var(--ew-ink-faint);
+}
+
+.ew-orderrow-store {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ew-ink-soft);
+}
+
+.ew-orderrow-name {
+  display: block;
+  margin-top: 3px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.ew-orderrow-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-orderrow-right {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+
+.ew-orderrow-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ew-brand);
+}
+
+/* ── Profile ─────────────────────────────────────────────────────────── */
+
+.ew-memberrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 2px 18px;
+}
+
+.ew-memberavatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--ew-brand-soft);
+  color: var(--ew-brand);
+}
+
+.ew-memberrow-main {
+  display: block;
+  min-width: 0;
+}
+
+.ew-memberrow-name {
+  display: block;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.ew-memberrow-sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ew-ink-soft);
+  line-height: 1.5;
+}
+
+.ew-statrow {
+  display: flex;
+  gap: 10px;
+}
+
+.ew-stat {
+  flex: 1;
+  padding: 16px 8px;
+  border-radius: 16px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  text-align: center;
+}
+
+.ew-stat-value {
+  display: block;
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--ew-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.ew-stat-label {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-impact {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ew-ink-soft);
+}
+
+.ew-impact svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--ew-brand);
+}
+
+.ew-settingrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 10px 0 0;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  color: inherit;
+  text-align: left;
+}
+
+.ew-settingrow-value {
+  font-weight: 700;
+  color: var(--ew-brand);
+}
+
+/* ── Store page ──────────────────────────────────────────────────────── */
+
+.ew-storehead {
+  padding: 6px 0 2px;
+}
+
+.ew-storehead-logo {
+  display: block;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  object-fit: cover;
+  background: var(--ew-brand-soft);
+}
+
+.ew-storehead-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ew-brand);
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.ew-storelink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 10px 0 0;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ew-brand);
+  text-align: left;
+}

@@ -12,8 +12,27 @@ export interface NearbyBox {
   box: Box
   meters: number
   walkMinutes: number
-  /** Eight-point compass direction from the station concourse. */
+  /**
+   * Eight-point compass direction from the station concourse, or '' when the store has no
+   * coordinates — the card leaves the walk line out rather than printing "往 步行約 0 分".
+   */
   direction: string
+}
+
+/** Place one listing relative to a station, however far away it turns out to be. */
+export function toNearby(box: Box, station: Station): NearbyBox {
+  const { storeLatitude: latitude, storeLongitude: longitude } = box
+  if (latitude === null || longitude === null) {
+    return { box, meters: Number.POSITIVE_INFINITY, walkMinutes: 0, direction: '' }
+  }
+  const to = { latitude, longitude }
+  const meters = distanceMeters(station, to)
+  return {
+    box,
+    meters,
+    walkMinutes: walkingMinutes(meters),
+    direction: compassDirection(station, to),
+  }
 }
 
 /**

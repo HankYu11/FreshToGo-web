@@ -6,8 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { isMissing } from '../errors'
 import { formatPickupDate, formatPickupWindow, formatPickupWindowUtc, formatPrice } from '../format'
 import { describeWalk } from '../nearby'
-import { readStationPreference } from '../stationPreference'
-import { findStation } from '../stations'
+import { currentStation } from '../stationPreference'
 import { useAsync } from '../useAsync'
 import { useWebviewNavigation } from '../useWebviewNavigation'
 
@@ -57,7 +56,7 @@ function presentation(reservation: Reservation) {
 export default function TicketPage() {
   const { reservationId = '' } = useParams()
   const { goBackBy } = useWebviewNavigation()
-  const station = findStation(readStationPreference())
+  const station = currentStation()
 
   const {
     data: reservation,
@@ -69,7 +68,7 @@ export default function TicketPage() {
   // Two entries back is the station list: checkout was replaced by this ticket, and the pack's
   // detail screen sits under it. A ticket opened by a deep link has nothing to pop, so it
   // falls back to the list by name.
-  const done = () => goBackBy(2, station ? `/easywallet/station/${station.id}` : '/easywallet')
+  const done = () => goBackBy(2, '/easywallet')
 
   if (loading && !reservation) {
     return (
@@ -152,7 +151,7 @@ export default function TicketPage() {
             {[date, window].filter(Boolean).join(' ') || '請洽店家'}
           </span>
         </div>
-        {walk && station && (
+        {walk && (
           <div className="ew-inforow">
             <span className="ew-inforow-label">出站後</span>
             <span className="ew-inforow-value">
