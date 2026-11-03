@@ -9,6 +9,10 @@
  * In memory rather than storage, and deliberately: a journey is only meaningful while the rider
  * is on it, and a deck resumed tomorrow would be built from a different day's packs. Losing it
  * when the host rebuilds the webview is the correct outcome, not a gap to paper over.
+ *
+ * It outlives the detour and the screen both: leaving the deck for home with the system gesture
+ * and coming back picks the run up where it was. That is wanted, not an oversight — the deck's
+ * own back control calls restart(), so setting a fresh journey is the deliberate act.
  */
 export interface HuntSession {
   fromId: string
