@@ -9,6 +9,7 @@ import { formatPickupDate, formatPickupWindow, formatPickupWindowUtc, formatPric
 import { describeWalk } from '../nearby'
 import { currentStation } from '../stationPreference'
 import { useAsync } from '../useAsync'
+import { useRefreshWhenVisible } from '../useRefreshWhenVisible'
 import { useWebviewNavigation } from '../useWebviewNavigation'
 
 /**
@@ -66,6 +67,10 @@ export default function TicketPage() {
     loading,
     reload,
   } = useAsync((signal) => loadReservation(reservationId, signal), [reservationId])
+
+  // The counter redeems on its own screen, so this one asks again whenever the phone comes
+  // back — but only while there is still an answer to get.
+  useRefreshWhenVisible(reload, !reservation || presentation(reservation).live)
 
   /**
    * How far back the way out is depends on how the ticket was reached.

@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { ChevronRightIcon, ClockIcon, StoreIcon } from '../components/icons'
 import { formatPickupDate, formatPickupWindowUtc, formatPrice } from '../format'
 import { useAsync } from '../useAsync'
+import { useRefreshWhenVisible } from '../useRefreshWhenVisible'
 import { useWebviewNavigation } from '../useWebviewNavigation'
 
 /** What the row says this order is, and whether it is still worth showing a code for. */
@@ -68,6 +69,9 @@ export default function OrdersPage() {
     loading,
     reload,
   } = useAsync((signal) => loadReservations(signal), [])
+
+  // Something on this list can be redeemed while the phone is in a pocket.
+  useRefreshWhenVisible(reload, true)
 
   const live = (orders ?? []).filter((o) => statusLabel(o).tone === 'ew-orderstatus-live')
   const past = (orders ?? []).filter((o) => statusLabel(o).tone !== 'ew-orderstatus-live')
