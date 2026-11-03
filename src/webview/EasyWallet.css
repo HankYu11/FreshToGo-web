@@ -1587,9 +1587,11 @@
   box-shadow: 0 4px 18px rgba(29, 42, 41, 0.1);
 }
 
+/* 16:10, not 4:3 — the three circles cost the footer 110px, and the price has to stay on
+   screen with them. */
 .ew-huntcard-art {
   position: relative;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 10;
 }
 
 .ew-huntcard-art .ew-foodart {
@@ -1651,39 +1653,243 @@
 
 /* ── The three decisions ─────────────────────────────────────────────── */
 
+/*
+ * Left, up, right: the three circles stand where the gestures throw the card, so the footer is
+ * a picture of the deck. 預約 is the one that leaves this screen, so it is the bigger circle in
+ * the middle, under the up-swipe.
+ */
 .ew-decide {
   display: flex;
-  gap: 10px;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 30px;
 }
 
-.ew-decide button {
-  flex: 1;
-  min-height: 54px;
-  border-radius: 14px;
+.ew-decide-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: none;
   font-family: inherit;
-  font-size: 16px;
-  font-weight: 700;
 }
 
-.ew-decide-skip {
-  background: var(--ew-ground);
+.ew-decide-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  transition: transform 0.12s ease;
+}
+
+.ew-decide-label {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--ew-ink-soft);
 }
 
-.ew-decide-keep {
+.ew-decide-skip .ew-decide-circle {
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+  color: var(--ew-ink-soft);
+}
+
+.ew-decide-keep .ew-decide-circle {
   background: var(--ew-grain-soft);
   color: #6b4f12;
 }
 
-.ew-decide-take {
-  flex: 1.3 !important;
+.ew-decide-take .ew-decide-circle {
+  width: 64px;
+  height: 64px;
   background: var(--ew-brand);
   color: #fff;
-  font-weight: 900;
+  box-shadow: 0 6px 16px rgba(51, 101, 99, 0.3);
 }
 
-.ew-decide button:active {
-  opacity: 0.82;
+/* Armed by the drag itself, so the gesture teaches the button and the button teaches back. */
+.ew-decide-btn:active .ew-decide-circle,
+.ew-decide-armed .ew-decide-circle {
+  transform: scale(1.1);
+}
+
+.ew-decide-armed .ew-decide-label {
+  color: var(--ew-ink);
+}
+
+/* ── 吃 der: where this card sits on the line ────────────────────────── */
+
+.ew-deckroute {
+  margin-bottom: 10px;
+}
+
+.ew-deckroute-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-ink-soft);
+}
+
+.ew-deckroute-ends {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ew-deckroute-kept {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ew-grain-soft);
+  color: #6b4f12;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ew-deckroute-rail {
+  display: flex;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+/*
+ * The connector is drawn by each node except the first, reaching back to the one before it.
+ * Equal-width nodes make `left: -50%` land exactly on the previous dot's centre, which saves
+ * threading the stop count through as a custom property.
+ */
+.ew-deckroute-node {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ew-deckroute-node + .ew-deckroute-node::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: -50%;
+  right: 50%;
+  height: 2px;
+  background: var(--ew-line);
+}
+
+/* The stop you are looking at thickens its ring rather than growing, so every dot's centre
+   stays on the connector. */
+.ew-deckroute-dot {
+  position: relative;
+  /* Above every connector, not just its own node's: the next node's line is painted later and
+     would otherwise cut a notch out of this dot's left side. */
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--ew-line);
+  background: var(--ew-surface);
+}
+
+.ew-deckroute-label {
+  font-size: 11px;
+  color: var(--ew-ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.ew-deckroute-here .ew-deckroute-dot {
+  border-width: 5px;
+}
+
+.ew-deckroute-here .ew-deckroute-label {
+  font-weight: 800;
+  color: var(--ew-ink);
+}
+
+/* ── 吃 der: the card's own additions ────────────────────────────────── */
+
+.ew-huntcard-walk {
+  position: absolute;
+  right: 12px;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ew-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ew-huntcard-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ew-ink-soft);
+}
+
+/*
+ * 到站 → 到店 → 取貨到, in the order they happen.
+ *
+ * This is the rule the screen runs on, written out: the train gets you there, the walk costs
+ * what it costs, and the counter closes when it closes. A rider who can read it does not have
+ * to take "來得及" on trust.
+ */
+.ew-huntclock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--ew-brand-soft);
+}
+
+.ew-huntclock-step {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ew-huntclock-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ew-brand);
+  opacity: 0.85;
+}
+
+.ew-huntclock-value {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--ew-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ew-huntclock-arrow {
+  flex: 1;
+  height: 2px;
+  min-width: 10px;
+  border-radius: 1px;
+  background: rgba(51, 101, 99, 0.25);
 }
 
 /* ── Kept list ───────────────────────────────────────────────────────── */

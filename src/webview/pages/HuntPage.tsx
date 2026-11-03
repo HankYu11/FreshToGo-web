@@ -1,18 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import Screen from '../components/Screen'
 import FoodArt from '../components/FoodArt'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import {
+  ArrowUpIcon,
   CheckIcon,
-  ClockIcon,
+  CloseIcon,
   PinIcon,
   ShieldIcon,
+  StarIcon,
   SwapIcon,
   WalkIcon,
 } from '../components/icons'
 import { loadBoxes } from '../catalog'
 import { categoryLabel, categoryWash } from '../categories'
-import { formatPickupWindow } from '../format'
+import { formatTimeOfDay, statusPill } from '../format'
 import { readHuntSession, writeHuntSession } from '../huntSession'
 import {
   formatClock,
@@ -31,6 +33,23 @@ import {
 import { useAsync } from '../useAsync'
 import { useCardSwipe, type SwipeDecision } from '../useCardSwipe'
 import { useWebviewNavigation } from '../useWebviewNavigation'
+
+/**
+ * The three decisions, in the order the gestures put them: left, up, right.
+ *
+ * A list rather than three hand-written buttons, so the footer cannot drift out of step with
+ * `SwipeDecision` — the key is the decision.
+ */
+const DECISIONS = [
+  { key: 'skip', label: '跳過', spoken: '跳過這一款', Icon: CloseIcon },
+  { key: 'take', label: '預約', spoken: '預約這一款', Icon: ArrowUpIcon },
+  { key: 'keep', label: '先收著', spoken: '先收著，看完再決定', Icon: StarIcon },
+] as const satisfies readonly {
+  key: SwipeDecision
+  label: string
+  spoken: string
+  Icon: (props: { size?: number }) => ReactElement
+}[]
 
 /** What a stop says under its name: who is open there, and how far out of the station. */
 function stopMeta(stop: RouteStop) {
@@ -414,39 +433,82 @@ export default function HuntPage() {
   }
 
   // ── One pack at a time ─────────────────────────────────────────────────
+  const arriveAt = new Date(
+    withClock(boardingAt).getTime() + (current?.minutesToArrive ?? 0) * 60_000,
+  )
+  const stock = current ? statusPill(current.box) : null
+
   return (
     <Screen
       title={`${index + 1} / ${packs.length}`}
       onBack={restart}
       footer={
+        /*
+          Left, up, right — the buttons sit where the gestures throw the card, so one is a
+          picture of the other. A drag arms the matching circle, which is how somebody learns
+          the gesture without being told about it.
+        */
         <div className="ew-decide">
-          <button
-            type="button"
-            className="ew-decide-skip"
-            disabled={swipe.busy}
-            onClick={() => swipe.decideFromButton('skip')}
-          >
-            跳過
-          </button>
-          <button
-            type="button"
-            className="ew-decide-keep"
-            disabled={swipe.busy}
-            onClick={() => swipe.decideFromButton('keep')}
-          >
-            先收著
-          </button>
-          <button
-            type="button"
-            className="ew-decide-take"
-            disabled={swipe.busy}
-            onClick={() => swipe.decideFromButton('take')}
-          >
-            預約
-          </button>
+          {DECISIONS.map(({ key, label, spoken, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              className={`ew-decide-btn ew-decide-${key}${
+                swipe.leaning === key ? ' ew-decide-armed' : ''
+              }`}
+              aria-label={spoken}
+              disabled={swipe.busy}
+              onClick={() => swipe.decideFromButton(key)}
+            >
+              <span className="ew-decide-circle">
+                <Icon size={key === 'take' ? 26 : 23} />
+              </span>
+              <span className="ew-decide-label">{label}</span>
+            </button>
+          ))}
         </div>
       }
     >
+      {/*
+        Where this card sits on the journey. A deck of cards says nothing about distance; the
+        same packs on a rail say "this one is two stops before you get off", which is the whole
+        reason the feature is on a train line rather than a map.
+      */}
+      <div className="ew-deckroute">
+        <p className="ew-deckroute-head">
+          <span className="ew-linebadge" style={{ background: lineColor(route[0]) }}>
+            {route[0].lines[0]}
+          </span>
+          <span className="ew-deckroute-ends">
+            {route[0].fullName} → {route[route.length - 1].fullName}
+          </span>
+          {kept.length > 0 && (
+            <span className="ew-deckroute-kept">
+              <StarIcon size={12} />
+              已收著 {kept.length}
+            </span>
+          )}
+        </p>
+        <ol className="ew-deckroute-rail">
+          {stops.map((stop) => {
+            const here = current?.station.id === stop.station.id
+            return (
+              <li
+                key={stop.station.id}
+                className={`ew-deckroute-node${here ? ' ew-deckroute-here' : ''}`}
+              >
+                <span
+                  className="ew-deckroute-dot"
+                  style={{ borderColor: lineColor(stop.station) }}
+                  aria-hidden="true"
+                />
+                <span className="ew-deckroute-label">{stop.station.name}</span>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+
       {current && (
         <article
           className={`ew-huntcard${swipe.lifted ? ' ew-huntcard-lifted' : ''}`}
@@ -465,33 +527,54 @@ export default function HuntPage() {
               </span>
             )}
             <span className="ew-card-kicker">{categoryLabel(current.box.category)}</span>
+            {stock && (
+              <span className={`ew-pill ${stock.warn ? 'ew-pill-warn' : ''}`}>{stock.label}</span>
+            )}
+            <span className="ew-huntcard-walk">
+              <WalkIcon size={13} />
+              出站往{current.direction}・{current.walkMinutes} 分
+            </span>
             <span className="ew-card-tear" aria-hidden="true" />
           </div>
           <div className="ew-huntcard-body">
             <p className="ew-huntcard-stop">
               <PinIcon size={14} />
-              {current.station.fullName}・出站往{current.direction}
+              {current.station.fullName}・{current.box.storeName}
             </p>
             <h2 className="ew-huntcard-name">{current.box.name}</h2>
-            <p className="ew-huntcard-store">{current.box.storeName}</p>
+            {current.box.description && (
+              <p className="ew-huntcard-desc">{current.box.description}</p>
+            )}
 
-            <div className="ew-huntcard-facts">
-              <p className="ew-metaitem">
-                <ClockIcon size={15} />
-                取貨 {formatPickupWindow(current.box.pickupTimeStart, current.box.pickupTimeEnd)}
-              </p>
-              <p className="ew-metaitem">
-                <WalkIcon size={15} />
-                步行 {current.walkMinutes} 分
-              </p>
+            {/*
+              The three times that decide it, in the order they happen. Written out because the
+              rule behind this screen — only what you can still collect — is exactly this
+              arithmetic, and a rider who can see it does not have to take it on trust.
+            */}
+            <div className="ew-huntclock">
+              <span className="ew-huntclock-step">
+                <span className="ew-huntclock-label">到站</span>
+                <span className="ew-huntclock-value">{formatClock(arriveAt)}</span>
+              </span>
+              <span className="ew-huntclock-arrow" aria-hidden="true" />
+              <span className="ew-huntclock-step">
+                <span className="ew-huntclock-label">到店</span>
+                <span className="ew-huntclock-value">{formatClock(current.reachableAt)}</span>
+              </span>
+              <span className="ew-huntclock-arrow" aria-hidden="true" />
+              <span className="ew-huntclock-step">
+                <span className="ew-huntclock-label">取貨到</span>
+                <span className="ew-huntclock-value">
+                  {formatTimeOfDay(current.box.pickupTimeEnd)}
+                </span>
+              </span>
             </div>
 
             <p className="ew-huntcard-reach">
               <CheckIcon size={16} />
               {current.minutesToArrive === 0
-                ? '上車前就能取'
-                : `約 ${current.minutesToArrive} 分後到站`}
-              ，{formatClock(current.reachableAt)} 可以到店，還在取貨時段內
+                ? '這是你的上車站，上車前就能取'
+                : `約 ${current.minutesToArrive} 分後到站，還在取貨時段內`}
             </p>
 
             <p className="ew-pricerow">
@@ -507,10 +590,8 @@ export default function HuntPage() {
         </article>
       )}
 
-      <p className="ew-note ew-huntswipehint">
-        左滑跳過・右滑先收著・上滑預約，也可以用下面的按鈕
-        {kept.length > 0 && ` ・ 已先收著 ${kept.length} 款`}
-      </p>
+      {/* The buttons already name the three decisions; this says they are also a gesture. */}
+      <p className="ew-note ew-huntswipehint">卡片也可以左滑、右滑、往上滑</p>
     </Screen>
   )
 }

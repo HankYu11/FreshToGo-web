@@ -41,6 +41,11 @@ export function formatPickupWindow(start: string, end: string) {
   return `${trimSeconds(start)} – ${trimSeconds(end)}`
 }
 
+/** A merchant-local "HH:mm[:ss]" as the clock face shows it. */
+export function formatTimeOfDay(time: string) {
+  return trimSeconds(time)
+}
+
 function trimSeconds(time: string) {
   const match = /^(\d{1,2}):(\d{2})/.exec(time)
   return match ? `${match[1].padStart(2, '0')}:${match[2]}` : time
