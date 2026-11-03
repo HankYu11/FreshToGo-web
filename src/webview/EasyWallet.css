@@ -1796,6 +1796,292 @@
   line-height: 1.5;
 }
 
+/* ── 吃 der: the journey ─────────────────────────────────────────────── */
+
+.ew-hunt-eyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--ew-brand);
+}
+
+/*
+ * The two ends of the journey, laid out the way a ticket prints them.
+ *
+ * Both stations and the boarding time are controls; the arrival is arithmetic, so it is set in
+ * plain text next to them rather than offered as a field nobody can usefully change.
+ */
+.ew-journey {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+}
+
+.ew-journey-end {
+  min-width: 0;
+}
+
+.ew-journey-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ew-ink-faint);
+}
+
+.ew-journey-pick {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.ew-journey-end-to .ew-journey-label,
+.ew-journey-end-to .ew-journey-arrive {
+  text-align: right;
+}
+
+.ew-journey-end-to .ew-journey-pick {
+  justify-content: flex-end;
+}
+
+.ew-linebadge {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/*
+ * The caret rides inside the select's own box, so the thing that says "this opens" is part of
+ * what you tap. Stripping the native control without putting one back leaves a station name
+ * that looks like a label.
+ */
+.ew-journey-select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 15px 0 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' fill='none' stroke='%231d2a29' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right center;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ew-ink);
+}
+
+.ew-journey-time {
+  display: block;
+  margin-top: 6px;
+  padding: 6px 9px;
+  min-height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: var(--ew-brand-soft);
+  color: var(--ew-brand);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.ew-journey-arrive {
+  display: block;
+  margin-top: 6px;
+  padding: 6px 0;
+  min-height: 34px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ew-ink-soft);
+}
+
+.ew-journey-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding-top: 10px;
+}
+
+.ew-journey-swap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--ew-line);
+  background: var(--ew-surface);
+  color: var(--ew-brand);
+}
+
+.ew-journey-swap:active {
+  background: var(--ew-brand-soft);
+}
+
+.ew-journey-ride {
+  font-size: 11px;
+  color: var(--ew-ink-faint);
+  white-space: nowrap;
+}
+
+/*
+ * The line itself: every stop between the two ends, on one rail.
+ *
+ * The rail is drawn by the middle column, clipped to half a row at each end so it starts and
+ * stops at a dot rather than running off into the padding.
+ */
+.ew-route {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 10px 14px 10px 0;
+  border-radius: 18px;
+  background: var(--ew-surface);
+  border: 1px solid var(--ew-line);
+}
+
+.ew-route-stop {
+  display: grid;
+  grid-template-columns: 42px 22px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0 8px;
+  min-height: 58px;
+}
+
+.ew-route-time {
+  justify-self: end;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ew-ink-soft);
+}
+
+.ew-route-rail {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ew-route-rail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ew-line);
+}
+
+.ew-route-stop:first-child .ew-route-rail::before {
+  top: 50%;
+}
+
+.ew-route-stop:last-child .ew-route-rail::before {
+  bottom: 50%;
+}
+
+.ew-route-dot {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 3px solid;
+  background: var(--ew-surface);
+}
+
+.ew-route-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.ew-route-tag {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ew-brand-soft);
+  color: var(--ew-brand);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.ew-route-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--ew-ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ew-route-art {
+  display: flex;
+  gap: 3px;
+}
+
+.ew-route-thumb {
+  display: block;
+  width: 26px;
+  height: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.ew-route-thumb .ew-foodart {
+  padding: 1px 2px 2px;
+}
+
+.ew-route-count {
+  justify-self: end;
+  min-width: 30px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--ew-ink-soft);
+}
+
+.ew-route-count strong {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--ew-brand);
+}
+
+.ew-route-stop-bare .ew-route-name {
+  color: var(--ew-ink-soft);
+}
+
+.ew-route-stop-bare .ew-route-count {
+  color: var(--ew-ink-faint);
+}
+
+/* A call to action that carries the journey's arithmetic under it. */
+.ew-button-tall {
+  flex-direction: column;
+  gap: 3px;
+  min-height: 62px;
+}
+
+.ew-button-sub {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
 /* ── 吃 der: drag to decide ──────────────────────────────────────────── */
 
 .ew-huntcard {

@@ -2,16 +2,45 @@ import { useEffect, useMemo, useState } from 'react'
 import Screen from '../components/Screen'
 import FoodArt from '../components/FoodArt'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
-import { CheckIcon, ClockIcon, PinIcon, ShieldIcon, WalkIcon } from '../components/icons'
+import {
+  CheckIcon,
+  ClockIcon,
+  PinIcon,
+  ShieldIcon,
+  SwapIcon,
+  WalkIcon,
+} from '../components/icons'
 import { loadBoxes } from '../catalog'
 import { categoryLabel, categoryWash } from '../categories'
 import { formatPickupWindow } from '../format'
 import { readHuntSession, writeHuntSession } from '../huntSession'
-import { formatClock, packsOnRoute, suggestBoardingTime } from '../routeHunt'
-import { STATIONS, MINUTES_PER_STOP, findStation, stationsOnRoute } from '../stations'
+import {
+  formatClock,
+  packsOnRoute,
+  stopsOnRoute,
+  suggestBoardingTime,
+  type RouteStop,
+} from '../routeHunt'
+import {
+  STATIONS,
+  MINUTES_PER_STOP,
+  findStation,
+  lineColor,
+  stationsOnRoute,
+} from '../stations'
 import { useAsync } from '../useAsync'
 import { useCardSwipe, type SwipeDecision } from '../useCardSwipe'
 import { useWebviewNavigation } from '../useWebviewNavigation'
+
+/** What a stop says under its name: who is open there, and how far out of the station. */
+function stopMeta(stop: RouteStop) {
+  if (stop.packs.length === 0) return '這一站今天沒有'
+  const walks = stop.packs.map((pack) => pack.walkMinutes)
+  const low = Math.min(...walks)
+  const high = Math.max(...walks)
+  const walk = low === high ? `步行 ${low} 分` : `步行 ${low}–${high} 分`
+  return `${stop.storeCount} 家店・出站${walk}`
+}
 
 /** Now, rounded down to the minute — the default boarding time. */
 function nowClock() {
@@ -83,7 +112,14 @@ export default function HuntPage() {
     () => (boxes && packs.length === 0 ? suggestBoardingTime(boxes, from, to) : null),
     [boxes, packs.length, from, to],
   )
-  const route = stationsOnRoute(from, to)
+  const route = useMemo(() => stationsOnRoute(from, to), [from, to])
+
+  // The journey read as a line rather than a pile: which stop, at what time, with what on it.
+  const stops = useMemo(
+    () => stopsOnRoute(packs, route, withClock(boardingAt)),
+    [packs, route, boardingAt],
+  )
+
   const current = packs[index]
   const finished = started && index >= packs.length
 
@@ -118,6 +154,12 @@ export default function HuntPage() {
     })
   }, [from, to, boardingAt, started, index, keptIds, takenIds])
 
+  /** One tap turns a commute home into the same commute in. */
+  function swapEnds() {
+    setFrom(to)
+    setTo(from)
+  }
+
   // The route is set again from scratch, but a pack already reserved stays out of the deck.
   function restart() {
     setStarted(false)
@@ -127,89 +169,158 @@ export default function HuntPage() {
 
   // ── Set the journey ────────────────────────────────────────────────────
   if (!started) {
+    const rideMinutes = (route.length - 1) * MINUTES_PER_STOP
+    const alightAt = new Date(withClock(boardingAt).getTime() + rideMinutes * 60_000)
+    const stopsWithPacks = stops.filter((stop) => stop.packs.length > 0).length
+    const storeTotal = new Set(
+      packs.map((pack) => pack.box.merchantId || pack.box.storeName),
+    ).size
+
     return (
       <Screen title="吃 der" onBack={() => goBack('/easywallet')}>
-        <h2 className="ew-h1">這趟車，沿途有什麼可以帶？</h2>
-        <p className="ew-sub">
-          設定上下車站，沿途每一站的鮮款包一張一張看過。只會推薦你到站時還拿得到的。
-        </p>
+        <p className="ew-hunt-eyebrow">沿路找晚餐</p>
+        <h2 className="ew-h1">從上車到下車，沿路都能取</h2>
 
-        <section className="ew-panel">
-          <p className="ew-panel-title">這趟車</p>
-          <label className="ew-field">
-            <span className="ew-field-label">上車站</span>
-            <select
-              className="ew-select"
-              value={from.id}
-              onChange={(e) => setFrom(STATIONS.find((s) => s.id === e.target.value) ?? from)}
-            >
-              {STATIONS.map((station) => (
-                <option key={station.id} value={station.id}>
-                  {station.fullName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="ew-field">
-            <span className="ew-field-label">下車站</span>
-            <select
-              className="ew-select"
-              value={to.id}
-              onChange={(e) => setTo(STATIONS.find((s) => s.id === e.target.value) ?? to)}
-            >
-              {STATIONS.map((station) => (
-                <option key={station.id} value={station.id}>
-                  {station.fullName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="ew-field">
-            <span className="ew-field-label">上車時間</span>
+        {/*
+          The journey as a ticket reads it: two ends, the ride between them, and the one thing
+          the rider sets that nothing else can know — when they get on. The arrival is derived,
+          so it is printed rather than offered.
+        */}
+        <section className="ew-journey">
+          <div className="ew-journey-end">
+            <span className="ew-journey-label">上車</span>
+            <span className="ew-journey-pick">
+              <span className="ew-linebadge" style={{ background: lineColor(from) }}>
+                {from.lines[0]}
+              </span>
+              <select
+                className="ew-journey-select"
+                aria-label="上車站"
+                value={from.id}
+                onChange={(e) => setFrom(findStation(e.target.value) ?? from)}
+              >
+                {STATIONS.map((station) => (
+                  <option key={station.id} value={station.id}>
+                    {station.fullName}
+                  </option>
+                ))}
+              </select>
+            </span>
             <input
-              className="ew-select"
+              className="ew-journey-time"
               type="time"
+              aria-label="上車時間"
               value={boardingAt}
               onChange={(e) => setBoardingAt(e.target.value || nowClock())}
             />
-          </label>
-        </section>
+          </div>
 
-        <section className="ew-panel">
-          <p className="ew-panel-title">沿途會經過</p>
-          <p className="ew-routeline">
-            {route.map((station, i) => (
-              <span key={station.id} className="ew-routestop">
-                {i > 0 && <span className="ew-routedash" aria-hidden="true" />}
-                {station.fullName}
+          <div className="ew-journey-mid">
+            <button
+              type="button"
+              className="ew-journey-swap"
+              onClick={swapEnds}
+              aria-label="對調上下車站"
+            >
+              <SwapIcon size={18} />
+            </button>
+            <span className="ew-journey-ride">約 {rideMinutes} 分</span>
+          </div>
+
+          <div className="ew-journey-end ew-journey-end-to">
+            <span className="ew-journey-label">下車</span>
+            <span className="ew-journey-pick">
+              <span className="ew-linebadge" style={{ background: lineColor(to) }}>
+                {to.lines[0]}
               </span>
-            ))}
-          </p>
-          <p className="ew-note">
-            以每站約 {MINUTES_PER_STOP} 分鐘推算到站時間，再加上出站步行時間，比對店家的取貨時段。
-          </p>
+              <select
+                className="ew-journey-select"
+                aria-label="下車站"
+                value={to.id}
+                onChange={(e) => setTo(findStation(e.target.value) ?? to)}
+              >
+                {STATIONS.map((station) => (
+                  <option key={station.id} value={station.id}>
+                    {station.fullName}
+                  </option>
+                ))}
+              </select>
+            </span>
+            <span className="ew-journey-arrive">{formatClock(alightAt)} 到站</span>
+          </div>
         </section>
 
         {loading && !boxes ? (
-          <LoadingState />
+          <LoadingState label="正在看這條線上有什麼…" />
         ) : error && !boxes ? (
           <ErrorState error={error} onRetry={reload} />
         ) : (
-          <p className="ew-sub">
-            這趟車沿途有 <strong>{packs.length}</strong> 款來得及取貨。
-            {packs.length === 0 && ' 這個時間出發，沿途的店都已經過了取貨時段。'}
-          </p>
-        )}
+          <>
+            {/*
+              The line itself. A rider does not think "twenty-five packs on this journey", they
+              think "five at 西門 at 18:13" — so the stops carry the time, the count and a glance
+              at what kind of food it is, and a stop with nothing still gets its place on the rail.
+            */}
+            <ol className="ew-route">
+              {stops.map((stop, i) => (
+                <li
+                  key={stop.station.id}
+                  className={`ew-route-stop${stop.packs.length === 0 ? ' ew-route-stop-bare' : ''}`}
+                >
+                  <span className="ew-route-time">{formatClock(stop.arriveAt)}</span>
+                  <span className="ew-route-rail" aria-hidden="true">
+                    <span
+                      className="ew-route-dot"
+                      style={{ borderColor: lineColor(stop.station) }}
+                    />
+                  </span>
+                  <span className="ew-route-main">
+                    <span className="ew-route-name">
+                      {stop.station.fullName}
+                      {i === 0 && <span className="ew-route-tag">上車</span>}
+                      {i === stops.length - 1 && <span className="ew-route-tag">下車</span>}
+                    </span>
+                    <span className="ew-route-meta">{stopMeta(stop)}</span>
+                  </span>
+                  <span className="ew-route-art" aria-hidden="true">
+                    {stop.categories.slice(0, 2).map((category) => (
+                      <span
+                        key={category}
+                        className="ew-route-thumb"
+                        style={{ background: categoryWash(category) }}
+                      >
+                        <FoodArt category={category} />
+                      </span>
+                    ))}
+                  </span>
+                  <span className="ew-route-count">
+                    {stop.packs.length > 0 ? (
+                      <>
+                        <strong>{stop.packs.length}</strong>份
+                      </>
+                    ) : (
+                      '—'
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ol>
 
-        {suggestion && (
-          <button
-            type="button"
-            className="ew-button ew-button-secondary"
-            style={{ marginTop: 12 }}
-            onClick={() => setBoardingAt(suggestion.clock)}
-          >
-            改成 {suggestion.clock} 出發（{suggestion.count} 款）
-          </button>
+            {packs.length === 0 && (
+              <p className="ew-note">這個時間出發，沿途的店都已經過了取貨時段。</p>
+            )}
+
+            {suggestion && (
+              <button
+                type="button"
+                className="ew-button ew-button-secondary"
+                style={{ marginTop: 12 }}
+                onClick={() => setBoardingAt(suggestion.clock)}
+              >
+                改成 {suggestion.clock} 出發（{suggestion.count} 款）
+              </button>
+            )}
+          </>
         )}
 
         {/*
@@ -230,11 +341,20 @@ export default function HuntPage() {
         <div style={{ marginTop: 18 }}>
           <button
             type="button"
-            className="ew-button"
+            className="ew-button ew-button-tall"
             disabled={packs.length === 0}
             onClick={() => setStarted(true)}
           >
-            {packs.length > 0 ? `開始看這 ${packs.length} 款` : '沿途目前沒有可取貨的'}
+            {packs.length > 0 ? (
+              <>
+                開始吃 der
+                <span className="ew-button-sub">
+                  沿途 {stopsWithPacks} 站・{storeTotal} 家店・{packs.length} 份鮮款包
+                </span>
+              </>
+            ) : (
+              '沿途目前沒有可取貨的'
+            )}
           </button>
         </div>
       </Screen>

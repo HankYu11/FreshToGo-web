@@ -173,3 +173,43 @@ export function ShieldIcon({ size = 18, className }: IconProps) {
     </svg>
   )
 }
+
+/** Swap the two ends of a journey: a commute home flipped into a commute in. */
+export function SwapIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M7 4 4 7l3 3" />
+      <path d="M4 7h11a4 4 0 0 1 4 4" />
+      <path d="m17 20 3-3-3-3" />
+      <path d="M20 17H9a4 4 0 0 1-4-4" />
+    </svg>
+  )
+}
+
+/** The up-swipe, on the button that stands for it. */
+export function ArrowUpIcon({ size = 24, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} strokeWidth={2.4}>
+      <path d="M12 19V5" />
+      <path d="m5 12 7-7 7 7" />
+    </svg>
+  )
+}
+
+/** The left-swipe: this one is not for tonight. */
+export function CloseIcon({ size = 24, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} strokeWidth={2.4}>
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  )
+}
+
+/** The right-swipe: keep it for the end of the run. */
+export function StarIcon({ size = 24, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} strokeWidth={2}>
+      <path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z" />
+    </svg>
+  )
+}

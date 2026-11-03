@@ -1,4 +1,4 @@
-import { isReservable, type Box } from '../api'
+import { isReservable, type Box, type ProductCategory } from '../api'
 import { toNearby, type NearbyBox } from './nearby'
 import {
   MINUTES_PER_STOP,
@@ -80,6 +80,55 @@ export function packsOnRoute(
 }
 
 export { MINUTES_PER_STOP }
+
+/** One stop on the journey, with what is waiting there when the rider reaches it. */
+export interface RouteStop {
+  station: Station
+  /** Minutes from boarding to arriving at that stop. */
+  minutesToArrive: number
+  /** Clock time the train gets there. */
+  arriveAt: Date
+  packs: RoutePack[]
+  /** Distinct stores, since one store can have put out several packs. */
+  storeCount: number
+  /** Distinct categories, in travel order, for the thumbnails on the route. */
+  categories: ProductCategory[]
+}
+
+/**
+ * The journey as a list of stops rather than a list of packs.
+ *
+ * Same packs, grouped by where they get collected — which is how a rider reads a line: not
+ * "twenty-five packs" but "five at 西門 at 18:13, seven at 龍山寺 at 18:15". Every stop on the
+ * route is listed, including the ones with nothing, because a gap in the middle of a line is
+ * information too.
+ */
+export function stopsOnRoute(
+  packs: RoutePack[],
+  route: Station[],
+  boardingAt: Date,
+): RouteStop[] {
+  return route.map((station) => {
+    const minutesToArrive = minutesToStation(route, station)
+    const here = packs.filter((pack) => pack.station.id === station.id)
+    const categories: ProductCategory[] = []
+    const stores = new Set<string>()
+
+    for (const pack of here) {
+      stores.add(pack.box.merchantId || pack.box.storeName)
+      if (!categories.includes(pack.box.category)) categories.push(pack.box.category)
+    }
+
+    return {
+      station,
+      minutesToArrive,
+      arriveAt: new Date(boardingAt.getTime() + minutesToArrive * 60_000),
+      packs: here,
+      storeCount: stores.size,
+      categories,
+    }
+  })
+}
 
 /**
  * A boarding time that would actually have something to show, when the chosen one does not.
