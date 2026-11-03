@@ -1,5 +1,30 @@
 /** Formatting helpers shared by the webview screens. Display only — no parsing of user input. */
 
+import type { Box } from '../api'
+
+/**
+ * How much is left, as the mark a card wears — or null when there is nothing worth saying.
+ *
+ * One switch, because both the full card and the compact card in a station's row carry it: a
+ * pack that is nearly gone has to say so wherever it is shown, and two copies would drift.
+ */
+export function statusPill(box: Box) {
+  switch (box.status) {
+    case 'SOLD_OUT':
+      return { label: '已售完', warn: true }
+    case 'BEFORE_SALE':
+      return { label: '尚未開賣', warn: false }
+    case 'EXPIRED':
+      return { label: '已結束', warn: false }
+    case 'ALMOST_SOLD_OUT':
+      return { label: `僅剩 ${box.remainingCount} 份`, warn: true }
+    default:
+      return box.remainingCount > 0
+        ? { label: `剩 ${box.remainingCount} 份`, warn: false }
+        : null
+  }
+}
+
 /** NT$ with thousands separators. */
 export function formatPrice(amount: number) {
   return `NT$${amount.toLocaleString('zh-TW')}`

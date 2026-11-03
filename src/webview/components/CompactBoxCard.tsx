@@ -1,6 +1,6 @@
 import { isReservable } from '../../api'
 import { categoryLabel, categoryWash } from '../categories'
-import { formatPickupWindow } from '../format'
+import { formatPickupWindow, statusPill } from '../format'
 import type { NearbyBox } from '../nearby'
 import FoodArt from './FoodArt'
 import { WalkIcon } from './icons'
@@ -9,8 +9,10 @@ import { WalkIcon } from './icons'
  * A pack as one item in a station's row.
  *
  * Narrow enough that the next one peeks in from the right — the only honest way to say "there
- * is more along here" without a scrollbar a touch screen never draws. Carries the four things
- * that decide whether to tap: what it is, who from, how far, what it costs.
+ * is more along here" without a scrollbar a touch screen never draws. Carries the five things
+ * that decide whether to tap: what it is, who from, how far, what it costs, and how little of
+ * it is left — the stop you are getting off at is a row of these, and that is the one row where
+ * a pack can be down to its last portion or gone while you are looking at it.
  */
 export default function CompactBoxCard({
   nearby,
@@ -22,6 +24,7 @@ export default function CompactBoxCard({
   const { box, walkMinutes, direction } = nearby
   const available = isReservable(box.status)
   const pickup = formatPickupWindow(box.pickupTimeStart, box.pickupTimeEnd)
+  const pill = statusPill(box)
 
   const label = [
     box.storeName,
@@ -29,7 +32,7 @@ export default function CompactBoxCard({
     `${box.discountedPrice} 元`,
     pickup && `取貨 ${pickup}`,
     direction && `步行約 ${walkMinutes} 分`,
-    !available && '目前無法預約',
+    pill?.label,
   ]
     .filter(Boolean)
     .join('，')
@@ -43,6 +46,11 @@ export default function CompactBoxCard({
     >
       <span className="ew-mini-art" style={{ background: categoryWash(box.category) }}>
         <FoodArt category={box.category} />
+        {pill && (
+          <span className={`ew-mini-pill ${pill.warn ? 'ew-mini-pill-warn' : ''}`}>
+            {pill.label}
+          </span>
+        )}
         {box.discountPercent > 0 && (
           <span className="ew-mini-off">−{box.discountPercent}%</span>
         )}

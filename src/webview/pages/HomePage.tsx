@@ -1,5 +1,5 @@
 import { isReservable } from '../../api'
-import BoxCard from '../components/BoxCard'
+import CompactBoxCard from '../components/CompactBoxCard'
 import Screen from '../components/Screen'
 import SimulationNote from '../components/SimulationNote'
 import StationRow from '../components/StationRow'
@@ -20,10 +20,10 @@ function formatRadius(meters: number) {
 /**
  * The app's home, organised the way the pilot actually works: by stop.
  *
- * The line is the unit, not the neighbourhood. The station you get off at gets the full cards —
- * that is the decision in front of you tonight — and every other stop on the pilot gets a row
- * you can push sideways, because a commuter who could just as easily get off one stop earlier
- * should be able to see what is there without changing any setting first.
+ * The line is the unit, not the neighbourhood. Every stop is a row you push sideways — the one
+ * you get off at first, under a heading of its own, then the rest of the pilot, because a
+ * commuter who could just as easily get off one stop earlier should be able to see what is
+ * there without changing any setting first. One gesture reads the whole line.
  *
  * A flat list could not say any of that: it put 台北車站 and 龍山寺 shoulder to shoulder with
  * nothing to indicate they are twenty minutes apart.
@@ -126,9 +126,9 @@ export default function HomePage() {
               body="下面幾站今天還有，或稍後再回來看看。"
             />
           ) : (
-            <div className="ew-cardlist">
+            <div className="ew-stationrow">
               {here.map((item) => (
-                <BoxCard
+                <CompactBoxCard
                   key={item.box.id}
                   nearby={item}
                   onSelect={() => goTo(`/easywallet/box/${item.box.id}`)}

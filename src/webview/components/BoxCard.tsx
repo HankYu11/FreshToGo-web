@@ -1,6 +1,6 @@
 import { isReservable, type Box } from '../../api'
 import { categoryLabel, categoryWash } from '../categories'
-import { formatPickupWindow } from '../format'
+import { formatPickupWindow, statusPill } from '../format'
 import type { NearbyBox } from '../nearby'
 import FoodArt from './FoodArt'
 import { ClockIcon, WalkIcon } from './icons'
@@ -15,23 +15,6 @@ export function StoreMark({ box }: { box: Box }) {
       {box.storeName.slice(0, 1)}
     </span>
   )
-}
-
-function statusPill(box: Box) {
-  switch (box.status) {
-    case 'SOLD_OUT':
-      return { label: '已售完', warn: true }
-    case 'BEFORE_SALE':
-      return { label: '尚未開賣', warn: false }
-    case 'EXPIRED':
-      return { label: '已結束', warn: false }
-    case 'ALMOST_SOLD_OUT':
-      return { label: `僅剩 ${box.remainingCount} 份`, warn: true }
-    default:
-      return box.remainingCount > 0
-        ? { label: `剩 ${box.remainingCount} 份`, warn: false }
-        : null
-  }
 }
 
 /**
