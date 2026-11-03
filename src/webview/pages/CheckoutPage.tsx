@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import { WalletIcon } from '../components/icons'
 import { errorCode, isMissing, isTerminalReserveError, reserveErrorMessage } from '../errors'
 import { formatPickupWindow, formatPrice } from '../format'
+import { noteHuntReservation } from '../huntSession'
 import { useAsync } from '../useAsync'
 import { useWebviewNavigation } from '../useWebviewNavigation'
 
@@ -47,6 +48,10 @@ export default function CheckoutPage() {
     setSubmitError(null)
     try {
       const reservation = await reserve(boxId)
+      // A 吃 der run that reaches this point has finished with this pack: tell the deck, so the
+      // card the rider lands back on is the next one rather than the one they just reserved.
+      // Backing out before here is a change of mind, and leaves the card where it was.
+      noteHuntReservation(boxId)
       // replace: the ticket ends the flow, so Back from it returns to the listing instead of
       // re-entering checkout and risking a second reservation. The ticket is told it came from
       // here, because that decides how far back "回到列表" has to go.

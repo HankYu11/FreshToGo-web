@@ -6,8 +6,9 @@ import { CheckIcon, ClockIcon, PinIcon, ShieldIcon, WalkIcon } from '../componen
 import { loadBoxes } from '../catalog'
 import { categoryLabel, categoryWash } from '../categories'
 import { formatPickupWindow } from '../format'
-import { formatClock, packsOnRoute, suggestBoardingTime, type RoutePack } from '../routeHunt'
-import { STATIONS, MINUTES_PER_STOP, stationsOnRoute } from '../stations'
+import { readHuntSession, writeHuntSession } from '../huntSession'
+import { formatClock, packsOnRoute, suggestBoardingTime } from '../routeHunt'
+import { STATIONS, MINUTES_PER_STOP, findStation, stationsOnRoute } from '../stations'
 import { useAsync } from '../useAsync'
 import { useCardSwipe, type SwipeDecision } from '../useCardSwipe'
 import { useWebviewNavigation } from '../useWebviewNavigation'
@@ -39,19 +40,43 @@ function withClock(time: string) {
  */
 export default function HuntPage() {
   const { goBack, goTo } = useWebviewNavigation()
-  const [from, setFrom] = useState(STATIONS[STATIONS.length - 1])
-  const [to, setTo] = useState(STATIONS[0])
-  const [boardingAt, setBoardingAt] = useState(nowClock)
-  const [started, setStarted] = useState(false)
 
-  const [index, setIndex] = useState(0)
-  const [kept, setKept] = useState<RoutePack[]>([])
+  // Read once, at mount. Reserving a pack leaves this screen for the detail page, and React
+  // Router unmounts the deck on the way out; everything below is restored from what the last
+  // run left behind, and the effect further down writes it back as it changes.
+  const [resumed] = useState(readHuntSession)
+
+  const [from, setFrom] = useState(
+    () => findStation(resumed?.fromId) ?? STATIONS[STATIONS.length - 1],
+  )
+  const [to, setTo] = useState(() => findStation(resumed?.toId) ?? STATIONS[0])
+  const [boardingAt, setBoardingAt] = useState(() => resumed?.boardingAt ?? nowClock())
+  const [started, setStarted] = useState(() => resumed?.started ?? false)
+
+  const [index, setIndex] = useState(() => resumed?.index ?? 0)
+  const [keptIds, setKeptIds] = useState<string[]>(() => resumed?.keptIds ?? [])
+  const [takenIds] = useState<string[]>(() => resumed?.takenIds ?? [])
 
   const { data: boxes, error, loading, reload } = useAsync((signal) => loadBoxes(signal), [])
 
+  // A pack already reserved is out of the deck, which also means the position restored above
+  // lands on the card after it rather than on the one just taken.
   const packs = useMemo(
-    () => (boxes ? packsOnRoute(boxes, from, to, withClock(boardingAt)) : []),
-    [boxes, from, to, boardingAt],
+    () =>
+      boxes
+        ? packsOnRoute(boxes, from, to, withClock(boardingAt)).filter(
+            (pack) => !takenIds.includes(pack.box.id),
+          )
+        : [],
+    [boxes, from, to, boardingAt, takenIds],
+  )
+
+  // Held by id, not as the packs themselves: the deck is rebuilt from a fresh load of today's
+  // listings every time this screen comes back, and a kept card has to be one of those. Travel
+  // order rather than the order they were kept in, which is the order they get collected in.
+  const kept = useMemo(
+    () => packs.filter((pack) => keptIds.includes(pack.box.id)),
+    [packs, keptIds],
   )
 
   const suggestion = useMemo(
@@ -68,7 +93,7 @@ export default function HuntPage() {
       goTo(`/easywallet/box/${current.box.id}`)
       return
     }
-    if (decision === 'keep') setKept((list) => [...list, current])
+    if (decision === 'keep') setKeptIds((list) => [...list, current.box.id])
     setIndex((n) => n + 1)
   }
 
@@ -81,10 +106,23 @@ export default function HuntPage() {
     window.scrollTo(0, 0)
   }, [started])
 
+  useEffect(() => {
+    writeHuntSession({
+      fromId: from.id,
+      toId: to.id,
+      boardingAt,
+      started,
+      index,
+      keptIds,
+      takenIds,
+    })
+  }, [from, to, boardingAt, started, index, keptIds, takenIds])
+
+  // The route is set again from scratch, but a pack already reserved stays out of the deck.
   function restart() {
     setStarted(false)
     setIndex(0)
-    setKept([])
+    setKeptIds([])
   }
 
   // ── Set the journey ────────────────────────────────────────────────────
