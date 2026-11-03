@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import Screen from '../components/Screen'
+import TimeSheet from '../components/TimeSheet'
 import FoodArt from '../components/FoodArt'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import {
@@ -71,7 +72,10 @@ function stopMeta(stop: RouteStop) {
  * hours, so a suggestion always lands on one of these.
  */
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
-const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
+const MINUTE_STEP = 5
+const MINUTES = Array.from({ length: 60 / MINUTE_STEP }, (_, i) =>
+  String(i * MINUTE_STEP).padStart(2, '0'),
+)
 
 /** How long the first card demonstrates the swipe before it gives up and sits still. */
 const HINT_MS = 5600
@@ -79,7 +83,7 @@ const HINT_MS = 5600
 /** Now, down to the five-minute mark the wheels offer — the default boarding time. */
 function nowClock() {
   const now = new Date()
-  const minute = Math.floor(now.getMinutes() / 5) * 5
+  const minute = Math.floor(now.getMinutes() / MINUTE_STEP) * MINUTE_STEP
   return `${String(now.getHours()).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
@@ -121,6 +125,7 @@ export default function HuntPage() {
   const [keptIds, setKeptIds] = useState<string[]>(() => resumed?.keptIds ?? [])
   const [takenIds] = useState<string[]>(() => resumed?.takenIds ?? [])
   const [hinted, setHinted] = useState(() => resumed?.hinted ?? false)
+  const [picking, setPicking] = useState(false)
 
   const { data: boxes, error, loading, reload } = useAsync((signal) => loadBoxes(signal), [])
 
@@ -268,39 +273,17 @@ export default function HuntPage() {
               </select>
             </span>
             {/*
-              Two wheels rather than <input type="time">, which renders in the host device's
-              locale: on an en_US phone it prints 6:35 PM in the middle of a screen where every
-              other clock is 24-hour, and no attribute can make it do otherwise.
+              One control, one picker. Hours and minutes were a <select> each, which on a phone
+              is two full-screen wheels one after the other for what is a single thought.
             */}
-            <span className="ew-journey-clock">
-              <select
-                className="ew-journey-select ew-journey-unit"
-                aria-label="上車時間（時）"
-                value={boardingAt.slice(0, 2)}
-                onChange={(e) => setBoardingAt(`${e.target.value}:${boardingAt.slice(3, 5)}`)}
-              >
-                {HOURS.map((hour) => (
-                  <option key={hour} value={hour}>
-                    {hour}
-                  </option>
-                ))}
-              </select>
-              <span className="ew-journey-colon" aria-hidden="true">
-                :
-              </span>
-              <select
-                className="ew-journey-select ew-journey-unit"
-                aria-label="上車時間（分）"
-                value={boardingAt.slice(3, 5)}
-                onChange={(e) => setBoardingAt(`${boardingAt.slice(0, 2)}:${e.target.value}`)}
-              >
-                {MINUTES.map((minute) => (
-                  <option key={minute} value={minute}>
-                    {minute}
-                  </option>
-                ))}
-              </select>
-            </span>
+            <button
+              type="button"
+              className="ew-journey-clock"
+              aria-label={`上車時間 ${boardingAt}，點擊更改`}
+              onClick={() => setPicking(true)}
+            >
+              {boardingAt}
+            </button>
           </div>
 
           <div className="ew-journey-mid">
@@ -430,6 +413,17 @@ export default function HuntPage() {
             )}
           </button>
         </div>
+
+        {picking && (
+          <TimeSheet
+            value={boardingAt}
+            hours={HOURS}
+            minutes={MINUTES}
+            label="上車時間"
+            onChange={setBoardingAt}
+            onClose={() => setPicking(false)}
+          />
+        )}
       </Screen>
     )
   }

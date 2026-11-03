@@ -1379,6 +1379,105 @@
   }
 }
 
+/* ── The time picker's two wheels ────────────────────────────────────── */
+
+/*
+ * Both columns on one surface, under a single band marking what is chosen.
+ *
+ * The band is painted once behind the columns rather than per column, so the hour and the
+ * minute sit on one line and the thing reads as one time rather than two lists. Scroll
+ * snapping does the choosing: every row is exactly 44px, so the selected index is the scroll
+ * offset divided by that — see TimeSheet.
+ */
+.ew-wheels {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 2px;
+  margin: 4px 0 20px;
+}
+
+.ew-wheels-band {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 188px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border-radius: 12px;
+  background: var(--ew-brand-soft);
+  pointer-events: none;
+}
+
+.ew-wheels-colon {
+  display: flex;
+  align-items: center;
+  padding-bottom: 2px;
+  color: var(--ew-brand);
+  font-size: 22px;
+  font-weight: 800;
+  opacity: 0.55;
+}
+
+.ew-wheel {
+  width: 76px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  /* The rows away from the band fade out, so the band is the only thing in focus. */
+  mask-image: linear-gradient(to bottom, transparent 0, #000 28%, #000 72%, transparent 100%);
+}
+
+.ew-wheel::-webkit-scrollbar {
+  display: none;
+}
+
+.ew-wheel:focus-visible {
+  outline: 2px solid var(--ew-brand);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/* Half a column less half a row, so the first and last values can reach the middle. */
+.ew-wheel-pad {
+  height: 88px;
+}
+
+.ew-wheel-opt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  scroll-snap-align: center;
+  color: var(--ew-ink-soft);
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.12s ease;
+}
+
+.ew-wheel-opt-on {
+  color: var(--ew-brand);
+  font-size: 23px;
+  font-weight: 900;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ew-wheel {
+    scroll-behavior: auto;
+  }
+
+  .ew-wheel-opt {
+    transition: none;
+  }
+}
+
 .ew-sheet-grip {
   width: 40px;
   height: 4px;
@@ -2111,48 +2210,34 @@
 }
 
 /*
- * The boarding time, as two wheels sharing one tinted field.
+ * The boarding time: one field that opens one picker.
  *
- * <input type="time"> renders in the host device's locale, so an en_US phone prints 6:35 PM in
- * the middle of a screen whose every other clock is 24-hour, and no attribute overrides that.
- * A pair of selects prints exactly what their options say. The caret belongs to the field
- * rather than to either wheel: this is one value, and two carets would read as two settings.
+ * It was two <select>s side by side, which on a phone means two full-screen wheels one after
+ * the other — hour, dismiss, minute, dismiss — for what is a single thought. The field now
+ * prints the whole time and the sheet sets both halves at once.
  */
 .ew-journey-clock {
   display: inline-flex;
   align-items: center;
-  gap: 1px;
   margin-top: 6px;
-  padding: 0 25px 0 10px;
+  padding: 0 27px 0 12px;
   min-height: 44px;
+  border: none;
   border-radius: 11px;
   background-color: var(--ew-brand-soft);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' fill='none' stroke='%23336563' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 9px center;
+  background-position: right 11px center;
   color: var(--ew-brand);
+  font-family: inherit;
   font-size: 15px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
 }
 
-/*
- * Each wheel fills the field's height and pads out to a target worth aiming at.
- *
- * Padding rather than a width: Safari ignores text-align on a select, so a wheel given a width
- * draws its digits hard against the left of it and the pair reads "00  :05". Padding centres
- * them whatever the engine does with the alignment.
- */
-.ew-journey-clock .ew-journey-unit {
-  align-self: stretch;
-  padding: 0 9px;
-  background-image: none;
-  color: var(--ew-brand);
-  font-size: 15px;
-  text-align: center;
-}
-
-.ew-journey-colon {
-  opacity: 0.65;
+.ew-journey-clock:active {
+  background-color: #d8e9e7;
 }
 
 .ew-journey-arrive {
