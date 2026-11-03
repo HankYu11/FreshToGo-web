@@ -513,7 +513,13 @@ export default function HuntPage() {
               }`}
               aria-label={spoken}
               disabled={swipe.busy}
-              onClick={() => swipe.decideFromButton(key)}
+              // The circles live in the footer, outside the card, so the card's own
+              // pointerdown-capture never sees this press — and the hint's keyframes would
+              // override the fly-out transform for the length of the throw.
+              onClick={() => {
+                dismissHint()
+                swipe.decideFromButton(key)
+              }}
             >
               <span className="ew-decide-circle">
                 <Icon size={key === 'take' ? 26 : 23} />
