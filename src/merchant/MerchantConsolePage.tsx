@@ -5,6 +5,7 @@ import {
   merchantBoxes,
   merchantLogin,
   placeStore,
+  todayLocalDate,
   type MerchantSession,
 } from '../api/merchant'
 import { seedDemoListings, type SeedResult } from '../api/devSeed'
@@ -40,6 +41,11 @@ function errorText(error: unknown, fallback: string) {
   if (error instanceof ApiError && error.status === 401) return '帳號或密碼不正確。'
   if (error instanceof ApiError && error.code === 'MERCHANT_NOT_FOUND') {
     return '後端找不到這個 email 的店家。'
+  }
+  // Named here because the backend answers in English and the remedy is not in its message:
+  // the subscription lives on the merchant record, so only dev-admin can put it back.
+  if (error instanceof ApiError && error.code === 'MERCHANT_SUBSCRIPTION_EXPIRED') {
+    return '這個店家帳號的訂閱已到期，後端不讓它上架。請到 dev-admin 把 subscriptionEndDate 改到未來，或改用別的店家帳號。'
   }
   return apiErrorMessage(error) ?? (error instanceof Error ? error.message : fallback)
 }
@@ -299,7 +305,10 @@ function Console({
   }, [refresh])
 
   const station = nearestStation(session.storeLatitude, session.storeLongitude)
-  const today = new Date().toISOString().slice(0, 10)
+  // Local date parts, matching exactly what createListing sends as saleDate. toISOString() is
+  // UTC, so between midnight and 08:00 in Taipei this label named yesterday — on the heading
+  // of a form whose whole point is "today".
+  const today = todayLocalDate()
   const todays = (boxes ?? []).filter((box) => box.status !== 'EXPIRED')
 
   async function submit(event: FormEvent) {

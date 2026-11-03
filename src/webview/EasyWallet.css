@@ -1605,7 +1605,7 @@
  */
 .ew-huntcard-art {
   position: relative;
-  aspect-ratio: 2.2 / 1;
+  aspect-ratio: 2.28 / 1;
 }
 
 .ew-huntcard-art .ew-foodart {
@@ -1613,7 +1613,7 @@
 }
 
 .ew-huntcard-body {
-  padding: 12px 20px 10px;
+  padding: 10px 20px 10px;
 }
 
 .ew-huntcard-stop {
@@ -1879,7 +1879,7 @@
   align-items: center;
   gap: 8px;
   margin-top: 10px;
-  padding: 9px 12px;
+  padding: 8px 12px;
   border-radius: 14px;
   background: var(--ew-brand-soft);
 }
@@ -2837,8 +2837,13 @@
  * The two behind are out of flow, so the card being decided is still the only thing that sets
  * the height and they can never push it into the footer. They scale from their bottom edge,
  * which pins that edge while the shrink happens at the top where the front card hides it, and
- * then drop by the few pixels that show — two stepped edges under the card, the way a pile of
- * cards looks from above. The room for them came out of the card itself; see the art's ratio.
+ * then drop by the pixels that show — two stepped edges under the card, the way a pile of cards
+ * looks from above. The room for them came out of the card itself; see the art's ratio.
+ *
+ * Eight pixels each, not five: at five you had to look for them, and sixteen was all the room
+ * the footer left on the shortest screen. Each step also carries a darker
+ * shadow than the card above it, so the gap between two white edges on a near-white page is
+ * drawn by the shadow rather than left to a hairline nobody can see.
  *
  * They carry the pack's illustration rather than being blank shells: when the front card is
  * thrown off the screen, the one behind is fully visible for the length of that throw.
@@ -2857,9 +2862,11 @@
 }
 
 .ew-deckback-1 {
-  transform: translateY(5px) scale(0.965);
+  transform: translateY(8px) scale(0.95);
+  box-shadow: 0 5px 14px rgba(29, 42, 41, 0.16);
 }
 
 .ew-deckback-2 {
-  transform: translateY(10px) scale(0.93);
+  transform: translateY(16px) scale(0.895);
+  box-shadow: 0 6px 16px rgba(29, 42, 41, 0.2);
 }

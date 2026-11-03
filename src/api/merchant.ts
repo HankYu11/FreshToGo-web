@@ -69,6 +69,22 @@ export async function merchantBoxes(token: string, signal?: AbortSignal): Promis
 }
 
 /**
+ * Today, as the device reckons it.
+ *
+ * Local date parts rather than `toISOString().slice(0, 10)`, which is UTC: a merchant in Taipei
+ * listing a pack at 00:30 would otherwise send yesterday's date, and `saleDate` cannot be in
+ * the past. Exported so the console's heading names the same day the listing is filed under.
+ */
+export function todayLocalDate() {
+  const now = new Date()
+  return [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+/**
  * List a pack for today.
  *
  * The sale window runs from midnight to the end of the pickup window. That is not a free
@@ -77,12 +93,7 @@ export async function merchantBoxes(token: string, signal?: AbortSignal): Promis
  * never BEFORE_SALE, so it can be reserved from the moment it is listed.
  */
 export async function createListing(token: string, listing: NewListing): Promise<Box | null> {
-  const today = new Date()
-  const saleDate = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, '0'),
-    String(today.getDate()).padStart(2, '0'),
-  ].join('-')
+  const saleDate = todayLocalDate()
 
   const res = await api.post<ApiResponse<MysteryBoxResponse>>(
     '/api/merchant/boxes',
