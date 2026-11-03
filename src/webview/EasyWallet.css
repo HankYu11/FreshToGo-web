@@ -2002,7 +2002,6 @@
 }
 
 /*
- * The row only claims the horizontal axis, so a vertical drag still scrolls the page under it.
  * The negative margin lets cards run to the screen edge while the first one still starts at the
  * page's own gutter — so a drag never begins where the OS wants its back gesture.
  *
@@ -2010,6 +2009,11 @@
  * scrollport itself unless told otherwise — so the first card snapped its own left edge to the
  * row's left edge and the row came to rest 16px scrolled, with the card flush against the
  * screen and the gutter gone. Matching the snapport to the padding puts it back.
+ *
+ * No touch-action here, deliberately. `pan-x` reads like "this row only wants the horizontal
+ * axis", but it means the opposite: a touch that starts on the row may ONLY pan horizontally,
+ * so a thumb that lands on a card and drags up moves nothing at all. Left to itself the browser
+ * picks the axis from the gesture, which is what a row inside a scrolling page has to do.
  */
 .ew-stationrow {
   display: flex;
@@ -2017,7 +2021,6 @@
   margin: 10px -16px 0;
   padding: 2px 16px 6px;
   overflow-x: auto;
-  touch-action: pan-x;
   scroll-snap-type: x proximity;
   scroll-padding-left: 16px;
   scrollbar-width: none;

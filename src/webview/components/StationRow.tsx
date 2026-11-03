@@ -10,9 +10,10 @@ import { ChevronRightIcon, PinIcon } from './icons'
  * the feed is organised by stop rather than as one flat list where 台北車站 and 龍山寺 sit
  * shoulder to shoulder with nothing saying they are twenty minutes apart.
  *
- * Horizontal scrolling here is native and vertical scrolling still works, because the row only
- * claims the horizontal axis (touch-action: pan-x). It starts clear of the screen edge, so a
- * drag that begins on a card is never the one the OS wants for its back gesture.
+ * Horizontal scrolling here is native, and a thumb that lands on a card and drags up still
+ * scrolls the page: the row names no touch-action, so the browser picks the axis from the
+ * gesture. It starts clear of the screen edge, so a drag that begins on a card is never the one
+ * the OS wants for its back gesture.
  */
 export default function StationRow({
   station,
