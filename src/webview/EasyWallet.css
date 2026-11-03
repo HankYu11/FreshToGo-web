@@ -2005,6 +2005,11 @@
  * The row only claims the horizontal axis, so a vertical drag still scrolls the page under it.
  * The negative margin lets cards run to the screen edge while the first one still starts at the
  * page's own gutter — so a drag never begins where the OS wants its back gesture.
+ *
+ * scroll-padding is what makes that true. A snap area aligns to the *snapport*, which is the
+ * scrollport itself unless told otherwise — so the first card snapped its own left edge to the
+ * row's left edge and the row came to rest 16px scrolled, with the card flush against the
+ * screen and the gutter gone. Matching the snapport to the padding puts it back.
  */
 .ew-stationrow {
   display: flex;
@@ -2014,6 +2019,7 @@
   overflow-x: auto;
   touch-action: pan-x;
   scroll-snap-type: x proximity;
+  scroll-padding-left: 16px;
   scrollbar-width: none;
 }
 
