@@ -73,21 +73,6 @@ export default function HomePage() {
         </button>
       }
     >
-      <button
-        type="button"
-        className="ew-stationbar"
-        onClick={() => goTo('/easywallet/stations')}
-        aria-label={`下車站：${station.fullName}，點擊更改`}
-      >
-        <PinIcon size={18} />
-        <span className="ew-stationbar-main">
-          <span className="ew-stationbar-kicker">今天的下車站</span>
-          <span className="ew-stationbar-name">{station.fullName}</span>
-        </span>
-        <span className="ew-stationbar-change">更改</span>
-        <ChevronRightIcon size={18} className="ew-chevron" />
-      </button>
-
       {loading && !boxes ? (
         <LoadingState label="正在查看這一站附近的鮮款包…" />
       ) : error && !boxes ? (
@@ -103,29 +88,52 @@ export default function HomePage() {
         </EmptyState>
       ) : (
         <>
-          <h2 className="ew-feedhead">
-            {station.fullName}附近
-            <span className="ew-feedhead-sub">
-              出站步行 {formatRadius(STATION_RADIUS_M)}內・{reservable} 款可預約
-            </span>
-          </h2>
+          {/*
+            The stop and its packs are one block, not a setting with a list under it. The control
+            that changes the stop IS the heading of the row it governs — tinted to the screen's
+            edges so the cards visibly belong to it — because tapping 更改 rebuilds exactly what
+            is inside this block and nothing else on the page.
+          */}
+          <section className="ew-herostop">
+            <h2 className="ew-herostop-head">
+              <button
+                type="button"
+                className="ew-herostop-button"
+                onClick={() => goTo('/easywallet/stations')}
+                aria-label={`下車站：${station.fullName}，出站步行 ${formatRadius(
+                  STATION_RADIUS_M,
+                )}內有 ${reservable} 款可預約，點擊更改下車站`}
+              >
+                <PinIcon size={18} />
+                <span className="ew-herostop-main">
+                  <span className="ew-herostop-kicker">今天的下車站</span>
+                  <span className="ew-herostop-name">{station.fullName}</span>
+                  <span className="ew-herostop-sub">
+                    出站步行 {formatRadius(STATION_RADIUS_M)}內・{reservable} 款可預約
+                  </span>
+                </span>
+                <span className="ew-herostop-change">更改</span>
+                <ChevronRightIcon size={18} className="ew-chevron" />
+              </button>
+            </h2>
 
-          {here.length === 0 ? (
-            <EmptyState
-              title={`${station.fullName}今天還沒有鮮款包`}
-              body="下面幾站今天還有，或稍後再回來看看。"
-            />
-          ) : (
-            <div className="ew-stationrow">
-              {here.map((item) => (
-                <CompactBoxCard
-                  key={item.box.id}
-                  nearby={item}
-                  onSelect={() => goTo(`/easywallet/box/${item.box.id}`)}
-                />
-              ))}
-            </div>
-          )}
+            {here.length === 0 ? (
+              <EmptyState
+                title={`${station.fullName}今天還沒有鮮款包`}
+                body="下面幾站今天還有，或稍後再回來看看。"
+              />
+            ) : (
+              <div className="ew-stationrow">
+                {here.map((item) => (
+                  <CompactBoxCard
+                    key={item.box.id}
+                    nearby={item}
+                    onSelect={() => goTo(`/easywallet/box/${item.box.id}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
 
           {elsewhere.length > 0 && (
             <>
