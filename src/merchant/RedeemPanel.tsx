@@ -9,6 +9,7 @@ import {
   type Redemption,
 } from '../api/merchant'
 import { formatPickupWindowUtc } from '../webview/format'
+import { useRefreshWhenVisible } from '../webview/useRefreshWhenVisible'
 
 /**
  * Why a redemption was refused, in the merchant app's own words.
@@ -17,6 +18,9 @@ import { formatPickupWindowUtc } from '../webview/format'
  * resources, so a merchant who has used both reads the same sentence twice rather than two
  * descriptions of one thing.
  */
+/** How often a console left open on the counter re-reads the pending list. */
+const PENDING_POLL_MS = 15_000
+
 function redemptionError(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.isOffline) return '沒有網路連線，請確認後再試。'
@@ -90,6 +94,22 @@ export default function RedeemPanel({ session }: { session: MerchantSession }) {
   useEffect(() => {
     void load()
   }, [load])
+
+  /*
+   * The counter's screen has to notice a customer arriving.
+   *
+   * A reservation is made on the customer's phone, not here, so a list fetched once when the
+   * console opened is a list of who had already ordered when the merchant sat down. Both halves
+   * matter: the poll is for a console left open on the counter, and the visibility refresh is
+   * for the merchant who switched to something else and came back — a tab in the background
+   * gets its timers throttled, so the poll alone would land late.
+   */
+  useEffect(() => {
+    const timer = window.setInterval(() => void load(), PENDING_POLL_MS)
+    return () => window.clearInterval(timer)
+  }, [load])
+
+  useRefreshWhenVisible(() => void load(), true)
 
   async function finish(run: () => Promise<Redemption>, key: string) {
     if (busy) return
