@@ -1,11 +1,10 @@
 import { isReservable } from '../../api'
 import CompactBoxCard from '../components/CompactBoxCard'
 import Screen from '../components/Screen'
-import SimulationNote from '../components/SimulationNote'
 import StationRow from '../components/StationRow'
 import { ChevronRightIcon, PinIcon, RouteIcon } from '../components/icons'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
-import { loadBoxes, usingStandIns } from '../catalog'
+import { loadBoxes } from '../catalog'
 import { boxesNearStation } from '../nearby'
 import { currentStation, writeStationPreference } from '../stationPreference'
 import { STATIONS, STATION_RADIUS_M } from '../stations'
@@ -34,7 +33,6 @@ export default function HomePage() {
 
   const { data: boxes, error, loading, reload } = useAsync((signal) => loadBoxes(signal), [])
 
-  const standIns = Boolean(boxes) && usingStandIns()
   const here = boxes ? boxesNearStation(boxes, station) : []
   const reservable = here.filter((item) => isReservable(item.box.status)).length
 
@@ -105,14 +103,6 @@ export default function HomePage() {
         </EmptyState>
       ) : (
         <>
-          {standIns && (
-            <div style={{ marginTop: 14 }}>
-              <SimulationNote label="示意">
-                開發環境今天沒有上架資料，以下為示意店家與鮮款包，不是已合作的店家；預約會在這支手機上完成，不會送出到後端。
-              </SimulationNote>
-            </div>
-          )}
-
           <h2 className="ew-feedhead">
             {station.fullName}附近
             <span className="ew-feedhead-sub">

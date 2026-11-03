@@ -94,7 +94,6 @@ export default function StorePage() {
             {store.businessHours}
           </p>
         )}
-        <p className="ew-note">此為開發環境的示意店家與地址，非實際合作門市。</p>
       </section>
 
       {store.story && (

@@ -214,7 +214,7 @@ export default function HuntPage() {
 
         {/*
           Not a disclaimer — a property of the design, and one the partner cares about. Buried
-          under a 示意 badge it reads as an apology for something missing; stated plainly it is
+          under a 模擬 badge it reads as an apology for something missing; stated plainly it is
           the answer to the first question a card company asks about a commuting feature.
         */}
         <section className="ew-panel">

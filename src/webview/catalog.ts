@@ -27,21 +27,14 @@ import {
  * fills in only when it has nothing listed for today. A seeded dev day never reaches the
  * fixtures; a day nobody seeded still has a demo instead of three empty stations.
  *
- * `usingStandIns` tells the screens which they got, so the feed can say so rather than leaving
- * anyone to guess.
+ * Which one a screen got is not something the screens ask any more: the stand-ins name
+ * themselves in the store (示範店), and the one thing that is genuinely not built — the
+ * payment — says so where it happens.
  */
-
-let standingIn = false
-
-/** True when the last listing read fell back to the stand-in catalogue. */
-export function usingStandIns() {
-  return standingIn
-}
 
 export async function loadBoxes(signal?: AbortSignal): Promise<Box[]> {
   const live = await listBoxes(signal)
-  standingIn = live.length === 0
-  return standingIn ? demoBoxes() : live
+  return live.length === 0 ? demoBoxes() : live
 }
 
 export async function loadBox(id: string, signal?: AbortSignal): Promise<Box | null> {
