@@ -127,6 +127,12 @@
   padding-right: 0;
 }
 
+/* The content shares out the leftover height instead of stacking from the top. */
+.ew-body-centred {
+  display: flex;
+  flex-direction: column;
+}
+
 /* A sticky action bar has to keep the last of the scrolled content clear of itself. */
 .ew-body-with-footer {
   padding-bottom: 16px;
@@ -1587,19 +1593,25 @@
   box-shadow: 0 4px 18px rgba(29, 42, 41, 0.1);
 }
 
-/* 16:10, not 4:3 — the three circles cost the footer 110px, and the price has to stay on
-   screen with them. */
+/*
+ * 2:1, where the feed's card is 16:10 and this one started at 4:3.
+ *
+ * The card owns the drag, so the page cannot be scrolled from on top of it — everything that
+ * decides a pack has to be above the fold at once. Measured against the shortest screen this
+ * demo meets: an iPhone 16 Pro in Safari, 402×605 with the toolbar showing, where the three
+ * circles take 103px of footer.
+ */
 .ew-huntcard-art {
   position: relative;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 2 / 1;
 }
 
 .ew-huntcard-art .ew-foodart {
-  padding: 18px 20px 24px;
+  padding: 12px 20px 18px;
 }
 
 .ew-huntcard-body {
-  padding: 16px 20px 22px;
+  padding: 14px 20px 12px;
 }
 
 .ew-huntcard-stop {
@@ -1633,17 +1645,30 @@
 }
 
 /* The promise the screen makes: you will still be able to collect this one. */
+/*
+ * The promise, in one line. It used to be a tinted box repeating the arrival time — which the
+ * clock strip above now prints, so all this has left to do is assert what the numbers mean.
+ */
+.ew-huntcard-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ew-huntcard-foot .ew-pricerow {
+  margin: 0;
+}
+
 .ew-huntcard-reach {
   display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  margin-top: 14px;
-  padding: 11px 13px;
-  border-radius: 12px;
-  background: var(--ew-brand-soft);
-  color: #2c5553;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  color: var(--ew-brand);
   font-size: 13px;
-  line-height: 1.6;
+  font-weight: 700;
 }
 
 .ew-huntcard-reach svg {
@@ -1680,8 +1705,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   transition: transform 0.12s ease;
 }
@@ -1704,8 +1729,8 @@
 }
 
 .ew-decide-take .ew-decide-circle {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   background: var(--ew-brand);
   color: #fff;
   box-shadow: 0 6px 16px rgba(51, 101, 99, 0.3);
@@ -1723,26 +1748,19 @@
 
 /* ── 吃 der: where this card sits on the line ────────────────────────── */
 
+/*
+ * One row: the line's badge, the rail, and what has been kept so far.
+ *
+ * The ends used to be spelled out above the rail, which said twice what the first and last
+ * labels on the rail already say — and the deck has to fit above a 110px footer without the
+ * rider scrolling, since the card owns the drag.
+ */
 .ew-deckroute {
-  margin-bottom: 10px;
-}
-
-.ew-deckroute-head {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ew-ink-soft);
-}
-
-.ew-deckroute-ends {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-top: 2px;
 }
 
 .ew-deckroute-kept {
@@ -1750,7 +1768,7 @@
   align-items: center;
   gap: 3px;
   flex: 0 0 auto;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: var(--ew-grain-soft);
   color: #6b4f12;
@@ -1759,9 +1777,10 @@
 }
 
 .ew-deckroute-rail {
+  flex: 1;
   display: flex;
   list-style: none;
-  margin: 12px 0 0;
+  margin: 0;
   padding: 0;
 }
 
@@ -1857,8 +1876,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 14px;
-  padding: 10px 12px;
+  margin-top: 10px;
+  padding: 9px 12px;
   border-radius: 14px;
   background: var(--ew-brand-soft);
 }
@@ -2725,4 +2744,18 @@
   gap: 3px;
   font-size: 11px;
   color: var(--ew-ink-soft);
+}
+
+/*
+ * The deck's one card, centred in the height the route strip and the footer leave it.
+ *
+ * On the shortest screen this demo meets (402×605, an iPhone 16 Pro in Safari with the toolbar
+ * showing) that is exactly the card's own height; on a big phone with no toolbar it is a good
+ * deal more, and without this the card hangs under the route with empty page beneath it.
+ */
+.ew-deckstage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }

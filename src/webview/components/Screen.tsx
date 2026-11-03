@@ -17,6 +17,14 @@ interface ScreenProps {
   tab?: boolean
   /** A floating action, pinned clear of the bottom navigation and the home indicator. */
   fab?: ReactNode
+  /**
+   * Let the content spread into whatever height is left.
+   *
+   * For a screen that is one object rather than a list — the 吃 der deck is a single card above
+   * a tall footer, and on a big phone it would otherwise hang under the route with a field of
+   * empty page below it.
+   */
+  centred?: boolean
 }
 
 /**
@@ -36,6 +44,7 @@ export default function Screen({
   flush,
   tab,
   fab,
+  centred,
 }: ScreenProps) {
   return (
     <div className="ew-screen">
@@ -55,6 +64,7 @@ export default function Screen({
         className={[
           'ew-body',
           flush ? 'ew-body-flush' : '',
+          centred ? 'ew-body-centred' : '',
           footer || tab ? 'ew-body-with-footer' : '',
         ]
           .filter(Boolean)

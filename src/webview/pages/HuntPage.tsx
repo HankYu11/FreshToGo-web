@@ -442,6 +442,7 @@ export default function HuntPage() {
     <Screen
       title={`${index + 1} / ${packs.length}`}
       onBack={restart}
+      centred
       footer={
         /*
           Left, up, right — the buttons sit where the gestures throw the card, so one is a
@@ -475,20 +476,9 @@ export default function HuntPage() {
         reason the feature is on a train line rather than a map.
       */}
       <div className="ew-deckroute">
-        <p className="ew-deckroute-head">
-          <span className="ew-linebadge" style={{ background: lineColor(route[0]) }}>
-            {route[0].lines[0]}
-          </span>
-          <span className="ew-deckroute-ends">
-            {route[0].fullName} → {route[route.length - 1].fullName}
-          </span>
-          {kept.length > 0 && (
-            <span className="ew-deckroute-kept">
-              <StarIcon size={12} />
-              已收著 {kept.length}
-            </span>
-          )}
-        </p>
+        <span className="ew-linebadge" style={{ background: lineColor(route[0]) }}>
+          {route[0].lines[0]}
+        </span>
         <ol className="ew-deckroute-rail">
           {stops.map((stop) => {
             const here = current?.station.id === stop.station.id
@@ -507,91 +497,94 @@ export default function HuntPage() {
             )
           })}
         </ol>
+        {kept.length > 0 && (
+          <span className="ew-deckroute-kept">
+            <StarIcon size={12} />
+            {kept.length}
+          </span>
+        )}
       </div>
 
-      {current && (
-        <article
-          className={`ew-huntcard${swipe.lifted ? ' ew-huntcard-lifted' : ''}`}
-          key={current.box.id}
-          style={swipe.style}
-          {...swipe.handlers}
-        >
-          <div
-            className="ew-huntcard-art"
-            style={{ background: categoryWash(current.box.category) }}
+      {/* The card takes the height the route strip and the footer leave it, and centres in it. */}
+      <div className="ew-deckstage">
+        {current && (
+          <article
+            className={`ew-huntcard${swipe.lifted ? ' ew-huntcard-lifted' : ''}`}
+            key={current.box.id}
+            style={swipe.style}
+            {...swipe.handlers}
           >
-            <FoodArt category={current.box.category} />
-            {swipe.leaning && (
-              <span className={`ew-huntstamp ew-huntstamp-${swipe.leaning}`} aria-hidden="true">
-                {swipe.leaning === 'skip' ? '跳過' : swipe.leaning === 'keep' ? '先收著' : '預約'}
-              </span>
-            )}
-            <span className="ew-card-kicker">{categoryLabel(current.box.category)}</span>
-            {stock && (
-              <span className={`ew-pill ${stock.warn ? 'ew-pill-warn' : ''}`}>{stock.label}</span>
-            )}
-            <span className="ew-huntcard-walk">
-              <WalkIcon size={13} />
-              出站往{current.direction}・{current.walkMinutes} 分
-            </span>
-            <span className="ew-card-tear" aria-hidden="true" />
-          </div>
-          <div className="ew-huntcard-body">
-            <p className="ew-huntcard-stop">
-              <PinIcon size={14} />
-              {current.station.fullName}・{current.box.storeName}
-            </p>
-            <h2 className="ew-huntcard-name">{current.box.name}</h2>
-            {current.box.description && (
-              <p className="ew-huntcard-desc">{current.box.description}</p>
-            )}
-
-            {/*
-              The three times that decide it, in the order they happen. Written out because the
-              rule behind this screen — only what you can still collect — is exactly this
-              arithmetic, and a rider who can see it does not have to take it on trust.
-            */}
-            <div className="ew-huntclock">
-              <span className="ew-huntclock-step">
-                <span className="ew-huntclock-label">到站</span>
-                <span className="ew-huntclock-value">{formatClock(arriveAt)}</span>
-              </span>
-              <span className="ew-huntclock-arrow" aria-hidden="true" />
-              <span className="ew-huntclock-step">
-                <span className="ew-huntclock-label">到店</span>
-                <span className="ew-huntclock-value">{formatClock(current.reachableAt)}</span>
-              </span>
-              <span className="ew-huntclock-arrow" aria-hidden="true" />
-              <span className="ew-huntclock-step">
-                <span className="ew-huntclock-label">取貨到</span>
-                <span className="ew-huntclock-value">
-                  {formatTimeOfDay(current.box.pickupTimeEnd)}
+            <div
+              className="ew-huntcard-art"
+              style={{ background: categoryWash(current.box.category) }}
+            >
+              <FoodArt category={current.box.category} />
+              {swipe.leaning && (
+                <span className={`ew-huntstamp ew-huntstamp-${swipe.leaning}`} aria-hidden="true">
+                  {swipe.leaning === 'skip' ? '跳過' : swipe.leaning === 'keep' ? '先收著' : '預約'}
                 </span>
-              </span>
-            </div>
-
-            <p className="ew-huntcard-reach">
-              <CheckIcon size={16} />
-              {current.minutesToArrive === 0
-                ? '這是你的上車站，上車前就能取'
-                : `約 ${current.minutesToArrive} 分後到站，還在取貨時段內`}
-            </p>
-
-            <p className="ew-pricerow">
-              <span className="ew-price">
-                <span className="ew-price-unit">NT$</span>
-                {current.box.discountedPrice}
-              </span>
-              {current.box.originalPrice > current.box.discountedPrice && (
-                <span className="ew-price-original">NT${current.box.originalPrice}</span>
               )}
-            </p>
-          </div>
-        </article>
-      )}
+              <span className="ew-card-kicker">{categoryLabel(current.box.category)}</span>
+              {stock && (
+                <span className={`ew-pill ${stock.warn ? 'ew-pill-warn' : ''}`}>{stock.label}</span>
+              )}
+              <span className="ew-huntcard-walk">
+                <WalkIcon size={13} />
+                出站往{current.direction}・{current.walkMinutes} 分
+              </span>
+              <span className="ew-card-tear" aria-hidden="true" />
+            </div>
+            <div className="ew-huntcard-body">
+              <p className="ew-huntcard-stop">
+                <PinIcon size={14} />
+                {current.station.fullName}・{current.box.storeName}
+              </p>
+              <h2 className="ew-huntcard-name">{current.box.name}</h2>
 
-      {/* The buttons already name the three decisions; this says they are also a gesture. */}
-      <p className="ew-note ew-huntswipehint">卡片也可以左滑、右滑、往上滑</p>
+              {/*
+                The three times that decide it, in the order they happen. Written out because the
+                rule behind this screen — only what you can still collect — is exactly this
+                arithmetic, and a rider who can see it does not have to take it on trust.
+              */}
+              <div className="ew-huntclock">
+                <span className="ew-huntclock-step">
+                  <span className="ew-huntclock-label">到站</span>
+                  <span className="ew-huntclock-value">{formatClock(arriveAt)}</span>
+                </span>
+                <span className="ew-huntclock-arrow" aria-hidden="true" />
+                <span className="ew-huntclock-step">
+                  <span className="ew-huntclock-label">到店</span>
+                  <span className="ew-huntclock-value">{formatClock(current.reachableAt)}</span>
+                </span>
+                <span className="ew-huntclock-arrow" aria-hidden="true" />
+                <span className="ew-huntclock-step">
+                  <span className="ew-huntclock-label">取貨到</span>
+                  <span className="ew-huntclock-value">
+                    {formatTimeOfDay(current.box.pickupTimeEnd)}
+                  </span>
+                </span>
+              </div>
+
+              {/* The promise and the price on one line: the two things a decision weighs. */}
+              <div className="ew-huntcard-foot">
+                <p className="ew-huntcard-reach">
+                  <CheckIcon size={15} />
+                  {current.minutesToArrive === 0 ? '上車前就能取' : '到站時還拿得到'}
+                </p>
+                <p className="ew-pricerow">
+                  <span className="ew-price">
+                    <span className="ew-price-unit">NT$</span>
+                    {current.box.discountedPrice}
+                  </span>
+                  {current.box.originalPrice > current.box.discountedPrice && (
+                    <span className="ew-price-original">NT${current.box.originalPrice}</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </article>
+        )}
+      </div>
     </Screen>
   )
 }
