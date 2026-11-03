@@ -26,11 +26,19 @@ const SHARED_CONSUMER = 'DEMO_ACCESS_TOKEN'
 void SHARED_CONSUMER
 
 /**
- * Display names the dev backend gives its stand-in accounts. The host app would supply the
- * member's real name; showing the backend's test placeholder instead just looks like leaked
- * test data, so the UI falls back to its own label.
+ * Display names the dev backend gives its stand-in accounts.
+ *
+ * `provisionEphemeralUser` names every member it mints "E2E User", so that is the real
+ * customerName on these rows — not a bug, but it reads as leaked test data wherever it is
+ * shown, so both sides of the demo put their own label in its place. The host app would supply
+ * the member's real name here.
  */
 const PLACEHOLDER_NAMES = new Set(['E2E User', 'E2E Tester', 'Demo User'])
+
+/** Whether a display name is one the dev backend made up rather than a member's own. */
+export function isPlaceholderName(name: string | null | undefined) {
+  return !name || PLACEHOLDER_NAMES.has(name)
+}
 
 /**
  * localStorage, not sessionStorage.

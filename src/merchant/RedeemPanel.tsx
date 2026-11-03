@@ -8,6 +8,7 @@ import {
   type MerchantSession,
   type Redemption,
 } from '../api/merchant'
+import { isPlaceholderName } from '../api/session'
 import { formatPickupWindowUtc } from '../webview/format'
 import { useRefreshWhenVisible } from '../webview/useRefreshWhenVisible'
 
@@ -18,6 +19,21 @@ import { useRefreshWhenVisible } from '../webview/useRefreshWhenVisible'
  * resources, so a merchant who has used both reads the same sentence twice rather than two
  * descriptions of one thing.
  */
+/**
+ * Who the order belongs to.
+ *
+ * A consumer who reserved through /easywallet never signed in: the webview mints a member on
+ * the dev backend, which names every one of them "E2E User". That is the genuine customerName
+ * on the row, and printing it here makes a real order look like a test fixture, so a member
+ * with no name of their own is named after where they came from.
+ */
+function customerName(order: MerchantOrder) {
+  // A row with no name at all is a different thing from one the backend named for itself, and
+  // only the second one came through the webview.
+  if (!order.customerName) return '客人'
+  return isPlaceholderName(order.customerName) ? 'EasyWallet User' : order.customerName
+}
+
 /** How often a console left open on the counter re-reads the pending list. */
 const PENDING_POLL_MS = 15_000
 
@@ -206,7 +222,7 @@ export default function RedeemPanel({ session }: { session: MerchantSession }) {
             return (
               <div key={order.id} className="mc-listitem">
                 <div>
-                  {order.customerName || '客人'} <span className="mc-status">{order.orderId}</span>
+                  {customerName(order)} <span className="mc-status">{order.orderId}</span>
                   <span className="mc-meta">
                     {order.itemDescription}
                     {window && `・取貨 ${window}`}・NT${order.totalPrice}
