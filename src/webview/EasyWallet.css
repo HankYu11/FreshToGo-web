@@ -2135,11 +2135,16 @@
   font-weight: 800;
 }
 
-/* Each wheel fills the field's height and is wide enough to hit on its own. */
+/*
+ * Each wheel fills the field's height and pads out to a target worth aiming at.
+ *
+ * Padding rather than a width: Safari ignores text-align on a select, so a wheel given a width
+ * draws its digits hard against the left of it and the pair reads "00  :05". Padding centres
+ * them whatever the engine does with the alignment.
+ */
 .ew-journey-clock .ew-journey-unit {
   align-self: stretch;
-  min-width: 40px;
-  padding: 0;
+  padding: 0 11px;
   background-image: none;
   color: var(--ew-brand);
   font-size: 15px;
