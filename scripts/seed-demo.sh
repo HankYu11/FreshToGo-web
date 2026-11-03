@@ -125,7 +125,17 @@ fi
 section "Signing in as admin"
 res=$(api POST /api/admin/login "" "$(jq -nc --arg e "$ADMIN_EMAIL" --arg p "$ADMIN_PASSWORD" '{email:$e,password:$p}')")
 [ "$(code "$res")" = "200" ] || { echo "Admin login failed: $(body "$res")" >&2; exit 1; }
-ADMIN_TOKEN=$(body "$res" | jq -r '.data.accessToken')
+# `.data.token`, not `.data.accessToken` — AdminResponse (models/Admin.kt) and
+# MerchantResponse both call it `token`, where the consumer's SessionInfo calls it
+# accessToken. Reading the wrong field yields jq's "null", every admin call then goes out as
+# `Bearer null`, and a 401 with an empty body is reported as six stores that failed for no
+# stated reason. Hence the check: a login that answers 200 but carries nothing is a bug here,
+# not a credential problem, and it should say so rather than limp on.
+ADMIN_TOKEN=$(body "$res" | jq -r '.data.token // empty')
+[ -n "$ADMIN_TOKEN" ] || {
+  echo "Admin login answered 200 but carried no token — the response shape has changed." >&2
+  exit 1
+}
 log "ok"
 
 # ── Stores ─────────────────────────────────────────────────────────────────
@@ -155,7 +165,11 @@ while IFS='|' read -r email name address lat lng category pack original discount
     fail "FAILED   $name — merchant login: $(body "$res")"
     continue
   fi
-  token=$(body "$res" | jq -r '.data.accessToken')
+  token=$(body "$res" | jq -r '.data.token // empty')
+  if [ -z "$token" ]; then
+    fail "FAILED   $name — merchant login answered 200 but carried no token"
+    continue
+  fi
 
   # Already listed today? Leave it — re-running must not double the stock.
   res=$(api GET /api/merchant/boxes "$token")
