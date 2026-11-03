@@ -8,6 +8,7 @@ import {
   type MerchantSession,
 } from '../api/merchant'
 import { seedDemoListings, type SeedResult } from '../api/devSeed'
+import RedeemPanel from './RedeemPanel'
 import { PLACEMENTS } from './stationPlacement'
 import { SEED_PAYLOAD } from './seedPayload'
 import { CATEGORY_OPTIONS } from './categories'
@@ -386,6 +387,8 @@ function Console({
           </p>
         )}
       </section>
+
+      <RedeemPanel session={session} />
 
       <section className="mc-card">
         <h2 className="mc-h2">上架今天的鮮款包</h2>

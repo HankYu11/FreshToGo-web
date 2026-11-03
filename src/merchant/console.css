@@ -217,3 +217,36 @@
   background: #eef2f1;
   color: #9fb0ae;
 }
+
+/*
+ * The code and its button on one line.
+ *
+ * .mc-button is a full-width block by default, which is right under a form and wrong beside a
+ * field — it collapses to nothing in a shrink-to-fit flex item. These two size to their label.
+ */
+.mc-redeemrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mc-redeemrow .mc-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.mc-redeemrow .mc-button {
+  flex: 0 0 auto;
+  width: auto;
+  margin-top: 0;
+  padding: 0 24px;
+}
+
+.mc-rowbutton {
+  flex: 0 0 auto;
+  width: auto;
+  margin-top: 0;
+  min-height: 40px;
+  padding: 0 18px;
+  font-size: 14px;
+}

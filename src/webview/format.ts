@@ -1,4 +1,4 @@
-/** Formatting helpers shared by the webview screens. Display only — no parsing of user input. */
+/** Formatting helpers shared by the demo's screens. Display only — no parsing of user input. */
 
 import type { Box } from '../api'
 
