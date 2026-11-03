@@ -3,11 +3,13 @@ import Screen from '../components/Screen'
 import FoodArt from '../components/FoodArt'
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews'
 import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
   ArrowUpIcon,
   CheckIcon,
-  CloseIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   PinIcon,
-  ShieldIcon,
   StarIcon,
   SwapIcon,
   WalkIcon,
@@ -41,9 +43,9 @@ import { useWebviewNavigation } from '../useWebviewNavigation'
  * `SwipeDecision` — the key is the decision.
  */
 const DECISIONS = [
-  { key: 'skip', label: '跳過', spoken: '跳過這一款', Icon: CloseIcon },
+  { key: 'skip', label: '跳過', spoken: '跳過這一款', Icon: ArrowLeftIcon },
   { key: 'take', label: '預約', spoken: '預約這一款', Icon: ArrowUpIcon },
-  { key: 'keep', label: '先收著', spoken: '先收著，看完再決定', Icon: StarIcon },
+  { key: 'keep', label: '先收著', spoken: '先收著，看完再決定', Icon: ArrowRightIcon },
 ] as const satisfies readonly {
   key: SwipeDecision
   label: string
@@ -61,10 +63,24 @@ function stopMeta(stop: RouteStop) {
   return `${stop.storeCount} 家店・出站${walk}`
 }
 
-/** Now, rounded down to the minute — the default boarding time. */
+/**
+ * What the boarding-time wheels offer: every hour, and every fifth minute.
+ *
+ * A boarding time is a plan, not a stopwatch reading, and five-minute marks keep the minute
+ * wheel to twelve entries instead of sixty. `suggestBoardingTime` only ever proposes whole
+ * hours, so a suggestion always lands on one of these.
+ */
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
+
+/** How long the first card demonstrates the swipe before it gives up and sits still. */
+const HINT_MS = 5600
+
+/** Now, down to the five-minute mark the wheels offer — the default boarding time. */
 function nowClock() {
   const now = new Date()
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  const minute = Math.floor(now.getMinutes() / 5) * 5
+  return `${String(now.getHours()).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
 function withClock(time: string) {
@@ -104,6 +120,7 @@ export default function HuntPage() {
   const [index, setIndex] = useState(() => resumed?.index ?? 0)
   const [keptIds, setKeptIds] = useState<string[]>(() => resumed?.keptIds ?? [])
   const [takenIds] = useState<string[]>(() => resumed?.takenIds ?? [])
+  const [hinted, setHinted] = useState(() => resumed?.hinted ?? false)
 
   const { data: boxes, error, loading, reload } = useAsync((signal) => loadBoxes(signal), [])
 
@@ -142,8 +159,24 @@ export default function HuntPage() {
   const current = packs[index]
   const finished = started && index >= packs.length
 
+  // The two cards waiting behind the one being decided, furthest first so the nearer one paints
+  // over it. Only ever a glimpse of an edge, but a deck of one card looks like the last card.
+  const behind = packs.slice(index + 1, index + 3).reverse()
+
+  /**
+   * The very first card of a run rocks left and right by itself.
+   *
+   * The three circles say which decisions exist; nothing said the card itself could be thrown,
+   * and in a webview nobody arrives expecting it. One demonstration, on the first card only.
+   */
+  const showHint = started && !hinted && index === 0 && Boolean(current)
+  function dismissHint() {
+    setHinted(true)
+  }
+
   function decide(decision: SwipeDecision) {
     if (!current) return
+    dismissHint()
     if (decision === 'take') {
       goTo(`/easywallet/box/${current.box.id}`)
       return
@@ -170,8 +203,17 @@ export default function HuntPage() {
       index,
       keptIds,
       takenIds,
+      hinted,
     })
-  }, [from, to, boardingAt, started, index, keptIds, takenIds])
+  }, [from, to, boardingAt, started, index, keptIds, takenIds, hinted])
+
+  // A hint that never stops is a decoration. It also has to end before the rider decides,
+  // because the keyframes drive the same transform the drag does.
+  useEffect(() => {
+    if (!showHint) return
+    const timer = window.setTimeout(() => setHinted(true), HINT_MS)
+    return () => window.clearTimeout(timer)
+  }, [showHint])
 
   /** One tap turns a commute home into the same commute in. */
   function swapEnds() {
@@ -225,13 +267,40 @@ export default function HuntPage() {
                 ))}
               </select>
             </span>
-            <input
-              className="ew-journey-time"
-              type="time"
-              aria-label="上車時間"
-              value={boardingAt}
-              onChange={(e) => setBoardingAt(e.target.value || nowClock())}
-            />
+            {/*
+              Two wheels rather than <input type="time">, which renders in the host device's
+              locale: on an en_US phone it prints 6:35 PM in the middle of a screen where every
+              other clock is 24-hour, and no attribute can make it do otherwise.
+            */}
+            <span className="ew-journey-clock">
+              <select
+                className="ew-journey-select ew-journey-unit"
+                aria-label="上車時間（時）"
+                value={boardingAt.slice(0, 2)}
+                onChange={(e) => setBoardingAt(`${e.target.value}:${boardingAt.slice(3, 5)}`)}
+              >
+                {HOURS.map((hour) => (
+                  <option key={hour} value={hour}>
+                    {hour}
+                  </option>
+                ))}
+              </select>
+              <span className="ew-journey-colon" aria-hidden="true">
+                :
+              </span>
+              <select
+                className="ew-journey-select ew-journey-unit"
+                aria-label="上車時間（分）"
+                value={boardingAt.slice(3, 5)}
+                onChange={(e) => setBoardingAt(`${boardingAt.slice(0, 2)}:${e.target.value}`)}
+              >
+                {MINUTES.map((minute) => (
+                  <option key={minute} value={minute}>
+                    {minute}
+                  </option>
+                ))}
+              </select>
+            </span>
           </div>
 
           <div className="ew-journey-mid">
@@ -341,21 +410,6 @@ export default function HuntPage() {
             )}
           </>
         )}
-
-        {/*
-          Not a disclaimer — a property of the design, and one the partner cares about. Buried
-          under a 模擬 badge it reads as an apology for something missing; stated plainly it is
-          the answer to the first question a card company asks about a commuting feature.
-        */}
-        <section className="ew-panel">
-          <p className="ew-privacy">
-            <ShieldIcon size={18} />
-            <span>
-              <strong>不使用你的乘車紀錄。</strong>
-              上下車站與上車時間都由你自己設定，鮮款款不會向悠遊卡索取、也不會收到你的刷卡資料。
-            </span>
-          </p>
-        </section>
 
         <div style={{ marginTop: 18 }}>
           <button
@@ -508,81 +562,120 @@ export default function HuntPage() {
       {/* The card takes the height the route strip and the footer leave it, and centres in it. */}
       <div className="ew-deckstage">
         {current && (
-          <article
-            className={`ew-huntcard${swipe.lifted ? ' ew-huntcard-lifted' : ''}`}
-            key={current.box.id}
-            style={swipe.style}
-            {...swipe.handlers}
-          >
-            <div
-              className="ew-huntcard-art"
-              style={{ background: categoryWash(current.box.category) }}
+          <div className="ew-deckstack">
+            {/*
+              The next two packs, as stepped edges under the one being decided.
+
+              Nothing but the illustration on them: at rest they are a few pixels of card, and
+              the point is that there is more to come, not what it is. The front card is the
+              only one in flow, so it alone sets the stack's height and these can never push it.
+            */}
+            {behind.map((pack, i) => (
+              <div
+                key={pack.box.id}
+                className={`ew-huntcard ew-deckback ew-deckback-${behind.length - i}`}
+                aria-hidden="true"
+              >
+                <div
+                  className="ew-huntcard-art"
+                  style={{ background: categoryWash(pack.box.category) }}
+                >
+                  <FoodArt category={pack.box.category} />
+                </div>
+              </div>
+            ))}
+
+            {/*
+              onPointerDownCapture, not onPointerDown: the hint's keyframes drive the same
+              transform the drag does and would win over it, so a thumb landing on a rocking
+              card has to stop the animation before useCardSwipe reads a single move.
+            */}
+            <article
+              className={`ew-huntcard${swipe.lifted ? ' ew-huntcard-lifted' : ''}${
+                showHint ? ' ew-huntcard-nudge' : ''
+              }`}
+              key={current.box.id}
+              style={swipe.style}
+              {...swipe.handlers}
+              onPointerDownCapture={dismissHint}
             >
-              <FoodArt category={current.box.category} />
-              {swipe.leaning && (
-                <span className={`ew-huntstamp ew-huntstamp-${swipe.leaning}`} aria-hidden="true">
-                  {swipe.leaning === 'skip' ? '跳過' : swipe.leaning === 'keep' ? '先收著' : '預約'}
-                </span>
-              )}
-              <span className="ew-card-kicker">{categoryLabel(current.box.category)}</span>
-              {stock && (
-                <span className={`ew-pill ${stock.warn ? 'ew-pill-warn' : ''}`}>{stock.label}</span>
-              )}
-              <span className="ew-huntcard-walk">
-                <WalkIcon size={13} />
-                出站往{current.direction}・{current.walkMinutes} 分
-              </span>
-              <span className="ew-card-tear" aria-hidden="true" />
-            </div>
-            <div className="ew-huntcard-body">
-              <p className="ew-huntcard-stop">
-                <PinIcon size={14} />
-                {current.station.fullName}・{current.box.storeName}
-              </p>
-              <h2 className="ew-huntcard-name">{current.box.name}</h2>
-
-              {/*
-                The three times that decide it, in the order they happen. Written out because the
-                rule behind this screen — only what you can still collect — is exactly this
-                arithmetic, and a rider who can see it does not have to take it on trust.
-              */}
-              <div className="ew-huntclock">
-                <span className="ew-huntclock-step">
-                  <span className="ew-huntclock-label">到站</span>
-                  <span className="ew-huntclock-value">{formatClock(arriveAt)}</span>
-                </span>
-                <span className="ew-huntclock-arrow" aria-hidden="true" />
-                <span className="ew-huntclock-step">
-                  <span className="ew-huntclock-label">到店</span>
-                  <span className="ew-huntclock-value">{formatClock(current.reachableAt)}</span>
-                </span>
-                <span className="ew-huntclock-arrow" aria-hidden="true" />
-                <span className="ew-huntclock-step">
-                  <span className="ew-huntclock-label">取貨到</span>
-                  <span className="ew-huntclock-value">
-                    {formatTimeOfDay(current.box.pickupTimeEnd)}
+              <div
+                className="ew-huntcard-art"
+                style={{ background: categoryWash(current.box.category) }}
+              >
+                <FoodArt category={current.box.category} />
+                {swipe.leaning && (
+                  <span className={`ew-huntstamp ew-huntstamp-${swipe.leaning}`} aria-hidden="true">
+                    {swipe.leaning === 'skip' ? '跳過' : swipe.leaning === 'keep' ? '先收著' : '預約'}
                   </span>
-                </span>
-              </div>
-
-              {/* The promise and the price on one line: the two things a decision weighs. */}
-              <div className="ew-huntcard-foot">
-                <p className="ew-huntcard-reach">
-                  <CheckIcon size={15} />
-                  {current.minutesToArrive === 0 ? '上車前就能取' : '到站時還拿得到'}
-                </p>
-                <p className="ew-pricerow">
-                  <span className="ew-price">
-                    <span className="ew-price-unit">NT$</span>
-                    {current.box.discountedPrice}
+                )}
+                {showHint && (
+                  <span className="ew-hunthint" aria-hidden="true">
+                    <ChevronLeftIcon size={15} />
+                    滑動卡片，或點下面的按鈕
+                    <ChevronRightIcon size={15} />
                   </span>
-                  {current.box.originalPrice > current.box.discountedPrice && (
-                    <span className="ew-price-original">NT${current.box.originalPrice}</span>
-                  )}
-                </p>
+                )}
+                <span className="ew-card-kicker">{categoryLabel(current.box.category)}</span>
+                {stock && (
+                  <span className={`ew-pill ${stock.warn ? 'ew-pill-warn' : ''}`}>{stock.label}</span>
+                )}
+                <span className="ew-huntcard-walk">
+                  <WalkIcon size={13} />
+                  出站往{current.direction}・{current.walkMinutes} 分
+                </span>
+                <span className="ew-card-tear" aria-hidden="true" />
               </div>
-            </div>
-          </article>
+              <div className="ew-huntcard-body">
+                <p className="ew-huntcard-stop">
+                  <PinIcon size={14} />
+                  {current.station.fullName}・{current.box.storeName}
+                </p>
+                <h2 className="ew-huntcard-name">{current.box.name}</h2>
+
+                {/*
+                  The three times that decide it, in the order they happen. Written out because the
+                  rule behind this screen — only what you can still collect — is exactly this
+                  arithmetic, and a rider who can see it does not have to take it on trust.
+                */}
+                <div className="ew-huntclock">
+                  <span className="ew-huntclock-step">
+                    <span className="ew-huntclock-label">到站</span>
+                    <span className="ew-huntclock-value">{formatClock(arriveAt)}</span>
+                  </span>
+                  <span className="ew-huntclock-arrow" aria-hidden="true" />
+                  <span className="ew-huntclock-step">
+                    <span className="ew-huntclock-label">到店</span>
+                    <span className="ew-huntclock-value">{formatClock(current.reachableAt)}</span>
+                  </span>
+                  <span className="ew-huntclock-arrow" aria-hidden="true" />
+                  <span className="ew-huntclock-step">
+                    <span className="ew-huntclock-label">取貨到</span>
+                    <span className="ew-huntclock-value">
+                      {formatTimeOfDay(current.box.pickupTimeEnd)}
+                    </span>
+                  </span>
+                </div>
+
+                {/* The promise and the price on one line: the two things a decision weighs. */}
+                <div className="ew-huntcard-foot">
+                  <p className="ew-huntcard-reach">
+                    <CheckIcon size={15} />
+                    {current.minutesToArrive === 0 ? '上車前就能取' : '到站時還拿得到'}
+                  </p>
+                  <p className="ew-pricerow">
+                    <span className="ew-price">
+                      <span className="ew-price-unit">NT$</span>
+                      {current.box.discountedPrice}
+                    </span>
+                    {current.box.originalPrice > current.box.discountedPrice && (
+                      <span className="ew-price-original">NT${current.box.originalPrice}</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </article>
+          </div>
         )}
       </div>
     </Screen>

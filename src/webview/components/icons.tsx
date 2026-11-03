@@ -186,6 +186,14 @@ export function SwapIcon({ size = 20, className }: IconProps) {
   )
 }
 
+/*
+ * The three 吃 der decisions, drawn as the three gestures.
+ *
+ * They were a cross, an up-arrow and a star — three meanings, and nothing saying the card
+ * could be thrown at all. An arrow per direction makes the footer a diagram of the deck: the
+ * labels underneath still carry what each one means.
+ */
+
 /** The up-swipe, on the button that stands for it. */
 export function ArrowUpIcon({ size = 24, className }: IconProps) {
   return (
@@ -197,15 +205,26 @@ export function ArrowUpIcon({ size = 24, className }: IconProps) {
 }
 
 /** The left-swipe: this one is not for tonight. */
-export function CloseIcon({ size = 24, className }: IconProps) {
+export function ArrowLeftIcon({ size = 24, className }: IconProps) {
   return (
     <svg {...base(size)} className={className} strokeWidth={2.4}>
-      <path d="M18 6 6 18M6 6l12 12" />
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
     </svg>
   )
 }
 
 /** The right-swipe: keep it for the end of the run. */
+export function ArrowRightIcon({ size = 24, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} strokeWidth={2.4}>
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </svg>
+  )
+}
+
+/** The count of packs kept for later, on the deck's route strip. */
 export function StarIcon({ size = 24, className }: IconProps) {
   return (
     <svg {...base(size)} className={className} strokeWidth={2}>

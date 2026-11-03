@@ -23,6 +23,14 @@ export interface HuntSession {
   keptIds: string[]
   /** Packs reserved for real, which the deck must stop offering. */
   takenIds: string[]
+  /**
+   * The first card has already demonstrated the swipe.
+   *
+   * It lives here rather than in the deck's own state because backing out of a pack's detail
+   * page returns to the first card, and a hint that replayed every time would read as a stutter
+   * rather than as an instruction.
+   */
+  hinted: boolean
 }
 
 let session: HuntSession | null = null

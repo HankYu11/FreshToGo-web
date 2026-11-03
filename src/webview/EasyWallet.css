@@ -1594,16 +1594,18 @@
 }
 
 /*
- * 2:1, where the feed's card is 16:10 and this one started at 4:3.
+ * 2.2:1, where the feed's card is 16:10 and this one started at 4:3.
  *
  * The card owns the drag, so the page cannot be scrolled from on top of it — everything that
  * decides a pack has to be above the fold at once. Measured against the shortest screen this
  * demo meets: an iPhone 16 Pro in Safari, 402×605 with the toolbar showing, where the three
- * circles take 103px of footer.
+ * circles take 107px of footer. At 2:1 the card ran seven pixels under that footer and the
+ * screen scrolled; the ratio, and the four trims below it, buy back enough for the two cards
+ * stacked behind to show as well.
  */
 .ew-huntcard-art {
   position: relative;
-  aspect-ratio: 2 / 1;
+  aspect-ratio: 2.2 / 1;
 }
 
 .ew-huntcard-art .ew-foodart {
@@ -1611,7 +1613,7 @@
 }
 
 .ew-huntcard-body {
-  padding: 14px 20px 12px;
+  padding: 12px 20px 10px;
 }
 
 .ew-huntcard-stop {
@@ -1624,7 +1626,7 @@
 }
 
 .ew-huntcard-name {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 23px;
   font-weight: 900;
   line-height: 1.3;
@@ -1654,7 +1656,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .ew-huntcard-foot .ew-pricerow {
@@ -2108,25 +2110,51 @@
   color: var(--ew-ink);
 }
 
-.ew-journey-time {
-  display: block;
+/*
+ * The boarding time, as two wheels sharing one tinted field.
+ *
+ * <input type="time"> renders in the host device's locale, so an en_US phone prints 6:35 PM in
+ * the middle of a screen whose every other clock is 24-hour, and no attribute overrides that.
+ * A pair of selects prints exactly what their options say. The caret belongs to the field
+ * rather than to either wheel: this is one value, and two carets would read as two settings.
+ */
+.ew-journey-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
   margin-top: 6px;
-  padding: 6px 9px;
-  min-height: 34px;
-  border: none;
-  border-radius: 9px;
-  background: var(--ew-brand-soft);
+  padding: 0 25px 0 10px;
+  min-height: 44px;
+  border-radius: 11px;
+  background-color: var(--ew-brand-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' fill='none' stroke='%23336563' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
   color: var(--ew-brand);
-  font-family: inherit;
   font-size: 15px;
   font-weight: 800;
 }
 
+/* Each wheel fills the field's height and is wide enough to hit on its own. */
+.ew-journey-clock .ew-journey-unit {
+  align-self: stretch;
+  min-width: 40px;
+  padding: 0;
+  background-image: none;
+  color: var(--ew-brand);
+  font-size: 15px;
+  text-align: center;
+}
+
+.ew-journey-colon {
+  opacity: 0.65;
+}
+
 .ew-journey-arrive {
-  display: block;
+  display: flex;
+  align-items: center;
   margin-top: 6px;
-  padding: 6px 0;
-  min-height: 34px;
+  min-height: 44px;
   font-size: 15px;
   font-weight: 800;
   color: var(--ew-ink-soft);
@@ -2356,8 +2384,61 @@
   color: #fff;
 }
 
-.ew-huntswipehint {
-  text-align: center;
+/*
+ * The first card of a run rocks, once.
+ *
+ * An animation rather than a transition, because it has to happen with nothing happening: the
+ * card is at rest, and three circles saying which decisions exist say nothing about the card
+ * itself being throwable. Animations outrank inline styles in the cascade, so this overrides
+ * the transform useCardSwipe sets — which is why HuntPage drops the class on pointerdown,
+ * before a drag can be read.
+ */
+@keyframes ew-huntnudge {
+  0%,
+  10% {
+    transform: translateX(0) rotate(0deg);
+  }
+  24% {
+    transform: translateX(30px) rotate(1.4deg);
+  }
+  40% {
+    transform: translateX(0) rotate(0deg);
+  }
+  56% {
+    transform: translateX(-30px) rotate(-1.4deg);
+  }
+  72%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+.ew-huntcard-nudge {
+  animation: ew-huntnudge 2.4s ease-in-out 0.4s 2;
+}
+
+/* Where the stamp goes, because the stamp is what replaces it the moment a drag starts. */
+.ew-hunthint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(29, 42, 41, 0.16);
+}
+
+.ew-hunthint svg {
+  flex: 0 0 auto;
+  color: var(--ew-brand);
 }
 
 .ew-decide button:disabled {
@@ -2380,6 +2461,11 @@
 @media (prefers-reduced-motion: reduce) {
   .ew-huntcard {
     transition: none !important;
+  }
+
+  /* The written hint stays; only the card stops moving by itself. */
+  .ew-huntcard-nudge {
+    animation: none;
   }
 }
 
@@ -2433,26 +2519,6 @@
 
 .ew-fab-label {
   letter-spacing: 0.01em;
-}
-
-/* A property worth stating, not a disclaimer worth hiding. */
-.ew-privacy {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--ew-ink-soft);
-}
-
-.ew-privacy svg {
-  flex: 0 0 auto;
-  margin-top: 3px;
-  color: var(--ew-brand);
-}
-
-.ew-privacy strong {
-  color: var(--ew-ink);
 }
 
 /* ── The stop you get off at ─────────────────────────────────────────── */
@@ -2758,4 +2824,37 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+/*
+ * The deck, three cards deep.
+ *
+ * The two behind are out of flow, so the card being decided is still the only thing that sets
+ * the height and they can never push it into the footer. They scale from their bottom edge,
+ * which pins that edge while the shrink happens at the top where the front card hides it, and
+ * then drop by the few pixels that show — two stepped edges under the card, the way a pile of
+ * cards looks from above. The room for them came out of the card itself; see the art's ratio.
+ *
+ * They carry the pack's illustration rather than being blank shells: when the front card is
+ * thrown off the screen, the one behind is fully visible for the length of that throw.
+ */
+.ew-deckstack {
+  position: relative;
+}
+
+.ew-deckback {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  /* The card's own return-to-rest, so a card promoted to the front moves up with it. */
+  transition: transform 0.2s ease-out;
+}
+
+.ew-deckback-1 {
+  transform: translateY(5px) scale(0.965);
+}
+
+.ew-deckback-2 {
+  transform: translateY(10px) scale(0.93);
 }
