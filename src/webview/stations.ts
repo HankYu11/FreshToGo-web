@@ -54,6 +54,23 @@ export const STATIONS: Station[] = [
   },
 ]
 
+/**
+ * MRT line colours, as the network's own signage uses them.
+ *
+ * Here rather than on one screen, because every screen that names a station wants the same
+ * pip: the picker, and the route a 吃 der journey runs along.
+ */
+export const LINE_COLORS: Record<string, string> = {
+  BL: '#0070bd',
+  G: '#008659',
+  R: '#e3002c',
+}
+
+/** The colour of a station's first line — what a single pip or badge takes. */
+export function lineColor(station: Station): string {
+  return LINE_COLORS[station.lines[0]] ?? '#9aa7a6'
+}
+
 export function findStation(id: string | null | undefined): Station | undefined {
   return STATIONS.find((station) => station.id === id)
 }

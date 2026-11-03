@@ -3,16 +3,9 @@ import Screen from '../components/Screen'
 import { CheckIcon, ChevronRightIcon } from '../components/icons'
 import { countsByStation } from '../nearby'
 import { currentStation, writeStationPreference } from '../stationPreference'
-import { STATIONS } from '../stations'
+import { LINE_COLORS, STATIONS } from '../stations'
 import { useAsync } from '../useAsync'
 import { useWebviewNavigation } from '../useWebviewNavigation'
-
-/** MRT line colours, for the pips under a station name. */
-const LINE_COLORS: Record<string, string> = {
-  BL: '#0070bd',
-  G: '#008659',
-  R: '#e3002c',
-}
 
 /**
  * Step one: which station does the commuter get off at tonight?
