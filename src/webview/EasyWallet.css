@@ -2173,6 +2173,12 @@
   text-align: right;
 }
 
+/* text-align does not place a flex line, and .ew-journey-arrive is one so it can centre the
+   time against the 44px control opposite it. */
+.ew-journey-end-to .ew-journey-arrive {
+  justify-content: flex-end;
+}
+
 .ew-journey-end-to .ew-journey-pick {
   justify-content: flex-end;
 }
@@ -2210,24 +2216,25 @@
 }
 
 /*
- * The boarding time: one field that opens one picker.
+ * The boarding time: one control that opens one picker.
  *
- * It was two <select>s side by side, which on a phone means two full-screen wheels one after
- * the other — hour, dismiss, minute, dismiss — for what is a single thought. The field now
- * prints the whole time and the sheet sets both halves at once.
+ * Styled like the station picker directly above it rather than as a tinted field, because the
+ * tint cost the column its edge: a filled pill needs left padding, and that padding pushed the
+ * digits 12px in from the 上車 label and the line badge they sit under. Each column is three
+ * rows that share an edge — label, station, time — and the caret is what says a row is yours
+ * to set, exactly as it does on the station above.
  */
 .ew-journey-clock {
   display: inline-flex;
   align-items: center;
-  margin-top: 6px;
-  padding: 0 27px 0 12px;
+  margin-top: 3px;
+  padding: 0 16px 0 0;
   min-height: 44px;
   border: none;
-  border-radius: 11px;
-  background-color: var(--ew-brand-soft);
+  background-color: transparent;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' fill='none' stroke='%23336563' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 11px center;
+  background-position: right center;
   color: var(--ew-brand);
   font-family: inherit;
   font-size: 15px;
@@ -2237,13 +2244,13 @@
 }
 
 .ew-journey-clock:active {
-  background-color: #d8e9e7;
+  opacity: 0.55;
 }
 
 .ew-journey-arrive {
   display: flex;
   align-items: center;
-  margin-top: 6px;
+  margin-top: 3px;
   min-height: 44px;
   font-size: 15px;
   font-weight: 800;
