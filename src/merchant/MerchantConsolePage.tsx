@@ -309,7 +309,10 @@ function Console({
   // UTC, so between midnight and 08:00 in Taipei this label named yesterday — on the heading
   // of a form whose whole point is "today".
   const today = todayLocalDate()
-  const todays = (boxes ?? []).filter((box) => box.status !== 'EXPIRED')
+  // Everything filed under today, expired or not. Filtering on status instead meant a pack
+  // listed after its own pickup window had closed answered 已上架 and then was missing from the
+  // list directly below it, which reads as the listing having failed.
+  const todays = (boxes ?? []).filter((box) => box.saleDate === today)
 
   async function submit(event: FormEvent) {
     event.preventDefault()

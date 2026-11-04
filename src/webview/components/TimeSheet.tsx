@@ -54,7 +54,11 @@ function Wheel({
 
   /** Scroll to a row and let onScroll report it, so tapping and flicking end the same way. */
   function scrollTo(i: number) {
-    ref.current?.scrollTo({ top: clamp(i, 0, values.length - 1) * ROW, behavior: 'smooth' })
+    ref.current?.scrollTo({
+      top: clamp(i, 0, values.length - 1) * ROW,
+      // The CSS media query cannot reach a scroll started from JS, so ask here as well.
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    })
   }
 
   return (
@@ -113,7 +117,14 @@ export default function TimeSheet({
   const panelRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
+    // Focus moves in so a keyboard and a screen reader land on the decision, and goes back to
+    // the control that opened the sheet when it closes — otherwise it falls to the body and
+    // the next Tab starts again from the top of the page.
+    const opener = document.activeElement
     panelRef.current?.focus()
+    return () => {
+      if (opener instanceof HTMLElement) opener.focus()
+    }
   }, [])
 
   return (

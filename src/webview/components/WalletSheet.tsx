@@ -56,12 +56,15 @@ export default function WalletSheet({
 
   useEffect(() => {
     // Focus moves into the sheet, so a screen reader and a keyboard both land where the
-    // decision is rather than back at the top of the page behind it.
+    // decision is rather than back at the top of the page behind it, and returns to whatever
+    // opened it on the way out.
+    const opener = document.activeElement
     panelRef.current?.focus()
     const captured = timers
     return () => {
       captured.current.forEach(window.clearTimeout)
       captured.current = []
+      if (opener instanceof HTMLElement) opener.focus()
     }
   }, [])
 
@@ -91,6 +94,11 @@ export default function WalletSheet({
         aria-label="悠遊付付款（模擬）"
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          // Escape is the keyboard's version of tapping the scrim, so it cancels where the
+          // scrim cancels and is ignored once the payment is on its way.
+          if (event.key === 'Escape' && (stage === 'authorise' || stage === 'confirm')) onCancel()
+        }}
       >
         <div className="ew-sheet-grip" aria-hidden="true" />
 

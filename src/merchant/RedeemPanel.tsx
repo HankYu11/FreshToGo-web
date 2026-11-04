@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, apiErrorMessage } from '../api'
 import {
   merchantReservations,
@@ -93,16 +93,30 @@ export default function RedeemPanel({ session }: { session: MerchantSession }) {
   const [done, setDone] = useState<Redemption | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  /*
+   * Which load is the current one.
+   *
+   * The 15s poll and the reload after a redemption overlap: a poll that went out before the
+   * redemption can answer after it, and its answer still has the redeemed row in it. Only the
+   * newest load is allowed to write, so the row leaves the list and stays gone.
+   */
+  const newest = useRef(0)
+
   const load = useCallback(async () => {
-    setListError(null)
+    const ticket = (newest.current += 1)
     try {
       const rows = await merchantReservations(session.token, {
         pickedUp: false,
         cancelled: false,
       })
+      if (ticket !== newest.current) return
       setOrders(rows.filter(stillOwed).sort(byPickupEnd))
+      setListError(null)
     } catch (cause) {
-      setOrders([])
+      if (ticket !== newest.current) return
+      // Keep whatever is on screen. This polls every 15 seconds beside a till, and a list that
+      // empties itself on one failed request is worse than one a few seconds out of date.
+      setOrders((shown) => shown ?? [])
       setListError(redemptionError(cause))
     }
   }, [session.token])

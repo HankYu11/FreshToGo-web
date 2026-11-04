@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export type SwipeDecision = 'skip' | 'keep' | 'take'
 
@@ -50,6 +50,19 @@ export function useCardSwipe({ onDecide, enabled = true }: Options) {
   const [offset, setOffset] = useState<{ x: number; y: number } | null>(null)
   const [flyOut, setFlyOut] = useState<SwipeDecision | null>(null)
   const start = useRef<{ x: number; y: number; id: number } | null>(null)
+  const flight = useRef<number | null>(null)
+
+  /*
+   * A card thrown off the screen reports its decision 170ms later, and that is long enough to
+   * leave. Backing out of the deck in those 170ms used to still advance the run — the timer
+   * fired against a screen that had already reset — and the next run began on card two.
+   */
+  useEffect(
+    () => () => {
+      if (flight.current !== null) window.clearTimeout(flight.current)
+    },
+    [],
+  )
 
   function reset() {
     start.current = null
@@ -92,7 +105,8 @@ export function useCardSwipe({ onDecide, enabled = true }: Options) {
 
   function commit(decision: SwipeDecision) {
     setFlyOut(decision)
-    window.setTimeout(() => {
+    flight.current = window.setTimeout(() => {
+      flight.current = null
       setFlyOut(null)
       onDecide(decision)
     }, 170)

@@ -63,8 +63,10 @@ export function packsOnRoute(
       const opensAt = atClockTime(box.pickupTimeStart)
       if (!closesAt || !opensAt) continue
 
-      // Too late to collect it, or the window has not opened by the time they could leave.
-      if (reachableAt > closesAt) continue
+      // Too late to collect it, or the window has not opened by the time they get there.
+      // `opensAt` was computed and then only null-checked, so a pack that opens at 18:00 was
+      // offered to someone arriving at 16:03 — with 到站時還拿得到 printed on the card.
+      if (reachableAt > closesAt || reachableAt < opensAt) continue
 
       packs.push({ ...nearby, station, minutesToArrive, reachableAt })
     }

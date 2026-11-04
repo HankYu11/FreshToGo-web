@@ -70,6 +70,17 @@ let current: Session | null = null
  */
 let pendingLogin: Promise<Session> | null = null
 
+/**
+ * The refresh in flight, if any.
+ *
+ * Deduplicated for a harder reason than the login is. The backend consumes a refresh token on
+ * use, so two screens that hit a 401 in the same moment — the ticket and the orders list both
+ * re-read on resume — would spend the same token twice: one gets a session, the other is
+ * refused and falls through to minting a NEW member, and the orders the first one just
+ * restored belong to somebody else.
+ */
+let pendingRefresh: Promise<Session | null> | null = null
+
 function readStored(): Session | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -132,7 +143,14 @@ function login(): Promise<Session> {
  * Returns null when there is nothing to spend or the backend refuses it, which is the caller's
  * signal to start a new member rather than leave the screen stuck.
  */
-async function refresh(): Promise<Session | null> {
+function refresh(): Promise<Session | null> {
+  pendingRefresh ??= spendRefreshToken().finally(() => {
+    pendingRefresh = null
+  })
+  return pendingRefresh
+}
+
+async function spendRefreshToken(): Promise<Session | null> {
   const token = current?.refreshToken || readStored()?.refreshToken
   if (!token) return null
 

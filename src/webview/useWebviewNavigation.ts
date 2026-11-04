@@ -10,13 +10,26 @@ import { useLocation, useNavigate } from 'react-router-dom'
  * back control pops instead, and only falls back to an explicit destination when there is
  * nothing to pop — which is the case when the screen was opened by a deep link.
  *
- * React Router gives the first entry of a history session the key `default`; any other key
- * means this screen was navigated to and there is somewhere to go back to.
+ * How far back we can go comes from React Router's own history index, not from the location
+ * key. The key only says that navigate() was called at some point — and `replace` mints a new
+ * key without adding an entry, so a screen reached by replacing the very first one looked
+ * poppable and was not. The ticket pops two entries at the end of its flow; on a stack one
+ * deep that walked out of the demo and back to whatever the tab held before it.
  */
+function depth() {
+  try {
+    return (window.history.state as { idx?: number } | null)?.idx ?? 0
+  } catch {
+    return 0
+  }
+}
+
 export function useWebviewNavigation() {
   const navigate = useNavigate()
+  // Read on every render rather than memoised: the index changes under us on every navigation.
   const location = useLocation()
-  const canPop = location.key !== 'default'
+  void location
+  const canPop = depth() > 0
 
   const goBack = useCallback(
     (fallback: string) => {
@@ -46,10 +59,12 @@ export function useWebviewNavigation() {
    */
   const goBackBy = useCallback(
     (steps: number, fallback: string) => {
-      if (canPop) navigate(-Math.abs(steps))
+      // Never more than the stack holds: popping past the first entry leaves the webview.
+      const back = Math.min(Math.abs(steps), depth())
+      if (back > 0) navigate(-back)
       else navigate(fallback, { replace: true })
     },
-    [canPop, navigate],
+    [navigate],
   )
 
   return { goBack, goBackBy, goTo, replaceTo }

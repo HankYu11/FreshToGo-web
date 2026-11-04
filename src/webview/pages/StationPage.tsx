@@ -57,6 +57,9 @@ export default function StationPage() {
               className={`ew-stationcard ${
                 current === station.id ? 'ew-stationcard-current' : ''
               }`}
+              // The tick is decorative, so without this a screen reader reads all three
+              // stations identically and never says which one is set.
+              aria-current={current === station.id ? 'true' : undefined}
               onClick={() => choose(station.id)}
             >
               <span className="ew-stationcard-main">
