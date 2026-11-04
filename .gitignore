@@ -24,5 +24,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Demo seeding credentials (scripts/seed-demo.sh)
+# Legacy demo-seeding credentials. The script that read them (scripts/seed-demo.sh) is gone —
+# seeding is now the credential-free button on /merchant. Kept so a leftover local copy of
+# this file can never be committed by mistake.
 scripts/.demo-seed.env
