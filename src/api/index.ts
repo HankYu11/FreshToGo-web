@@ -1,4 +1,4 @@
-export { api } from './client'
+export { api, ApiError, apiErrorMessage, setAuthToken } from './client'
 export { getImpactStats, type ImpactStats } from './stats'
 export { trackEvent } from './events'
 export {
@@ -13,3 +13,23 @@ export {
   type RecommendationItem,
   type RecommendationStatus,
 } from './recommendations'
+export {
+  listBoxes,
+  getBox,
+  isReservable,
+  type Box,
+  type BoxStatus,
+  type ProductCategory,
+} from './boxes'
+export {
+  createReservation,
+  getReservation,
+  getReservationStats,
+  listReservations,
+  type CreatedReservation,
+  type Reservation,
+  type ReservationStats,
+  type ReservationStatus,
+} from './reservations'
+export { getStoreProfile, type StoreProfile } from './stores'
+export { ensureSession, ensureSessionQuietly, withSession, type Session } from './session'
