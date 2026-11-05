@@ -11,27 +11,20 @@ import { SEEDS } from '../webview/demoCatalog'
  */
 
 /**
- * The password every store seeded from here is created with.
+ * The shared password for every （示範店）on dev.
  *
- * Without one the backend gives a new store `randomPassword()` and never returns it
- * (`DevTestRoutes`), so nobody can sign in as that store afterwards — and a store nobody can
- * sign into is a demo where the pack can be reserved but never collected, because both
- * redemption routes require a merchant session. The first set was seeded without a password
- * and is stranded for good: the endpoint reuses an existing store by email and never touches
- * its password, so there is nothing to repair, only a new set to start.
+ * This is what the existing twelve stores were created with, so it is what actually works
+ * today. The seed endpoint reuses a store by email and never resets its password
+ * (`DevTestRoutes`), so changing this string does not change those stores — it applies only
+ * to a store the seed has to create, e.g. after the dev database is reset.
  *
- * Committed deliberately. These are throwaway （示範店）rows on the dev backend, and the
- * endpoint that creates them takes no credentials at all — anyone who can reach dev can
- * already stand up stores and listings there, so a password for twelve of them gives nothing
- * further away. It is deliberately not a password used anywhere else, and production has this
- * endpoint unmounted.
+ * Committed deliberately: throwaway rows on the dev backend, the endpoint that creates them
+ * takes no credentials at all, and production has it unmounted.
  */
-const SEED_PASSWORD = 'demo-store-2026'
+const SEED_PASSWORD = 'password123'
 
 export const SEED_PAYLOAD: SeedStoreInput[] = SEEDS.map((seed) => ({
-  // `@demo.freshtogo.test`, not the bare `@freshtogo.test` the stranded set used: a fresh
-  // address is the only way to get a store whose password is known.
-  email: `${seed.merchant}@demo.freshtogo.test`,
+  email: `${seed.merchant}@freshtogo.test`,
   password: SEED_PASSWORD,
   storeName: seed.store,
   storeAddress: seed.address,
