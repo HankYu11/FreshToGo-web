@@ -19,6 +19,12 @@ export interface SeedListingInput {
 
 export interface SeedStoreInput {
   email: string
+  /**
+   * Set only when this call creates the store; ignored for one that is already there. Omitted
+   * means the backend invents a password it never returns, leaving a store nobody can sign in
+   * as — and therefore a pack nobody can redeem.
+   */
+  password?: string
   storeName: string
   storeAddress: string
   storeLatitude: number
