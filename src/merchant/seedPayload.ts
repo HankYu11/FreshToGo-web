@@ -11,12 +11,17 @@ import { SEEDS } from '../webview/demoCatalog'
  */
 
 /**
- * The shared password for every （示範店）on dev.
+ * The password every store seeded from here is created with.
  *
- * This is what the existing twelve stores were created with, so it is what actually works
- * today. The seed endpoint reuses a store by email and never resets its password
- * (`DevTestRoutes`), so changing this string does not change those stores — it applies only
- * to a store the seed has to create, e.g. after the dev database is reset.
+ * Without one the backend gives a new store `randomPassword()` and never returns it
+ * (`DevTestRoutes`), so nobody can sign in as that store and its pack can be reserved but
+ * never redeemed. The `@demo.freshtogo.test` scheme below exists for the same reason: the
+ * endpoint reuses a store by email and never resets its password, so the stores seeded
+ * before this password was added stay unreachable, and a fresh address is the only way past
+ * them.
+ *
+ * Deliberately the same value as the older `demo-<station>-<type>@freshtogo.test` stores that
+ * the retired `scripts/seed-demo.sh` created, so dev has one store password and not two.
  *
  * Committed deliberately: throwaway rows on the dev backend, the endpoint that creates them
  * takes no credentials at all, and production has it unmounted.
@@ -24,7 +29,7 @@ import { SEEDS } from '../webview/demoCatalog'
 const SEED_PASSWORD = 'password123'
 
 export const SEED_PAYLOAD: SeedStoreInput[] = SEEDS.map((seed) => ({
-  email: `${seed.merchant}@freshtogo.test`,
+  email: `${seed.merchant}@demo.freshtogo.test`,
   password: SEED_PASSWORD,
   storeName: seed.store,
   storeAddress: seed.address,
